@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <sys/stat.h>
+#include "dirent.h"
 
 
 using namespace std;
