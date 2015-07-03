@@ -8,15 +8,15 @@
 *.tlog
 
 # Build results
-CNT_Mesh_Project/CNT_Mesh_Project/Debug/
-CNT_Mesh_Project/[Dd]ebug/*
-CNT_Mesh_Project/[Dd]ebugPublic/
-CNT_Mesh_Project/[Rr]elease/
-CNT_Mesh_Project/x64/
-CNT_Mesh_Project/build/
-CNT_Mesh_Project/bld/
-CNT_Mesh_Project/[Bb]in/
-CNT_Mesh_Project/[Oo]bj/
+CNTMC_Project/CNTMC_Project/Debug/
+CNTMC_Project/[Dd]ebug/*
+CNTMC_Project/[Dd]ebugPublic/
+CNTMC_Project/[Rr]elease/
+CNTMC_Project/x64/
+CNTMC_Project/build/
+CNTMC_Project/bld/
+CNTMC_Project/[Bb]in/
+CNTMC_Project/[Oo]bj/
 
 # Roslyn cache directories
 *.ide/
