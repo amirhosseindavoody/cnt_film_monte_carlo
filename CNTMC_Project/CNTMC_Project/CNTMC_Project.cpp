@@ -6,6 +6,7 @@
 #include <string>
 #include <sys/stat.h>
 #include "dirent.h"
+#include <vector>
 
 
 using namespace std;
@@ -56,6 +57,30 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	//Results folder exists and can be accessed
+
+	//grab file list
+	DIR *resDir;
+	struct dirent *ent;
+	vector<string>*  fileList = new vector<string>(0);
+
+	//Check if folder can be opened - should work due to above checks
+	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
+	{
+		//throw away first two results as they are . and ..
+		readdir(resDir);readdir(resDir);
+		//iterate over all of the real files
+		while ((ent = readdir(resDir)) != nullptr)
+		{
+			fileList->push_back(ent->d_name);
+		}
+		closedir(resDir);
+	} else
+	{
+		cout << "Could not open directory. Please tyr program again.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 
 
 
