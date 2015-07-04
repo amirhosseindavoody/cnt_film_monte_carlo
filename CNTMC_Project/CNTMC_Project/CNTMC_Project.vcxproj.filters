@@ -27,12 +27,18 @@
     <ClInclude Include="dirent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CNT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CNTMC_Project.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

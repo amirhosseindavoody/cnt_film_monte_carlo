@@ -6,7 +6,7 @@
 #include <string>
 #include <sys/stat.h>
 #include "dirent.h"
-#include <vector>
+#include <list>
 
 
 using namespace std;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	//grab file list
 	DIR *resDir;
 	struct dirent *ent;
-	vector<string>*  fileList = new vector<string>(0);
+	list<string>*  fileList = new list<string>(0);
 
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 		closedir(resDir);
 	} else
 	{
-		cout << "Could not open directory. Please tyr program again.\n";
+		cout << "Could not open directory. Please try program again.\n";
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
