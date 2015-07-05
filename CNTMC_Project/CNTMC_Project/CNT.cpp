@@ -3,7 +3,7 @@ CNT.cpp
 Stores all relevant information for a carbon nanotube
 
 @author Alex Gabourie
-@version 1.01 4/15/15
+@version 1.00
 */
 
 #include "stdafx.h"
