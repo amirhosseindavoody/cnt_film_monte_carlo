@@ -8,9 +8,11 @@ Purpose: Header for CNT.cpp
 
 #include "stdafx.h"
 #include <string>
+#include <memory>
 
 //a = 1.42*sqrt(3) //Amirhossein said ok
 #define A_CC 2.459512146747806 //lattice constant CNTs
+
 
 using namespace std;
 
@@ -23,14 +25,16 @@ class CNT
 	double tubeSeparation; //Separation between compositional cylinders
 	double minSpacing; //Minimum spacing from one tube to another
 	double diameter; //Diameter of the CNT
-	double *positions; //Array of the cylinder and constraint positions
+	int cntNum;
+	double **positions; //pointing to pointers
+	bool initialized = false; //a way to check if variables were initialized
 
 private:
 	void setDiameter(int n, int m);
 
 public:
-	CNT(string filePath);
-	~CNT();
+	CNT();
+	CNT(const string fileName,const string filePath);
 	double getDiameter();
 	double getLength();
 	double getCylinderHeight();
@@ -38,5 +42,7 @@ public:
 	double getMinSpacing();
 	int getm();
 	int getn();
+	int getCNTNum();
+	bool isInitialized();
 
 };

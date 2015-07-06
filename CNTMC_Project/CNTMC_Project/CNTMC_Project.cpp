@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include "dirent.h"
 #include <list>
+#include "CNT.h"
+#include <vector>
 
 
 using namespace std;
@@ -63,6 +65,7 @@ int main(int argc, char *argv[])
 	DIR *resDir;
 	struct dirent *ent;
 	list<string>*  fileList = new list<string>(0);
+	int numFiles = 0;
 
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
@@ -73,6 +76,7 @@ int main(int argc, char *argv[])
 		while ((ent = readdir(resDir)) != nullptr)
 		{
 			fileList->push_back(ent->d_name);
+			numFiles++;
 		}
 		closedir(resDir);
 	} else
@@ -82,7 +86,14 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	//Iterate through the files and extract
+	vector<CNT> *CNT_List = new vector<CNT>(numFiles);
 
+	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
+	{
+		CNT_List->push_back(CNT(*(it), resultFolderPath));
+	}
+	
 
 	return 0;
 }
