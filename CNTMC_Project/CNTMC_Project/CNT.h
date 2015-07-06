@@ -6,6 +6,9 @@ Purpose: Header for CNT.cpp
 @version 1.00
 */
 
+#ifndef __CNT_H__
+#define __CNT_H__
+
 #include "stdafx.h"
 #include <string>
 #include <memory>
@@ -46,3 +49,5 @@ public:
 	bool isInitialized();
 
 };
+
+#endif

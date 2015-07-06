@@ -115,11 +115,86 @@ CNT::CNT(const string fileName, const string folderPath)
 	//CNT Length, second line
 	getline(file, temp, '\n');
 	{
-		
+		istringstream ss(temp);
+		string len_string = " ";
+		getline(ss, len_string, ',');
+		getline(ss, len_string, ',');
+		try
+		{
+			length = stod(len_string);
+		}
+		catch (runtime_error err)
+		{
+			cout << err.what();
+			cout << "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	//Cylinder height, third line
+	getline(file, temp, '\n');
+	{
+		istringstream ss(temp);
+		string cyl_string = " ";
+		getline(ss, cyl_string, ',');
+		getline(ss, cyl_string, ',');
+		try
+		{
+			cylinderHeight = stod(cyl_string);
+		}
+		catch (runtime_error err)
+		{
+			cout << err.what();
+			cout << "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	//Intertube spacing, fourth line
+	getline(file, temp, '\n');
+	{
+		istringstream ss(temp);
+		string tube_space_string = " ";
+		getline(ss, tube_space_string, ',');
+		getline(ss, tube_space_string, ',');
+		try
+		{
+			minSpacing = stod(tube_space_string);
+		}
+		catch (runtime_error err)
+		{
+			cout << err.what();
+			cout << "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
 	}
 	
-
+	//intercylinder spacing, fifth line
+	getline(file, temp, '\n');
+	{
+		istringstream ss(temp);
+		string cyl_space_string = " ";
+		getline(ss, cyl_space_string, ',');
+		getline(ss, cyl_space_string, ',');
+		try
+		{
+			tubeSeparation = stod(cyl_space_string);
+		}
+		catch (runtime_error err)
+		{
+			cout << err.what();
+			cout << "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
 	
+	//Now that all parameters are extracted, calculate diameter
+	setDiameter(n, m);
+
 
 	initialized = true;
 
