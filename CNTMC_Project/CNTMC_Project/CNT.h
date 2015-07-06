@@ -9,6 +9,9 @@ Purpose: Header for CNT.cpp
 #include "stdafx.h"
 #include <string>
 
+//a = 1.42*sqrt(3) //Amirhossein said ok
+#define A_CC 2.459512146747806 //lattice constant CNTs
+
 using namespace std;
 
 class CNT
