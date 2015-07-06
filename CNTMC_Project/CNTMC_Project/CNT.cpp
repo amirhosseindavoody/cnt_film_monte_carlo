@@ -12,6 +12,9 @@ Stores all relevant information for a carbon nanotube
 #include <math.h>
 #include <regex>
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 
 CNT::CNT()
@@ -40,28 +43,83 @@ in that file.
 */
 CNT::CNT(const string fileName, const string folderPath)
 {
-	//Extract the tube number from the file path
+	string filePath = folderPath + "/" + fileName;
+	regex rgx("\\d+"); //basic_regex instantiation of type char
+	{
+		//Extract the tube number from the file path
 		//filePath is the target sequence
-	regex cnum("\\d+\\s"); //basic_regex instantiation of type char
-	smatch cnumMatch; //match_results for string objects
+		smatch matches; //match_results for string objects
 		//search to see if sequence matches any part of target sequence
-	regex_search(fileName, cnumMatch, cnum);
-	//input checking
-	if (!cnumMatch.empty())
-	{
-		cntNum = stoi(cnumMatch[0]);
-	} 
-	//Cannot extract CNT number from file name.
-	else
-	{
-		cout << "Error: Incorrect file names. File names should look like \"CNT_Num_x.csv\""
-			" where\n \'x\' is a decimal number.\n";
-		system("pause");
-		exit(EXIT_FAILURE);
+		regex_search(fileName, matches, rgx);
+		//input checking
+		if (!matches.empty())
+		{
+			cntNum = stoi(matches[0]);
+		}
+		//Cannot extract CNT number from file name.
+		else
+		{
+			cout << "Error: Incorrect file names. File names should look like \"CNT_Num_x.csv\""
+				" where\n \'x\' is a decimal number.\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
 	}
 	
 
+	//Open .csv file to read.
+	ifstream file(filePath);
+	//Checks if file is open and readable
+	if (!file.good())
+	{
+		cout << "Cannot read " + fileName + "\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	//Can now read the file
+	string temp = " "; //stores intermediate strings during parsing
 
+	//Chirality, first line//
+	getline(file, temp, '\n');
+	{
+		istringstream ss(temp);
+		string chir = " ";
+		getline(ss, chir, ',');
+		getline(ss, chir, ',');
+		rgx.assign("(\\d+)(\\s+)(\\d+)");
+		smatch matches; //match_results for string objects
+		regex_match(chir, matches, rgx);
+		if (!matches.empty())
+		{
+			try{
+				n = stoi(matches[1]);
+				m = stoi(matches[3]);
+			} 
+			catch (runtime_error err)
+			{
+				cout << err.what();
+				cout << "\n";
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+		}
+		//cannot extract chirality 
+		else
+		{
+			cout << "Error: Cannot extract chirality.\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	//CNT Length, second line
+	getline(file, temp, '\n');
+	{
+		
+	}
+	
+
+	
 
 	initialized = true;
 
