@@ -11,6 +11,7 @@ Stores all relevant information for a carbon nanotube
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <regex>
+#include <iostream>
 
 
 CNT::CNT()
@@ -41,11 +42,24 @@ CNT::CNT(const string fileName, const string folderPath)
 {
 	//Extract the tube number from the file path
 		//filePath is the target sequence
-	regex cnum("\\d+"); //basic_regex instantiation of type char
+	regex cnum("\\d+\\s"); //basic_regex instantiation of type char
 	smatch cnumMatch; //match_results for string objects
 		//search to see if sequence matches any part of target sequence
 	regex_search(fileName, cnumMatch, cnum);
-	cntNum = stoi(cnumMatch[0]);
+	//input checking
+	if (!cnumMatch.empty())
+	{
+		cntNum = stoi(cnumMatch[0]);
+	} 
+	//Cannot extract CNT number from file name.
+	else
+	{
+		cout << "Error: Incorrect file names. File names should look like \"CNT_Num_x.csv\""
+			" where\n \'x\' is a decimal number.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	
 
 
 
