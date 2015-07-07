@@ -14,17 +14,21 @@ Purpose: Header for CNT.cpp
 
 #include "stdafx.h"
 #include <string>
-#include <array>
 #include <vector>
+#include <Eigen>
 
 using namespace std;
+using namespace Eigen;
 
 //Stores the position information about 
 struct segment
 {
-	vector<double> p1 = vector<double>(3); //beginning of section point
-	vector<double> p2 = vector<double>(3); //end of section point
-	vector<double> mid = vector<double>(3); //middle of section point
+	//vector<double> p1 = vector<double>(3); //beginning of section point
+	//vector<double> p2 = vector<double>(3); //end of section point
+	//vector<double> mid = vector<double>(3); //middle of section point
+	Vector3d p1;
+	Vector3d p2;
+	Vector3d mid;
 };
 
 // Extracts and stores all of the pertinent information about a CNT
@@ -38,7 +42,7 @@ class CNT
 	double minSpacing; //Minimum spacing from one tube to another
 	double diameter; //Diameter of the CNT
 	int cntNum; //The number associated with the cnt
-	array<vector<double>,3> positions; //2D array storing positions of cylinders and constraints
+	vector<vector<double>> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
 	vector<segment> segs; //The sections of the CNT used to create the MC tables
 
@@ -48,7 +52,7 @@ private:
 
 public:
 	CNT();
-	CNT(const string fileName,const string filePath, double segLen);
+	CNT(const string fileName, const string filePath, double segLenMin);
 	double getDiameter();
 	double getLength();
 	double getCylinderHeight();

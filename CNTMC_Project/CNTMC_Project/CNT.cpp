@@ -16,6 +16,7 @@ Stores all relevant information for a carbon nanotube
 #include <fstream>
 #include <sstream>
 
+
 /**
 Sets the CNT object to some default values. DO NOT USE CNTs CONSTRUCTED
 THIS WAY. This is only to appease the compiling gods.
@@ -32,7 +33,7 @@ CNT::CNT()
 	minSpacing = 0;
 	diameter = 0;
 	cntNum = 0;
-	//positions already has default value
+	positions = vector<vector<double>>(3);
 
 }
 /**
@@ -209,6 +210,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	} 
 
 	//With posNum defined, can initialize the positions array
+	positions = vector<vector<double>>(3);
 	for (int i = 0; i < 3; i++)
 	{
 		positions[i].resize(posNum);
@@ -253,6 +255,18 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 			exit(EXIT_FAILURE);
 		}
 
+	}
+
+	//Calculate the segments needed for table generation
+	segs = calculateSegments(segLen);
+	//Checks to see if some segments were calculated
+	if (segs.empty())
+	{
+		cout << "Error: No segments calculated for tube number: ";
+		cout << cntNum;
+		cout << "\n";
+		system("pause");
+		exit(EXIT_FAILURE);
 	}
 
 	initialized = true;
@@ -377,7 +391,21 @@ Calculates the segments used for the MC simulations
 @param segLen The desired length of the segments
 @return Vector of the segments
 */
-vector<segment> CNT::calculateSegments(double segLen)
+vector<segment> CNT::calculateSegments(double segLenMin)
 {
-	
+	//number of segments to use
+	int numSegs = static_cast<int>( length / segLenMin); 
+	//extra length past numSegs*segLenMin, important for expanding segLen
+	double extra = length - segLenMin*numSegs;
+	//The equally lengthed segment lengths
+	double segLen = segLenMin + extra / numSegs;
+
+	//create a starting position for the segments and set it to first point
+	vector<double> startPos(3);
+	//first point takes some calculations since we are given only center of mass
+	// and constraint positions
+	//vector<double> 
+
+
+	return vector<segment>(2);
 }
