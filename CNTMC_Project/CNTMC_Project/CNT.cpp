@@ -42,7 +42,7 @@ in that file.
 @param filePath The path of the file containing the CNT info
 @return CNT Object
 */
-CNT::CNT(const string fileName, const string folderPath)
+CNT::CNT(const string fileName, const string folderPath, double segLen)
 {
 	string filePath = folderPath + "/" + fileName;
 	regex rgx("\\d+"); //basic_regex instantiation of type char
@@ -371,3 +371,13 @@ bool CNT::isInitialized()
 	return initialized;
 }
  
+/**
+Calculates the segments used for the MC simulations
+
+@param segLen The desired length of the segments
+@return Vector of the segments
+*/
+vector<segment> CNT::calculateSegments(double segLen)
+{
+	
+}

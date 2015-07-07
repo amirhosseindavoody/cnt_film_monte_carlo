@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
-		CNT_List->push_back(CNT(*(it), resultFolderPath));
+		CNT_List->push_back(CNT(*(it), resultFolderPath,10.0));
 	}
 
 	//Extra check to ensure that all initilizations were successful
@@ -105,7 +105,6 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
-	
 
 	return 0;
 }

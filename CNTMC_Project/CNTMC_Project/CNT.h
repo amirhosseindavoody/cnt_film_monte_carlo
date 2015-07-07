@@ -19,6 +19,15 @@ Purpose: Header for CNT.cpp
 
 using namespace std;
 
+//Stores the position information about 
+struct segment
+{
+	vector<double> p1 = vector<double>(3); //beginning of section point
+	vector<double> p2 = vector<double>(3); //end of section point
+	vector<double> mid = vector<double>(3); //middle of section point
+};
+
+// Extracts and stores all of the pertinent information about a CNT
 class CNT
 {
 	int n; //Hamada n parameter
@@ -31,13 +40,15 @@ class CNT
 	int cntNum; //The number associated with the cnt
 	array<vector<double>,3> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
+	vector<segment> segs; //The sections of the CNT used to create the MC tables
 
 private:
 	void setDiameter(int n, int m);
+	vector<segment> calculateSegments(double segLen);
 
 public:
 	CNT();
-	CNT(const string fileName,const string filePath);
+	CNT(const string fileName,const string filePath, double segLen);
 	double getDiameter();
 	double getLength();
 	double getCylinderHeight();
@@ -49,5 +60,7 @@ public:
 	bool isInitialized();
 
 };
+
+
 
 #endif
