@@ -9,6 +9,7 @@
 #include <list>
 #include "CNT.h"
 #include <vector>
+#include <memory>
 
 
 using namespace std;
@@ -63,9 +64,8 @@ int main(int argc, char *argv[])
 
 	//grab file list
 	DIR *resDir;
-	struct dirent *ent;
-	list<string>*  fileList = new list<string>(0);
-	int numFiles = 0;
+	struct dirent *ent = nullptr;
+	unique_ptr<list<string>>  fileList(new list<string>(0));
 
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
@@ -76,22 +76,34 @@ int main(int argc, char *argv[])
 		while ((ent = readdir(resDir)) != nullptr)
 		{
 			fileList->push_back(ent->d_name);
-			numFiles++;
 		}
-		closedir(resDir);
+		closedir(resDir); //deletes pointer
 	} else
 	{
 		cout << "Could not open directory. Please try program again.\n";
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
+	delete ent;
+
 
 	//Iterate through the files and extract
-	vector<CNT> *CNT_List = new vector<CNT>(numFiles);
+	unique_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
 		CNT_List->push_back(CNT(*(it), resultFolderPath));
+	}
+
+	//Extra check to ensure that all initilizations were successful
+	for (vector<CNT>::iterator it = CNT_List->begin(); it != CNT_List->end(); ++it)
+	{
+		if (!(*it).isInitialized())
+		{
+			cout << "CNT initialization failure.\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
 	}
 	
 
@@ -129,6 +141,6 @@ string folderPathPrompt(bool incorrect)
 		cin.ignore(); //if reentering, must ignore the next input
 	cin.getline(inputResultsFolderPathArray, inputPathLengthMax);
 	returnString = inputResultsFolderPathArray;
-	delete inputResultsFolderPathArray;
+	delete[] inputResultsFolderPathArray;
 	return returnString;
 }

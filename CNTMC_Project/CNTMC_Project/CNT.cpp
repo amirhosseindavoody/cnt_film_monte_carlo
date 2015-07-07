@@ -16,7 +16,12 @@ Stores all relevant information for a carbon nanotube
 #include <fstream>
 #include <sstream>
 
+/**
+Sets the CNT object to some default values. DO NOT USE CNTs CONSTRUCTED
+THIS WAY. This is only to appease the compiling gods.
 
+@return CNT Object
+*/
 CNT::CNT()
 {
 	n = 0;
@@ -27,12 +32,8 @@ CNT::CNT()
 	minSpacing = 0;
 	diameter = 0;
 	cntNum = 0;
-	//positions points to a list of pointers of type double
-	positions = new double*[3];
-	/*for (int i = 0; i < 3; i++)
-	{
-		positions[i] = new double[2];
-	}*/
+	//positions already has default value
+
 }
 /**
 Reads a CNT file and creates a CNT object with all the information stored
@@ -208,10 +209,9 @@ CNT::CNT(const string fileName, const string folderPath)
 	} 
 
 	//With posNum defined, can initialize the positions array
-	positions = new double*[3]; //positions is a pointer to an array of pointers
 	for (int i = 0; i < 3; i++)
 	{
-		positions[i] = new double[posNum];
+		positions[i].resize(posNum);
 	}
 
 	//Position arrays have been defined. Restart file and go to positions again

@@ -9,12 +9,13 @@ Purpose: Header for CNT.cpp
 #ifndef __CNT_H__
 #define __CNT_H__
 
-#include "stdafx.h"
-#include <string>
-
 //a = 1.42*sqrt(3) //Amirhossein said ok
 #define A_CC 2.459512146747806 //lattice constant CNTs
 
+#include "stdafx.h"
+#include <string>
+#include <array>
+#include <vector>
 
 using namespace std;
 
@@ -27,8 +28,8 @@ class CNT
 	double tubeSeparation; //Separation between compositional cylinders
 	double minSpacing; //Minimum spacing from one tube to another
 	double diameter; //Diameter of the CNT
-	int cntNum;
-	double **positions; //pointing to pointers
+	int cntNum; //The number associated with the cnt
+	array<vector<double>,3> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
 
 private:
