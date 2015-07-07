@@ -195,6 +195,65 @@ CNT::CNT(const string fileName, const string folderPath)
 	//Now that all parameters are extracted, calculate diameter
 	setDiameter(n, m);
 
+	//move past coordinate labels line
+	getline(file, temp, '\n');
+
+	//Counting line loop
+	int posNum = -1; //count of positions, negative b/c while loop exits
+						//after going an extra line
+	while (!file.eof())
+	{
+		getline(file, temp,'\n');
+		posNum++;
+	} 
+
+	//With posNum defined, can initialize the positions array
+	positions = new double*[3]; //positions is a pointer to an array of pointers
+	for (int i = 0; i < 3; i++)
+	{
+		positions[i] = new double[posNum];
+	}
+
+	//Position arrays have been defined. Restart file and go to positions again
+	file.clear(); //reset state flags
+	file.seekg(0); //move to beginning of file
+	//move to correct line to start position parsing
+	for (int i = 0; i < 6; i++)
+	{
+		getline(file, temp, '\n');
+	}
+
+	string currPos = " ";
+	for (int i = 0; i < posNum && file.good(); i++)
+	{
+		//get next line
+		getline(file, temp, '\n');
+		//check if we're done
+		if (file.eof())
+		{
+			break;
+		}
+		
+		//Grab all of the position data
+		try
+		{
+			istringstream ss(temp);
+			getline(ss, currPos, ',');
+			positions[0][i] = stod(currPos);
+			getline(ss, currPos, ',');
+			positions[1][i] = stod(currPos);
+			getline(ss, currPos, ',');
+			positions[2][i] = stod(currPos);
+		} 
+		catch (runtime_error err)
+		{
+			cout << err.what();
+			cout << "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+	}
 
 	initialized = true;
 
