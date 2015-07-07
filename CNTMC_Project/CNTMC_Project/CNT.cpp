@@ -33,6 +33,7 @@ CNT::CNT()
 	minSpacing = 0;
 	diameter = 0;
 	cntNum = 0;
+	numPt = 0;
 	positions = vector<vector<double>>(3);
 
 }
@@ -208,7 +209,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		getline(file, temp,'\n');
 		posNum++;
 	} 
-
+	numPt = posNum; //assign count to instance variable
 	//With posNum defined, can initialize the positions array
 	positions = vector<vector<double>>(3);
 	for (int i = 0; i < 3; i++)
@@ -401,11 +402,33 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 	double segLen = segLenMin + extra / numSegs;
 
 	//create a starting position for the segments and set it to first point
-	vector<double> startPos(3);
+	Vector3d firstPos;
 	//first point takes some calculations since we are given only center of mass
 	// and constraint positions
-	//vector<double> 
+	{
+		Vector3d r1 = getPoint(0);
+		Vector3d slope = getPoint(1) - r1;
+		//calculations checked and are correct
+		firstPos = r1 - slope*(cylinderHeight / (cylinderHeight + tubeSeparation));
+	}
 
 
 	return vector<segment>(2);
+}
+
+Vector3d CNT::getPoint(int idx)
+{
+	Vector3d retVec;
+	if (idx < 0 || idx > numPt - 1)
+	{
+		cout << "Invalid index used to access CNT position data.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	
+	retVec(0, 0) = positions[0][idx];
+	retVec(1, 0) = positions[1][idx];
+	retVec(2, 0) = positions[2][idx];
+
+	return retVec;
 }

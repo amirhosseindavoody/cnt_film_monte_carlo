@@ -45,10 +45,12 @@ class CNT
 	vector<vector<double>> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
 	vector<segment> segs; //The sections of the CNT used to create the MC tables
+	int numPt; // the number of points in the csv file
 
 private:
 	void setDiameter(int n, int m);
 	vector<segment> calculateSegments(double segLen);
+	Vector3d CNT::getPoint(int idx);
 
 public:
 	CNT();
