@@ -19,15 +19,15 @@ class tableElem
 
 private:
 	void setRate();
-
-public:
-	tableElem(double rnew, double t, double g, int tube, int seg);
-	~tableElem();
 	void setr(double rnew);
 	void setTheta(double t);
 	void setGamma(double g);
 	void setTubeNum(int num);
 	void setSegNum(int num);
+
+public:
+	tableElem(double rnew, double t, double g, int tube, int seg);
+	~tableElem();
 	double getRate();
 	double getr();
 	double getTheta();
