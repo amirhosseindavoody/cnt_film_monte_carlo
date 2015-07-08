@@ -1,0 +1,31 @@
+
+//Put at very end of constructor of CNT class to check if segments match up with the actual 
+string pathjon = "C:/Users/Gabory/Dropbox/Research/OutputFiles/positions.csv";
+	ofstream f;
+	f.open(pathjon);
+	for (int i = 0; i < segs.size(); i++)
+	{
+		segment ts = segs[i];
+		f << ts.p1(0, 0);
+		f << ",";
+		f << ts.p1(1, 0);
+		f << ",";
+		f << ts.p1(2, 0);
+		f << "\n";
+		f << ts.mid(0, 0);
+		f << ",";
+		f << ts.mid(1, 0);
+		f << ",";
+		f << ts.mid(2, 0);
+		f << "\n";
+	
+	}
+	segment ts = segs[segs.size()-1];
+	f << ts.p2(0, 0);
+	f << ",";
+	f << ts.p2(1, 0);
+	f << ",";
+	f << ts.p2(2, 0);
+	f << "\n";
+
+	f.close();
