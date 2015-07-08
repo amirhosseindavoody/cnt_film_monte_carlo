@@ -418,13 +418,10 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 	vector<segment> retVec = vector<segment>(numSegs);
 
 	//create a starting position for the segments and set it to first point
-	Vector3d firstPos;
+	Vector3d firstPos = calcEndPt(0, -cylinderHeight);
+
 	//Length that has been covered since the end of the previous section
-	double currLen;
-	firstPos = calcEndPt(0, -cylinderHeight);
-	currLen = (getPoint(0) - firstPos).norm();
-
-
+	double currLen = 0;
 	int currSeg = 0;
 	bool finalSeg = false;
 	//calculate the rest of the points for the remaining segments
@@ -455,7 +452,7 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 		retVec[currSeg].mid = currPos;
 		i++;
 
-		currSeg = 0; //reset the current seg length
+		currLen = 0; //reset the current seg length
 		while (currLen < segLen)
 		{
 			nextPos = getPoint(i); //get next point
@@ -482,6 +479,7 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 			}
 			firstPos = calcEndPt(i, extra);
 			retVec[currSeg].p2 = firstPos;
+			currLen = 0;
 		} 
 		else //final segment needs to 
 		{
