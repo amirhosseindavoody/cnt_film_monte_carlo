@@ -394,26 +394,110 @@ Calculates the segments used for the MC simulations
 */
 vector<segment> CNT::calculateSegments(double segLenMin)
 {
+	//parameter check
+	if (length < segLenMin)
+	{
+		cout << "Error: Tube length is smaller than minimum segment length.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	else if (segLenMin <= 0)
+	{
+		cout << "Error: Minimum segment length must be positive.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 	//number of segments to use
 	int numSegs = static_cast<int>( length / segLenMin); 
 	//extra length past numSegs*segLenMin, important for expanding segLen
 	double extra = length - segLenMin*numSegs;
-	//The equally lengthed segment lengths
-	double segLen = segLenMin + extra / numSegs;
+	//The equally lengthed segment lengths, half the length of total segment
+	double segLen = (segLenMin + extra / numSegs) / 2.0;
+
+	//return value for the function
+	vector<segment> retVec = vector<segment>(numSegs);
 
 	//create a starting position for the segments and set it to first point
 	Vector3d firstPos;
-	//first point takes some calculations since we are given only center of mass
-	// and constraint positions
+	//Length that has been covered since the end of the previous section
+	double currLen;
+	firstPos = calcEndPt(0, -cylinderHeight);
+	currLen = (getPoint(0) - firstPos).norm();
+
+
+	int currSeg = 0;
+	bool finalSeg = false;
+	//calculate the rest of the points for the remaining segments
+	for (int i = 0; i < numPt && currSeg < numSegs; i++)
 	{
-		Vector3d r1 = getPoint(0);
-		Vector3d slope = getPoint(1) - r1;
-		//calculations checked and are correct
-		firstPos = r1 - slope*(cylinderHeight / (cylinderHeight + tubeSeparation));
+		retVec[currSeg].p1 = firstPos;
+		Vector3d currPos = firstPos; //curr point being analyzed
+		Vector3d nextPos; //next curr point to be analyzed
+		double currSecLen = 0; //amount of space between currPos and nextPos
+		while (currLen < segLen)
+		{
+			nextPos = getPoint(i); //get next point
+			currSecLen = (currPos - nextPos).norm();
+			currLen += currSecLen;//add length due to point to curLen
+			currPos = getPoint(i); //set up for next iteration
+			i++; //move to next point
+		}
+		i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
+		currLen -= currSecLen; //take off last addition
+		extra = segLen - currLen;
+		if (extra < 0)
+		{
+			cout << "Calculation of segments failed due to negative extra parameter.\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		currPos = calcEndPt(i, extra);
+		retVec[currSeg].mid = currPos;
+		i++;
+
+		currSeg = 0; //reset the current seg length
+		while (currLen < segLen)
+		{
+			nextPos = getPoint(i); //get next point
+			currSecLen = (currPos - nextPos).norm();
+			currLen += currSecLen;//add length due to point to curLen
+			currPos = getPoint(i); //set up for next iteration
+			i++; //move to next point
+			if (i == numPt) //checking for final point
+			{
+				finalSeg = true;
+				break;
+			}
+		}
+		//proceed as usual if not the final segment
+		if (!finalSeg){
+			i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
+			currLen -= currSecLen; //take off last addition
+			extra = segLen - currLen;
+			if (extra < 0)
+			{
+				cout << "Calculation of segments failed due to negative extra parameter.\n";
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			firstPos = calcEndPt(i, extra);
+			retVec[currSeg].p2 = firstPos;
+		} 
+		else //final segment needs to 
+		{
+			retVec[currSeg].p2 = calcEndPt(i, -cylinderHeight);
+		}
+		currSeg++;
 	}
 
+	if (!(currSeg == numSegs))
+	{
+		cout << "Error: Number of calculated segments not as expected.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 
-	return vector<segment>(2);
+	return retVec;
 }
 
 Vector3d CNT::getPoint(int idx)
@@ -430,5 +514,22 @@ Vector3d CNT::getPoint(int idx)
 	retVec(1, 0) = positions[1][idx];
 	retVec(2, 0) = positions[2][idx];
 
+	return retVec;
+}
+
+Vector3d CNT::calcEndPt(int idx, double extra)
+{
+	Vector3d retVec;
+	if (idx < 0 || idx > numPt - 1)
+	{
+		cout << "Invalid index used to access CNT position data.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+
+	Vector3d r1 = getPoint(idx);
+	Vector3d slope = getPoint(idx+1) - r1;
+	//calculations checked and are correct
+	retVec = r1 + slope*(extra / (cylinderHeight + tubeSeparation));
 	return retVec;
 }

@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
-		CNT_List->push_back(CNT(*(it), resultFolderPath,10.0));
+		CNT_List->push_back(CNT(*(it), resultFolderPath,100.0));
 	}
 
 	//Extra check to ensure that all initilizations were successful

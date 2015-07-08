@@ -51,10 +51,11 @@ private:
 	void setDiameter(int n, int m);
 	vector<segment> calculateSegments(double segLen);
 	Vector3d CNT::getPoint(int idx);
+	Vector3d CNT::calcEndPt(int idx, double extra);
 
 public:
 	CNT();
-	CNT(const string fileName, const string filePath, double segLenMin);
+	CNT(const string fileName, const string filePath, double segLenMin); //segLenMin in Angstroms
 	double getDiameter();
 	double getLength();
 	double getCylinderHeight();
