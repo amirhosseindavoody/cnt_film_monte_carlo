@@ -2,14 +2,20 @@
 #include "tableElem.h"
 
 
+
 /**
 Creates table element object
 
 @return tableElem Object
 */
-tableElem::tableElem()
+tableElem::tableElem(double rnew, double t, double g, int tube, int seg)
 {
-	
+	setr(rnew);
+	setTheta(t);
+	setGamma(g);
+	setRate();
+	setTubeNum(tube);
+	setSegNum(seg);
 }
 
 /**
@@ -18,6 +24,12 @@ Destructor for class
 tableElem::~tableElem()
 {
 }
+
+void tableElem::setRate()
+{
+	gammaTot = gamma*cos(theta) / pow(r, 6);
+}
+
 
 /**
 Sets the distance r
@@ -106,13 +118,67 @@ Gets the total transition rate based on gamma, r, and theta
 */
 double tableElem::getRate()
 {
-	return gamma*cos(theta) / pow(r, 6);
+	return gammaTot;
 }
 
 /**
-Sets the distance r
+Gets r value
 
-@param rnew Distance between one seg to other
+@return r value
+*/
+double tableElem::getr()
+{
+	return r;
+}
+
+/**
+Gets theta value
+
+@return theta value
+*/
+double tableElem::getTheta()
+{
+	return theta;
+}
+
+/**
+Gets gamma value
+
+@return gamma value
+*/
+double tableElem::getGamma()
+{
+	return gamma;
+}
+
+/**
+Gets tube number
+
+@return tube number
+*/
+int tableElem::getTubeNum()
+{
+	return tubeNum;
+}
+
+/**
+Gets the segment number
+
+@return segment number
+*/
+int tableElem::getSegNum()
+{
+	return segNum;
+}
+
+
+/**
+Calculates distance between two segments
+
+@param v1 first segment center
+@param v2 second segment center
+
+@return The distance between v1 and v2
 */
 double tableElem::calcDist(Vector3d v1, Vector3d v2)
 {
@@ -120,13 +186,17 @@ double tableElem::calcDist(Vector3d v1, Vector3d v2)
 }
 
 /**
-Sets the distance r
+Calculates the angle between two vectors
 
-@param rnew Distance between one seg to other
+@param s1 first segment
+@param s2 second segment
 */
-double tableElem::calcThet(Vector3d v1, Vector3d v2)
+double tableElem::calcThet(segment s1, segment s2)
 {
-	return acos(v1.dot(v2) / (v1.norm()*v2.norm()));
+	Vector3d v1 = s1.p2 - s1.p1;
+	Vector3d v2 = s2.p2 - s2.p1;
+	return acos(v1.dot(v2) / (v1.norm()*v2.norm())); //range 0 to pi
+
 }
 
 
