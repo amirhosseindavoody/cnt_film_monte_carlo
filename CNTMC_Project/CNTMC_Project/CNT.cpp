@@ -426,6 +426,7 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 	//calculate the rest of the points for the remaining segments
 	for (int i = 0; i < numPt && currSeg < numSegs; i++)
 	{
+		retVec[currSeg].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
 		retVec[currSeg].p1 = firstPos;
 		Vector3d currPos = firstPos; //curr point being analyzed
 		Vector3d nextPos; //next curr point to be analyzed
