@@ -17,7 +17,7 @@ using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<vector<tableElem>> tblEl);
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg);
 
 int main(int argc, char *argv[])
 {
@@ -119,16 +119,23 @@ int main(int argc, char *argv[])
 	{
 		for (vector<segment>::iterator segit = cntit->segs.begin(); segit != cntit->segs.end(); ++segit)
 		{
-			updateSegTable(CNT_List, segit->tbl);
+			shared_ptr<segment> temp(&(*segit));
+			updateSegTable(CNT_List, temp);
 		}
 	}
 
 	return 0;
 }
 
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<vector<tableElem>> tblEl)
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg)
 {
-	string yo = "dude man";
+	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	{
+		for (vector<segment>::iterator segit = cntit->segs.begin(); segit != cntit->segs.end(); ++segit)
+		{
+			seg->tbl->push_back(tableElem());
+		}
+	}
 }
 
 /**
