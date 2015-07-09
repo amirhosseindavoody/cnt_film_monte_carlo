@@ -37,6 +37,6 @@ public:
 	int getTubeNum();
 	int getSegNum();
 	static double calcDist(Vector3d v1, Vector3d v2);
-	static double calcThet(segment s1, segment s2);
+	static double calcThet(shared_ptr<segment> s1, shared_ptr<segment> s2);
 };
 

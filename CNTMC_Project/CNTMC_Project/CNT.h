@@ -27,6 +27,7 @@ class tableElem; //class def to avoid circular dependency
 //Stores the position information about 
 struct segment
 {
+	int segNum;
 	Vector3d p1; //first point in segment
 	Vector3d p2; //second point in segment
 	Vector3d mid; //middle point in segment
@@ -50,7 +51,7 @@ class CNT
 
 private:
 	void setDiameter(int n, int m);
-	vector<segment> calculateSegments(double segLen);
+	shared_ptr<vector<segment>> calculateSegments(double segLen);
 	Vector3d CNT::getPoint(int idx);
 	Vector3d CNT::calcEndPt(int idx, double extra);
 
@@ -66,7 +67,7 @@ public:
 	int getn();
 	int getCNTNum();
 	bool isInitialized();
-	vector<segment> segs; //The sections of the CNT used to create the MC tables
+	shared_ptr<vector<segment>> segs; //The sections of the CNT used to create the MC tables
 };
 
 #endif

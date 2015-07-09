@@ -17,7 +17,7 @@ using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg);
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg, double maxDist);
 
 int main(int argc, char *argv[])
 {
@@ -115,25 +115,39 @@ int main(int argc, char *argv[])
 	*/
 
 	//iterate through all of the CNTs and segments
+	double maxDist = 500; //[Angstroms]
+	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
-		for (vector<segment>::iterator segit = cntit->segs.begin(); segit != cntit->segs.end(); ++segit)
+		//loop over segments in each CNTs
+		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
+			//get add to each segment relelant table entries
 			shared_ptr<segment> temp(&(*segit));
-			updateSegTable(CNT_List, temp);
+			updateSegTable(CNT_List, temp, maxDist);
 		}
 	}
 
 	return 0;
 }
 
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg)
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg, double maxDist)
 {
+	//iterate over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
-		for (vector<segment>::iterator segit = cntit->segs.begin(); segit != cntit->segs.end(); ++segit)
+		//iterate over all segments considered for seg
+		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			seg->tbl->push_back(tableElem());
+			double r;
+			//Check if within range
+			if ( (r = tableElem::calcDist(seg->mid, segit->mid)) <= maxDist)
+			{
+				shared_ptr<segment> temp(&(*segit)); //smart pointer to seg
+				double theta = tableElem::calcThet(seg, temp);
+				double g = 6.4000e+19; //First draft estimate
+				seg->tbl->push_back(tableElem(r,theta,g,cntit->getCNTNum()-1,));
+			}
 		}
 	}
 }

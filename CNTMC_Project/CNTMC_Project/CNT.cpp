@@ -260,7 +260,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	//Calculate the segments needed for table generation
 	segs = calculateSegments(segLen);
 	//Checks to see if some segments were calculated
-	if (segs.empty())
+	if (segs->empty())
 	{
 		cout << "Error: No segments calculated for tube number: ";
 		cout << cntNum;
@@ -391,7 +391,7 @@ Calculates the segments used for the MC simulations
 @param segLen The desired length of the segments
 @return Vector of the segments
 */
-vector<segment> CNT::calculateSegments(double segLenMin)
+shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 {
 	//parameter check
 	if (length < segLenMin)
@@ -414,7 +414,7 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 	double segLen = (segLenMin + extra / numSegs) / 2.0;
 
 	//return value for the function
-	vector<segment> retVec = vector<segment>(numSegs);
+	shared_ptr<vector<segment>> retVec(new vector<segment>(numSegs));
 
 	//create a starting position for the segments and set it to first point
 	Vector3d firstPos = calcEndPt(0, -cylinderHeight);
@@ -426,8 +426,10 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 	//calculate the rest of the points for the remaining segments
 	for (int i = 0; i < numPt && currSeg < numSegs; i++)
 	{
-		retVec[currSeg].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		retVec[currSeg].p1 = firstPos;
+		//need to initialize the tbl vector otherwise nothing can be assigned to it
+		(*retVec)[currSeg].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
+		(*retVec)[currSeg].segNum = currSeg;
+		(*retVec)[currSeg].p1 = firstPos;
 		Vector3d currPos = firstPos; //curr point being analyzed
 		Vector3d nextPos; //next curr point to be analyzed
 		double currSecLen = 0; //amount of space between currPos and nextPos
@@ -449,7 +451,7 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 			exit(EXIT_FAILURE);
 		}
 		currPos = calcEndPt(i, extra);
-		retVec[currSeg].mid = currPos;
+		(*retVec)[currSeg].mid = currPos;
 		i++;
 
 		currLen = 0; //reset the current seg length
@@ -478,12 +480,12 @@ vector<segment> CNT::calculateSegments(double segLenMin)
 				exit(EXIT_FAILURE);
 			}
 			firstPos = calcEndPt(i, extra);
-			retVec[currSeg].p2 = firstPos;
+			(*retVec)[currSeg].p2 = firstPos;
 			currLen = 0;
 		} 
 		else //final segment needs to 
 		{
-			retVec[currSeg].p2 = calcEndPt(i, -cylinderHeight);
+			(*retVec)[currSeg].p2 = calcEndPt(i, -cylinderHeight);
 		}
 		currSeg++;
 	}
