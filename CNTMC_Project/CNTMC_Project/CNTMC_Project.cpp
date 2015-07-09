@@ -10,12 +10,14 @@
 #include "CNT.h"
 #include <vector>
 #include <memory>
+#include "tableElem.h"
 
 
 using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<vector<tableElem>> tblEl);
 
 int main(int argc, char *argv[])
 {
@@ -88,7 +90,7 @@ int main(int argc, char *argv[])
 
 
 	//Iterate through the files and extract
-	unique_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
+	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
@@ -106,7 +108,27 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/*
+	Building the table: Each CNT has a list of segments which has an empty list of table element objects.
+	The next section will be filling the segments vector of table elements by calculating the necessary
+	additions to it.
+	*/
+
+	//iterate through all of the CNTs and segments
+	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	{
+		for (vector<segment>::iterator segit = cntit->segs.begin(); segit != cntit->segs.end(); ++segit)
+		{
+			updateSegTable(CNT_List, segit->tbl);
+		}
+	}
+
 	return 0;
+}
+
+void updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<vector<tableElem>> tblEl)
+{
+	string yo = "dude man";
 }
 
 /**

@@ -257,7 +257,6 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		}
 
 	}
-
 	//Calculate the segments needed for table generation
 	segs = calculateSegments(segLen);
 	//Checks to see if some segments were calculated

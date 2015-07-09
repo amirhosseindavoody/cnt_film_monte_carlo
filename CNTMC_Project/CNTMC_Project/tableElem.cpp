@@ -1,8 +1,17 @@
 #include "stdafx.h"
 #include "tableElem.h"
+#include <iostream>
 
 
-
+tableElem::tableElem()
+{
+	setr(1);
+	setTheta(0);
+	setGamma(0);
+	setRate();
+	setTubeNum(0);
+	setSegNum(0);
+}
 /**
 Creates table element object
 

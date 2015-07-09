@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Eigen>
-#include <iostream>
 #include "CNT.h"
 
 using namespace std;
 using namespace Eigen;
+
+struct segment;
 
 class tableElem
 { 
@@ -26,6 +27,7 @@ private:
 	void setSegNum(int num);
 
 public:
+	tableElem();
 	tableElem(double rnew, double t, double g, int tube, int seg);
 	~tableElem();
 	double getRate();
