@@ -126,14 +126,6 @@ int main(int argc, char *argv[])
 			updateSegTable(CNT_List, segit, maxDist);
 		}
 	}
-	//for (int cntit = 0; cntit < CNT_List->size(); cntit++)
-	//{
-	//	int numSeg = (*CNT_List)[cntit].segs->size();
-	//	for (int segit = 0; segit < numSeg; segit++)
-	//	{
-	//		updateSegTable(CNT_List,)
-	//	}
-	//}
 
 	return 0;
 }

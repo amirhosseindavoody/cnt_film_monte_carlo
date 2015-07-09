@@ -462,7 +462,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 			currLen += currSecLen;//add length due to point to curLen
 			currPos = getPoint(i); //set up for next iteration
 			i++; //move to next point
-			if (i == numPt) //checking for final point
+			if (i == numPt-1) //checking for final point
 			{
 				finalSeg = true;
 				break;
@@ -485,7 +485,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 		} 
 		else //final segment needs to 
 		{
-			(*retVec)[currSeg].p2 = calcEndPt(i, -cylinderHeight);
+			(*retVec)[currSeg].p2 = calcFinalEndPt(i, -cylinderHeight);
 		}
 		currSeg++;
 	}
@@ -529,6 +529,23 @@ Vector3d CNT::calcEndPt(int idx, double extra)
 
 	Vector3d r1 = getPoint(idx);
 	Vector3d slope = getPoint(idx+1) - r1;
+	//calculations checked and are correct
+	retVec = r1 + slope*(extra / (cylinderHeight + tubeSeparation));
+	return retVec;
+}
+
+Vector3d CNT::calcFinalEndPt(int idx, double extra)
+{
+	Vector3d retVec;
+	if (idx < 0 || idx > numPt - 1)
+	{
+		cout << "Invalid index used to access CNT position data.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+
+	Vector3d r1 = getPoint(idx);
+	Vector3d slope = getPoint(idx - 1) - r1;
 	//calculations checked and are correct
 	retVec = r1 + slope*(extra / (cylinderHeight + tubeSeparation));
 	return retVec;
