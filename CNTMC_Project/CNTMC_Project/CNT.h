@@ -54,7 +54,7 @@ private:
 	shared_ptr<vector<segment>> calculateSegments(double segLen);
 	Vector3d CNT::getPoint(int idx);
 	Vector3d CNT::calcEndPt(int idx, double extra);
-	Vector3d CNT::calcFinalEndPt(int idx, double extra);
+	Vector3d CNT::calcFinalEndPt(int idx);
 
 public:
 	CNT();

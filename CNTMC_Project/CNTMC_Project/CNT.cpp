@@ -259,6 +259,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	}
 	//Calculate the segments needed for table generation
 	segs = calculateSegments(segLen);
+
 	//Checks to see if some segments were calculated
 	if (segs->empty())
 	{
@@ -417,32 +418,37 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 	shared_ptr<vector<segment>> retVec(new vector<segment>(numSegs));
 
 	//create a starting position for the segments and set it to first point
-	Vector3d firstPos = calcEndPt(0, -cylinderHeight);
+	Vector3d firstPos = calcEndPt(0, -cylinderHeight/2.0);
 
 	//Length that has been covered since the end of the previous section
 	double currLen = 0;
 	int currSeg = 0;
 	bool finalSeg = false;
+	//double segLenDeb = 0; //Debug parameter for total segment length checking
 	//calculate the rest of the points for the remaining segments
 	for (int i = 0; i < numPt && currSeg < numSegs; i++)
 	{
 		//need to initialize the tbl vector otherwise nothing can be assigned to it
 		(*retVec)[currSeg].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
 		(*retVec)[currSeg].segNum = currSeg;
+		
 		(*retVec)[currSeg].p1 = firstPos;
 		Vector3d currPos = firstPos; //curr point being analyzed
 		Vector3d nextPos; //next curr point to be analyzed
 		double currSecLen = 0; //amount of space between currPos and nextPos
+		//segLenDeb = 0;
 		while (currLen < segLen)
 		{
 			nextPos = getPoint(i); //get next point
 			currSecLen = (currPos - nextPos).norm();
 			currLen += currSecLen;//add length due to point to curLen
+			//segLenDeb += currSecLen;
 			currPos = getPoint(i); //set up for next iteration
 			i++; //move to next point
 		}
 		i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
 		currLen -= currSecLen; //take off last addition
+		//segLenDeb -= currSecLen;
 		extra = segLen - currLen;
 		if (extra < 0)
 		{
@@ -451,6 +457,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 			exit(EXIT_FAILURE);
 		}
 		currPos = calcEndPt(i, extra);
+		//segLenDeb += (currPos - getPoint(i)).norm();
 		(*retVec)[currSeg].mid = currPos;
 		i++;
 
@@ -460,9 +467,10 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 			nextPos = getPoint(i); //get next point
 			currSecLen = (currPos - nextPos).norm();
 			currLen += currSecLen;//add length due to point to curLen
+			//segLenDeb += currSecLen;
 			currPos = getPoint(i); //set up for next iteration
 			i++; //move to next point
-			if (i == numPt-1) //checking for final point
+			if (i == numPt) //checking for final point, ==numPt because of i++
 			{
 				finalSeg = true;
 				break;
@@ -472,6 +480,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 		if (!finalSeg){
 			i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
 			currLen -= currSecLen; //take off last addition
+			//segLenDeb -= currSecLen;
 			extra = segLen - currLen;
 			if (extra < 0)
 			{
@@ -480,12 +489,13 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 				exit(EXIT_FAILURE);
 			}
 			firstPos = calcEndPt(i, extra);
+			//segLenDeb += (firstPos - getPoint(i)).norm();
 			(*retVec)[currSeg].p2 = firstPos;
 			currLen = 0;
 		} 
 		else //final segment needs to 
 		{
-			(*retVec)[currSeg].p2 = calcFinalEndPt(i, -cylinderHeight);
+			(*retVec)[currSeg].p2 = calcFinalEndPt(i);
 		}
 		currSeg++;
 	}
@@ -530,23 +540,23 @@ Vector3d CNT::calcEndPt(int idx, double extra)
 	Vector3d r1 = getPoint(idx);
 	Vector3d slope = getPoint(idx+1) - r1;
 	//calculations checked and are correct
-	retVec = r1 + slope*(extra / (cylinderHeight + tubeSeparation));
+	retVec = r1 + slope*(2*extra / (cylinderHeight + tubeSeparation));
 	return retVec;
 }
 
-Vector3d CNT::calcFinalEndPt(int idx, double extra)
+Vector3d CNT::calcFinalEndPt(int idx)
 {
 	Vector3d retVec;
-	if (idx < 0 || idx > numPt - 1)
+	if (idx < 0 || idx > numPt)
 	{
 		cout << "Invalid index used to access CNT position data.\n";
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
 
-	Vector3d r1 = getPoint(idx);
-	Vector3d slope = getPoint(idx - 1) - r1;
+	Vector3d r1 = getPoint(idx-1);
+	Vector3d slope = r1 - getPoint(idx - 2);
 	//calculations checked and are correct
-	retVec = r1 + slope*(extra / (cylinderHeight + tubeSeparation));
+	retVec = r1 + slope*(cylinderHeight / (cylinderHeight + tubeSeparation));
 	return retVec;
 }
