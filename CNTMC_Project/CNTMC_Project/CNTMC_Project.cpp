@@ -114,8 +114,6 @@ int main(int argc, char *argv[])
 	The next section will be filling the segments vector of table elements by calculating the necessary
 	additions to it.
 	*/
-	/*clock_t t1, t2;
-	t1 = clock();*/
 	
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
@@ -129,11 +127,6 @@ int main(int argc, char *argv[])
 			updateSegTable(CNT_List, segit, maxDist);
 		}
 	}
-
-	/*t2 = clock();
-	float diff((float)t2 - (float)t1);
-	diff = diff / CLOCKS_PER_SEC;
-	cout << diff << endl;*/
 
 	return 0;
 }
@@ -157,6 +150,7 @@ void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator 
 		}
 	}
 }
+
 
 /**
 Converts numbers with some units to angstroms
