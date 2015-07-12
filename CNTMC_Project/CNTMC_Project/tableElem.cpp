@@ -2,7 +2,11 @@
 #include "tableElem.h"
 #include <iostream>
 
+/**
+Creates table element object
 
+@return tableElem Object
+*/
 tableElem::tableElem()
 {
 	setr(1);
