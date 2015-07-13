@@ -16,9 +16,7 @@ Creates exciton object
 */
 exciton::exciton()
 {
-	cntidx = -1;
-	segidx = -1;
-	energyNum = -1;
+	
 }
 
 /**
