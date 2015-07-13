@@ -21,7 +21,7 @@ using namespace std;
 string folderPathPrompt(bool incorrect);
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
 int getIndex(shared_ptr<vector<double>> vec, double prob);
-int getIndex(shared_ptr<vector<double>> vec, double prob, int right, int left);
+int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 
 int main(int argc, char *argv[])
 {
@@ -208,22 +208,46 @@ Does this recursively.
 @return the index that requires the conditions in the method description
 */
 int getIndex(shared_ptr<vector<double>> vec, double prob)
-{
-	return getIndex(vec, prob, vec->size() - 1, 0);
+{	
+	//small simple cases that do not work with recursive helper method
+	if (vec->size() == 1) {return 0;}
+	if (vec->size() == 2)
+	{
+		if ((*vec)[0] >= prob){ return 0; }
+		return 1;
+	}
+
+	//use recursive helper method
+	return getIndex(vec, prob, 0, vec->size() - 1);
 }
 
 /**
-The helper method of the 2 parameter get index method. 
+The helper method of the 2 parameter get index method. Simple binary search
 
 @param vec The vector to search
 @param prob The number to compare the indecies to
 @param right The highest index that is part of the vector
 @param lef The lowest index that is part of the vector
-@return the index that requires the conditions in the method description
+@return the index that requires the conditions in the method description. Returns -1 if it fails
 */
-int getIndex(shared_ptr<vector<double>> vec, double prob, int right, int left)
+int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right)
 {
+	if (right <= left)
+	{
+		double val = (*vec)[right];
+		if (val < prob) { return right + 1; }
+		if (prob < val){ return right; }
+		return right - 1;
+	} //base case
 	
+	int center = floor(static_cast<double>(right + left) / 2.0);
+	if ((*vec)[center] == prob){ return center; } //base case
+	
+	//recursive cases
+	if ((*vec)[center] > prob){ return getIndex(vec, prob, left, center - 1); }
+	if ((*vec)[center] < prob){ return getIndex(vec, prob, center + 1, right); }
+	return -1;
+
 }
 
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
