@@ -70,6 +70,10 @@ int main(int argc, char *argv[])
 	struct dirent *ent = nullptr;
 	unique_ptr<list<string>>  fileList(new list<string>(0));
 
+	/*
+	The next block creates a list of files in the directory chosen to be looked at.
+	*/
+
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
 	{
@@ -89,6 +93,11 @@ int main(int argc, char *argv[])
 	}
 	delete ent;
 
+
+	/*
+	This section creates the list of CNTs with all of the relevant information provided in their
+	respective files getting processed.
+	*/
 
 	//Iterate through the files and extract
 	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
@@ -117,6 +126,8 @@ int main(int argc, char *argv[])
 	
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
+	//The total number of segments in the simulation, used in exciton placement
+	auto numSegs = 0;
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -125,8 +136,41 @@ int main(int argc, char *argv[])
 		{
 			//get add to each segment relelant table entries
 			updateSegTable(CNT_List, segit, maxDist);
+			numSegs++;
 		}
 	}
+
+	/*
+	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
+	is, after a specific number of excitons are chosen to be created, each exciton will be created and assigned an index
+	that corresponds to the CNT mesh. First a random CNT will be chosen. This choice will come from a weighted probability
+	distribution, the weight being placed on the number of segments each CNT has vs the total number of segments. After the
+	CNT number is chosen, then the segment will be chosen from the segments part of the CNT.
+	*/
+
+	//Initialize random number generation
+	time_t seconds;
+	time(&seconds); //assign time from clock
+	//Seed the random number generator
+	srand(static_cast<int>(seconds));
+
+	//Build the probability vector for CNTs
+	vector<double> cntProb = vector<double>(CNT_List->size());
+
+	//Must set first index so that rest of the table can be built with simple loop
+	vector<CNT>::iterator it = CNT_List->begin();
+	cntProb[0] = it->segs->size() / static_cast<double>(numSegs);
+	++it;
+
+	auto cntIdx = 1; //keeps index of cntProb vector as iterate through CNT_List
+	for ( it; it != CNT_List->end(); ++it)
+	{
+		cntProb[cntIdx] = it->segs->size() / static_cast<double>(numSegs) + cntProb[cntIdx-1];
+		cntIdx++;
+	}
+
+
+
 
 	return 0;
 }
@@ -143,8 +187,8 @@ void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator 
 			//Check if within range
 			if ( (r = tableElem::calcDist(seg->mid, segit->mid)) <= maxDist)
 			{
-				double theta = tableElem::calcThet(seg, segit);
-				double g = 6.4000e+19; //First draft estimate
+				auto theta = tableElem::calcThet(seg, segit);
+				auto g = 6.4000e+19; //First draft estimate
 				seg->tbl->push_back(tableElem(r,theta,g,cntit->getCNTNum()-1,segit->segNum));
 			}
 		}
