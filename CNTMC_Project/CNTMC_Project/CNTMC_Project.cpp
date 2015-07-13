@@ -12,6 +12,7 @@
 #include <memory>
 #include "tableElem.h"
 #include <locale>
+#include <math.h>
 
 
 using namespace std;
@@ -19,6 +20,8 @@ using namespace std;
 //method declarations
 string folderPathPrompt(bool incorrect);
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
+int getIndex(shared_ptr<vector<double>> vec, double prob);
+int getIndex(shared_ptr<vector<double>> vec, double prob, int right, int left);
 
 int main(int argc, char *argv[])
 {
@@ -155,7 +158,7 @@ int main(int argc, char *argv[])
 	srand(static_cast<int>(seconds));
 
 	//Build the probability vector for CNTs
-	vector<double> cntProb = vector<double>(CNT_List->size());
+	shared_ptr<vector<double>> cntProb(new vector<double>(CNT_List->size()));
 
 	//Must set first index so that rest of the table can be built with simple loop
 	vector<CNT>::iterator it = CNT_List->begin();
@@ -165,14 +168,62 @@ int main(int argc, char *argv[])
 	auto cntIdx = 1; //keeps index of cntProb vector as iterate through CNT_List
 	for ( it; it != CNT_List->end(); ++it)
 	{
-		cntProb[cntIdx] = it->segs->size() / static_cast<double>(numSegs) + cntProb[cntIdx-1];
+		(*cntProb)[cntIdx] = it->segs->size() / static_cast<double>(numSegs) + cntProb[cntIdx-1];
 		cntIdx++;
 	}
 
+	int numExcitons = 10; //number of excitons to add to simulation
 
+	if (numExcitons > 2*numSegs)
+	{
+		cout << "Error: More excitons than possible number of places for them in simulation.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 
+	shared_ptr<vector<exciton>> excitons(new vector<exciton>(numExcitons)); //vector that stores all excitons
+
+	for (exciton &e : excitons)
+	{
+		done = false; // Flag for successful exciton assignment
+		//randomly sets energy level to 1 or 2
+		e.setEnergy(round(static_cast<double>(rand()) / static_cast<double>(RAND_MAX))+1); 
+
+		//go until suitable position for exciton is found
+		while (!done)
+		{
+			e.setCNTidx(getIndex());
+		}
+	}
 
 	return 0;
+}
+
+/**
+Finds the index of the vector that has the number closest to but greater than prob.
+Does this recursively.
+
+@param vec The vector to search
+@param prob The number to compare the indecies to
+@return the index that requires the conditions in the method description
+*/
+int getIndex(shared_ptr<vector<double>> vec, double prob)
+{
+	return getIndex(vec, prob, vec->size() - 1, 0);
+}
+
+/**
+The helper method of the 2 parameter get index method. 
+
+@param vec The vector to search
+@param prob The number to compare the indecies to
+@param right The highest index that is part of the vector
+@param lef The lowest index that is part of the vector
+@return the index that requires the conditions in the method description
+*/
+int getIndex(shared_ptr<vector<double>> vec, double prob, int right, int left)
+{
+	
 }
 
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
