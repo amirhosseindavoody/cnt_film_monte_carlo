@@ -80,3 +80,16 @@
 
 
 	system("pause");
+
+//Checks if the exciton code is working for segments
+	shared_ptr<exciton> ex1(new exciton(0, 0, 1));
+	shared_ptr<exciton> ex2(new exciton(0, 0, 1));
+	shared_ptr<exciton> ex3(new exciton(0, 0, 2));
+	shared_ptr<exciton> ex4(new exciton(0, 0, 2));
+	shared_ptr<vector<segment>> currSeg = (*CNT_List)[0].segs;
+	bool result = (*currSeg)[0].setExciton(ex1);
+	result = (*currSeg)[0].setExciton(ex2);
+	result = (*currSeg)[0].setExciton(ex3);
+	bool remres = (*currSeg)[0].removeExciton(ex3);
+	remres = (*currSeg)[0].removeExciton(ex3);
+	result = (*currSeg)[0].setExciton(ex4);

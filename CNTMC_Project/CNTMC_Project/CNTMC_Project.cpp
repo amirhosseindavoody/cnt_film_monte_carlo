@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-
+	
 	//vector that stores all excitons
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons)); 
 
