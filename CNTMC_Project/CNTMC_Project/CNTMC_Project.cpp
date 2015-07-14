@@ -163,13 +163,13 @@ int main(int argc, char *argv[])
 
 	//Must set first index so that rest of the table can be built with simple loop
 	vector<CNT>::iterator it = CNT_List->begin();
-	cntProb[0] = it->segs->size() / static_cast<double>(numSegs);
+	(*cntProb)[0] = it->segs->size() / static_cast<double>(numSegs);
 	++it;
 
 	auto cntIdx = 1; //keeps index of cntProb vector as iterate through CNT_List
 	for ( it; it != CNT_List->end(); ++it)
 	{
-		(*cntProb)[cntIdx] = it->segs->size() / static_cast<double>(numSegs) + cntProb[cntIdx-1];
+		(*cntProb)[cntIdx] = it->segs->size() / static_cast<double>(numSegs)+(*cntProb)[cntIdx - 1];
 		cntIdx++;
 	}
 
@@ -182,18 +182,25 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	shared_ptr<vector<exciton>> excitons(new vector<exciton>(numExcitons)); //vector that stores all excitons
+	//vector that stores all excitons
+	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons)); 
 
-	for (exciton &e : *excitons)
+	//assigns excitons to locations
+	for (int exNum = 0; exNum < excitons->size(); exNum++)
 	{
 		done = false; // Flag for successful exciton assignment
-		//randomly sets energy level to 1 or 2
-		e.setEnergy(round(getRand())+1); 
-
+		(*excitons)[exNum] = make_shared<exciton>(exciton());
 		//go until suitable position for exciton is found
 		while (!done)
 		{
-			e.setCNTidx(getIndex(cntProb, getRand()));
+			//randomly sets energy level to 1 or 2
+			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand()) + 1));
+			(*excitons)[exNum]->setCNTidx(getIndex(cntProb, getRand()));
+			//sets seg index to a number between 0 and the number of segs for the cnt - 1.
+			//  The complicated part gets the number of segments from the current cnt
+			(*excitons)[exNum]->setSegidx(rand() % ((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs->size()));
+			shared_ptr<vector<segment>> temp((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs); //get segment list
+			done = (*temp)[(*excitons)[exNum]->getSegidx()].setExciton((*excitons)[exNum]);
 		}
 	}
 

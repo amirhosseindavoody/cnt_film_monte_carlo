@@ -48,7 +48,7 @@ struct segment
 	{
 		int currEn = e->getEnergy();
 		//parameter check
-		if (currEn != 1 || currEn != 2)
+		if (currEn != 1 && currEn != 2)
 		{
 			cout << "Exciton passed to \"hasExciton\" has not been initialized correctly.\n";
 			system("pause");
@@ -79,14 +79,14 @@ struct segment
 	{
 		int currEn = e->getEnergy();
 		//parameter check
-		if (currEn != 1 || currEn != 2)
+		if (currEn != 1 && currEn != 2)
 		{
 			cout << "Exciton passed to \"hasExciton\" has not been initialized correctly.\n";
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
 
-		if (this->hasExciton(e))
+		if (!this->hasExciton(e))
 		{
 			if (currEn == 1)
 			{
@@ -112,7 +112,7 @@ struct segment
 	{
 		int currEn = e->getEnergy();
 		//parameter check
-		if (currEn != 1 || currEn != 2)
+		if (currEn != 1 && currEn != 2)
 		{
 			cout << "Exciton passed to \"hasExciton\" has not been initialized correctly.\n";
 			system("pause");
