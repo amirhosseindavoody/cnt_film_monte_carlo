@@ -220,6 +220,18 @@ Does this recursively.
 */
 int getIndex(shared_ptr<vector<double>> vec, double prob)
 {	
+	//parameter check
+	if (vec == nullptr)
+	{
+		cout << "Error: Empty vector passed to getIndex()";
+		system("pause");
+		exit(EXIT_FAILURE);
+	} else if (prob < 0 || prob > 1)
+	{
+		cout << "Error: Invalid probability range passed to getIndex().\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 	//small simple cases that do not work with recursive helper method
 	if (vec->size() == 1) {return 0;}
 	if (vec->size() == 2)
