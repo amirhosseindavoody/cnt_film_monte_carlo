@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
 	The next block creates a list of files in the directory chosen to be looked at.
 	*/
 
+	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
+
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
 	{
@@ -102,6 +104,8 @@ int main(int argc, char *argv[])
 	This section creates the list of CNTs with all of the relevant information provided in their
 	respective files getting processed.
 	*/
+
+	//////////////////////////// BUILD CNT AND SEGS //////////////////////////////////////////
 
 	//Iterate through the files and extract
 	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
@@ -128,6 +132,8 @@ int main(int argc, char *argv[])
 	additions to it.
 	*/
 	
+	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
+
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
@@ -151,6 +157,8 @@ int main(int argc, char *argv[])
 	distribution, the weight being placed on the number of segments each CNT has vs the total number of segments. After the
 	CNT number is chosen, then the segment will be chosen from the segments part of the CNT.
 	*/
+
+	//////////////////////////// PLACE EXCITON RANDOMLY //////////////////////////////////////////
 
 	//Initialize random number generation
 	time_t seconds;
@@ -282,6 +290,7 @@ int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right)
 
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
 {
+	double rate = 0;
 	//iterate over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -290,11 +299,12 @@ void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator 
 		{
 			double r;
 			//Check if within range
-			if ( (r = tableElem::calcDist(seg->mid, segit->mid)) <= maxDist)
+			if ( ((r = tableElem::calcDist(seg->mid, segit->mid)) <= maxDist) && (r != 0))
 			{
 				auto theta = tableElem::calcThet(seg, segit);
 				auto g = 6.4000e+19; //First draft estimate
-				seg->tbl->push_back(tableElem(r,theta,g,cntit->getCNTNum()-1,segit->segNum));
+				seg->tbl->push_back(tableElem(r,theta,g,cntit->getCNTNum()-1,segit->segNum)); //tbl initialized in CNT::calculateSegments
+				seg->rateVec->push_back(rate+=(seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 			}
 		}
 	}

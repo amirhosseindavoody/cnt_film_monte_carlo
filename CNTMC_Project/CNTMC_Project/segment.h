@@ -26,6 +26,7 @@ struct segment
 	Vector3d p2; //second point in segment
 	Vector3d mid; //middle point in segment
 	shared_ptr<vector<tableElem>> tbl;
+	shared_ptr<vector<double>> rateVec; // Vector to store all rates
 	shared_ptr<exciton> ex1; //first energy level for exciton
 	shared_ptr<exciton> ex2; //second energy level for exciton
 
