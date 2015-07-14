@@ -22,6 +22,7 @@ string folderPathPrompt(bool incorrect);
 void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
 int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
+double getRand();
 
 int main(int argc, char *argv[])
 {
@@ -183,20 +184,30 @@ int main(int argc, char *argv[])
 
 	shared_ptr<vector<exciton>> excitons(new vector<exciton>(numExcitons)); //vector that stores all excitons
 
-	for (exciton &e : excitons)
+	for (exciton &e : *excitons)
 	{
 		done = false; // Flag for successful exciton assignment
 		//randomly sets energy level to 1 or 2
-		e.setEnergy(round(static_cast<double>(rand()) / static_cast<double>(RAND_MAX))+1); 
+		e.setEnergy(round(getRand())+1); 
 
 		//go until suitable position for exciton is found
 		while (!done)
 		{
-			e.setCNTidx(getIndex());
+			e.setCNTidx(getIndex(cntProb, getRand()));
 		}
 	}
 
 	return 0;
+}
+
+/**
+Gets a random number between 0 and 1
+
+@return The random number between 0 and 1
+*/
+double getRand()
+{
+	return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
 }
 
 /**
@@ -232,15 +243,15 @@ The helper method of the 2 parameter get index method. Simple binary search
 */
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right)
 {
-	if (right <= left)
+	if (right < left) { return left; }
+
+	if (right == left)
 	{
-		double val = (*vec)[right];
-		if (val < prob) { return right + 1; }
-		if (prob < val){ return right; }
-		return right - 1;
+		if ((*vec)[right] < prob) { return right + 1; }
+		return right; 
 	} //base case
 	
-	int center = floor(static_cast<double>(right + left) / 2.0);
+	int center = static_cast<int>(floor(static_cast<double>(right + left) / 2.0));
 	if ((*vec)[center] == prob){ return center; } //base case
 	
 	//recursive cases

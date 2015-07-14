@@ -31,3 +31,52 @@
 	f << "\n";
 
 	f.close();
+
+//Put at top of main, comment out all other code in main
+	double v[] = { .02, .1, .15, .2, .25, .3, .38, .49, .51, .69, .71, .88, .99, 1 };
+	vector<double> val(v, v + sizeof(v) / sizeof(v[0]));
+	static const double t1[] = { .1, .2, .3, .5, .7, 1 }; //ans: 0,0,1,1,2,2,3,3,4,4,5,5,5,5
+	vector<double> t11(t1, t1 + sizeof(t1) / sizeof(t1[0]));
+	shared_ptr<vector<double>> yo1(&t11);
+	static const double t2[] = { .4, 1 };
+	vector<double> t22(t2, t2 + sizeof(t2) / sizeof(t2[0])); //ans: 0,0,0,0,0,0,0,1,1,1,1,1,1,1
+	shared_ptr<vector<double>> yo2(&t22);
+	static const double t3[] = { .567, .669, 1 };
+	vector<double> t33(t3, t3 + sizeof(t3) / sizeof(t3[0])); //ans:0,0,0,0,0,0,0,0,0,2,2,2,2,2
+	shared_ptr<vector<double>> yo3(&t33);
+	static const double t4[] = { .323, .567, .669, .858, 1 };
+	vector<double> t44(t4, t4 + sizeof(t4) / sizeof(t4[0])); //ans:0,0,0,0,0,0,1,1,1,3,3,4,4,4
+	shared_ptr<vector<double>> yo4(&t44);
+
+	//code works for these cases
+
+	int size = val.size();
+	cout << "Responses from t1:\n";
+	for (int i = 0; i < size; i++)
+	{
+		cout << getIndex(yo1, val[i]) << endl;
+	}
+
+
+	cout << "\nResponses from t2:\n";
+	for (int i = 0; i < size; i++)
+	{
+		cout << getIndex(yo2, val[i]) << endl;
+	}
+
+
+	cout << "\nResponses from t3:\n";
+	for (int i = 0; i < size; i++)
+	{
+		cout << getIndex(yo3, val[i]) << endl;
+	}
+
+
+	cout << "\nResponses from t4:\n";
+	for (int i = 0; i < size; i++)
+	{
+		cout << getIndex(yo4, val[i]) << endl;
+	}
+
+
+	system("pause");
