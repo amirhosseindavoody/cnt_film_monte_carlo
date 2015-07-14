@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
 	//vector that stores all excitons
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons)); 
 
-	//assigns excitons to locations
-	for (int exNum = 0; exNum < excitons->size(); exNum++)
+	//assigns excitons to initial locations
+	for (UINT32 exNum = 0; exNum < excitons->size(); exNum++)
 	{
 		done = false; // Flag for successful exciton assignment
 		(*excitons)[exNum] = make_shared<exciton>(exciton());

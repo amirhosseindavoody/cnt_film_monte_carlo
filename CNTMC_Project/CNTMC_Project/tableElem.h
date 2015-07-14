@@ -2,11 +2,10 @@
 
 #include <Eigen>
 #include "CNT.h"
+#include "segment.h"
 
 using namespace std;
 using namespace Eigen;
-
-struct segment;
 
 class tableElem
 { 
