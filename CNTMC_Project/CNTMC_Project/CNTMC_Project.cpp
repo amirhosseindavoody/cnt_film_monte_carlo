@@ -19,7 +19,7 @@ using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
 int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 double getRand();
@@ -138,14 +138,18 @@ int main(int argc, char *argv[])
 	double maxDist = 500; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
 	auto numSegs = 0;
+	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
+	double gamma = 0;
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
+		double newGamma;
 		//loop over segments in each CNTs
 		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relelant table entries
-			updateSegTable(CNT_List, segit, maxDist);
+			newGamma = updateSegTable(CNT_List, segit, maxDist);
+			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
 	}
@@ -288,7 +292,16 @@ int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right)
 
 }
 
-void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
+/**
+Takes a segment and determines which elements should be added to its tables based on distance away
+from the segment.
+
+@param CNT_List The list of carbon nanotubes to iterate over
+@param seg The segment that we will be adding table elements to
+@param maxDist If segments are within maxDist of seg, then they will be added to the table
+@return The sum of all the rates calculated for the segment. For transition purposes
+*/
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
 {
 	double rate = 0;
 	//iterate over CNTs
@@ -308,6 +321,7 @@ void updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator 
 			}
 		}
 	}
+	return rate;
 }
 
 

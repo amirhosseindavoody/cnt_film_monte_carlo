@@ -40,7 +40,7 @@ tableElem::~tableElem()
 
 void tableElem::setRate()
 {
-	gammaTot = gamma*cos(theta) / pow(r, 6);
+	gammaTot = abs(gamma*cos(theta) / pow(r, 6));
 }
 
 
