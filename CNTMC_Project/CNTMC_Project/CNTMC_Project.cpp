@@ -305,8 +305,11 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterato
 {
 	double rate = 0;
 	//iterate over CNTs
+	int i = 0; //CNT index counter
+	//originally structured without i and j
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
+		int j = 0; //segment index counter
 		//iterate over all segments considered for seg
 		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
@@ -316,10 +319,12 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterato
 			{
 				auto theta = tableElem::calcThet(seg, segit);
 				auto g = 6.4000e+19; //First draft estimate
-				seg->tbl->push_back(tableElem(r,theta,g,cntit->getCNTNum()-1,segit->segNum)); //tbl initialized in CNT::calculateSegments
+				seg->tbl->push_back(tableElem(r,theta,g,i,j)); //tbl initialized in CNT::calculateSegments
 				seg->rateVec->push_back(rate+=(seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 			}
+			j++;
 		}
+		i++;
 	}
 	return rate;
 }

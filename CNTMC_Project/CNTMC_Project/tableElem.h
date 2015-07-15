@@ -10,12 +10,12 @@ using namespace Eigen;
 class tableElem
 { 
 
-	double r; //distance between segment and segment with ID: tubeNum, segNum
+	double r; //distance between segment and segment with ID: tubeidx, segidx
 	double theta; //Angle in radians between two segments
 	double gamma; //distance^6/time constant for initial purposes
 	double gammaTot; //Transistion rate to be used in simulation
-	int tubeNum; //tube interacting with from current tube
-	int segNum; //segment number on the tube of tubeNum
+	int tubeidx; //tube interacting with from current tube
+	int segidx; //segment number on the tube of tubeidx
 
 private:
 	void setRate();
