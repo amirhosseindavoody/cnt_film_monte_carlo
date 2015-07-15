@@ -224,8 +224,31 @@ int main(int argc, char *argv[])
 	}
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
-	double deltaT = (1 / gamma)*TFAC;
+	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
+	double Tmax = deltaT * 1000; //maximum simulation time
+	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
+	/*
+	This section will consist of iterating until the maximum time has been reached. Each iteration
+	for T will contain a single/multiple step for each exciton. 
+	*/
+	while (T <= Tmax)
+	{
+		T += deltaT; //set new time checkpoint
+		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++)
+		{
+			double tr_tot = 0; //the sum of all tr's in the current deltaT time step
+			while (tr_tot <= deltaT)
+			{
+				tr_tot+= -(1 / gamma)*log(getRand()); // add the tr calculation to current time for individual particle
+				if (tr_tot > deltaT)
+				{
+					//Do data recording
+				}
+				//choose new state
+			}
+		}
+	}
 
 	return 0;
 }
