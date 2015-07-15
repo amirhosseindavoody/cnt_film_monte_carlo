@@ -22,8 +22,8 @@ private:
 	void setr(double rnew);
 	void setTheta(double t);
 	void setGamma(double g);
-	void setTubeNum(int num);
-	void setSegNum(int num);
+	void setTubeidx(int num);
+	void setSegidx(int num);
 
 public:
 	tableElem();
@@ -33,8 +33,8 @@ public:
 	double getr();
 	double getTheta();
 	double getGamma();
-	int getTubeNum();
-	int getSegNum();
+	int getTubeidx();
+	int getSegidx();
 	static double calcDist(Vector3d v1, Vector3d v2);
 	static double calcThet(vector<segment>::iterator s1, vector<segment>::iterator s2);
 };

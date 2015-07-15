@@ -13,8 +13,8 @@ tableElem::tableElem()
 	setTheta(0);
 	setGamma(0);
 	setRate();
-	setTubeNum(0);
-	setSegNum(0);
+	setTubeidx(0);
+	setSegidx(0);
 }
 /**
 Creates table element object
@@ -27,8 +27,8 @@ tableElem::tableElem(double rnew, double t, double g, int tube, int seg)
 	setTheta(t);
 	setGamma(g);
 	setRate();
-	setTubeNum(tube);
-	setSegNum(seg);
+	setTubeidx(tube);
+	setSegidx(seg);
 }
 
 /**
@@ -97,7 +97,7 @@ Sets the destination tube number
 
 @param num The tube number
 */
-void tableElem::setTubeNum(int num)
+void tableElem::setTubeidx(int num)
 {
 	if (num < 0)
 	{
@@ -105,7 +105,7 @@ void tableElem::setTubeNum(int num)
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	tubeNum = num;
+	tubeidx = num;
 }
 
 /**
@@ -113,7 +113,7 @@ Sets the destination segment number
 
 @param num The segment number
 */
-void tableElem::setSegNum(int num)
+void tableElem::setSegidx(int num)
 {
 	if (num < 0)
 	{
@@ -121,7 +121,7 @@ void tableElem::setSegNum(int num)
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	segNum = num;
+	segidx = num;
 }
 
 /**
@@ -169,9 +169,9 @@ Gets tube number
 
 @return tube number
 */
-int tableElem::getTubeNum()
+int tableElem::getTubeidx()
 {
-	return tubeNum;
+	return tubeidx;
 }
 
 /**
@@ -179,9 +179,9 @@ Gets the segment number
 
 @return segment number
 */
-int tableElem::getSegNum()
+int tableElem::getSegidx()
 {
-	return segNum;
+	return segidx;
 }
 
 
