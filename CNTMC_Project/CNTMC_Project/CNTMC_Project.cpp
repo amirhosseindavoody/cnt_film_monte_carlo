@@ -23,6 +23,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterato
 int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 double getRand();
+void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 
 int main(int argc, char *argv[])
 {
@@ -154,6 +155,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
+
+	addSelfScattering(CNT_List, gamma);
+
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
 	is, after a specific number of excitons are chosen to be created, each exciton will be created and assigned an index
@@ -218,6 +223,31 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+
+void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
+{
+	//CNT index
+	int i = 0;
+	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	{
+		//segment index
+		int j = 0; 
+		//loop over segments in each CNTs
+		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		{
+			double currGam = segit->rateVec->back();
+			if (maxGam > currGam)
+			{
+				segit->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
+				segit->rateVec->push_back(maxGam);
+			}
+		}
+		j++;
+	}
+	i++;
+}
+
 
 /**
 Gets a random number between 0 and 1
