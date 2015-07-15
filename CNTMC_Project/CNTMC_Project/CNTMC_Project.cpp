@@ -26,6 +26,7 @@ int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 double getRand();
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
 
 int main(int argc, char *argv[])
 {
@@ -246,11 +247,44 @@ int main(int argc, char *argv[])
 					//Do data recording
 				}
 				//choose new state
+				assignNextState(CNT_List, (*excitons)[exNum],gamma);
 			}
 		}
 	}
 
 	return 0;
+}
+
+/**
+Assigns the specified exciton to the next state in the simulation.
+
+@param CNT_List The list of carbon nanotubes
+@param e The exciton to be updated
+*/
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma)
+{
+	bool done = false; //flag for completion
+	//Segment the current exciton is located on
+	segment seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()]; 
+	while (!done)
+	{
+		int tblIdx = getIndex(seg.rateVec, getRand()*gamma);
+		tableElem tbl = (*seg.tbl)[tblIdx];
+		segment newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
+		done = newSeg.setExciton(e);
+		if (done)
+		{
+			if (!seg.removeExciton(e))
+			{
+				cout << "Error: Exciton could not be removed from segment.\n";
+				system("pause");
+				exit(EXIT_SUCCESS);
+			}
+			e->setCNTidx(tbl.getTubeidx());
+			e->setSegidx(tbl.getSegidx());
+		}
+
+	}
 }
 
 /**
@@ -276,10 +310,10 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 				segit->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
 				segit->rateVec->push_back(maxGam);
 			}
+			j++;
 		}
-		j++;
+		i++;
 	}
-	i++;
 }
 
 
@@ -294,14 +328,14 @@ double getRand()
 }
 
 /**
-Finds the index of the vector that has the number closest to but greater than prob.
+Finds the index of the vector that has the number closest to but greater than val.
 Does this recursively.
 
 @param vec The vector to search
-@param prob The number to compare the indecies to
+@param prob The number to compare the indicies to
 @return the index that requires the conditions in the method description
 */
-int getIndex(shared_ptr<vector<double>> vec, double prob)
+int getIndex(shared_ptr<vector<double>> vec, double val)
 {	
 	//parameter check
 	if (vec == nullptr)
@@ -309,22 +343,17 @@ int getIndex(shared_ptr<vector<double>> vec, double prob)
 		cout << "Error: Empty vector passed to getIndex()";
 		system("pause");
 		exit(EXIT_FAILURE);
-	} else if (prob < 0 || prob > 1)
-	{
-		cout << "Error: Invalid probability range passed to getIndex().\n";
-		system("pause");
-		exit(EXIT_FAILURE);
 	}
 	//small simple cases that do not work with recursive helper method
 	if (vec->size() == 1) {return 0;}
 	if (vec->size() == 2)
 	{
-		if ((*vec)[0] >= prob){ return 0; }
+		if ((*vec)[0] >= val){ return 0; }
 		return 1;
 	}
 
 	//use recursive helper method
-	return getIndex(vec, prob, 0, vec->size() - 1);
+	return getIndex(vec, val, 0, vec->size() - 1);
 }
 
 /**
@@ -336,22 +365,22 @@ The helper method of the 2 parameter get index method. Simple binary search
 @param lef The lowest index that is part of the vector
 @return the index that requires the conditions in the method description. Returns -1 if it fails
 */
-int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right)
+int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right)
 {
 	if (right < left) { return left; }
 
 	if (right == left)
 	{
-		if ((*vec)[right] < prob) { return right + 1; }
+		if ((*vec)[right] < val) { return right + 1; }
 		return right; 
 	} //base case
 	
 	int center = static_cast<int>(floor(static_cast<double>(right + left) / 2.0));
-	if ((*vec)[center] == prob){ return center; } //base case
+	if ((*vec)[center] == val){ return center; } //base case
 	
 	//recursive cases
-	if ((*vec)[center] > prob){ return getIndex(vec, prob, left, center - 1); }
-	if ((*vec)[center] < prob){ return getIndex(vec, prob, center + 1, right); }
+	if ((*vec)[center] > val){ return getIndex(vec, val, left, center - 1); }
+	if ((*vec)[center] < val){ return getIndex(vec, val, center + 1, right); }
 	return -1;
 
 }
