@@ -17,6 +17,8 @@
 
 using namespace std;
 
+#define TFAC 2.302585092994046 //Factor to multiply 1/gamma by to get 90% of rand numbers giving tr less than deltaT
+
 //method declarations
 string folderPathPrompt(bool incorrect);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
@@ -220,6 +222,10 @@ int main(int argc, char *argv[])
 			done = (*temp)[(*excitons)[exNum]->getSegidx()].setExciton((*excitons)[exNum]);
 		}
 	}
+
+	//////////////////////////////////// TIME STEPS ///////////////////////////////////
+	double deltaT = (1 / gamma)*TFAC;
+
 
 	return 0;
 }
