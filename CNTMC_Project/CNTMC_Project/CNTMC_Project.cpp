@@ -224,7 +224,12 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+/**
+Adds to each segments' rate vector the self scattering component of the simulation
 
+@param CNT_List The list of carbon nanotubes
+@param maxGam For all segments, the maximum of the sum of rates
+*/
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 {
 	//CNT index
