@@ -1,0 +1,224 @@
+\hypertarget{class_c_n_t}{}\section{C\+N\+T Class Reference}
+\label{class_c_n_t}\index{C\+N\+T@{C\+N\+T}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{class_c_n_t_a738f655cf3607971fb1ee78f0457fe54}{C\+N\+T} ()
+\item 
+\hyperlink{class_c_n_t_aebba0aaf1db3388185c51aa5ba1147fd}{C\+N\+T} (const string file\+Name, const string file\+Path, double seg\+Len\+Min)
+\item 
+double \hyperlink{class_c_n_t_a070537729269aa475200066010cd24a0}{get\+Diameter} ()
+\item 
+double \hyperlink{class_c_n_t_ae5693d14f88d6fa437c1748e2961a73a}{get\+Length} ()
+\item 
+double \hyperlink{class_c_n_t_a780a8ad296ba7dd8080a1302ae135882}{get\+Cylinder\+Height} ()
+\item 
+double \hyperlink{class_c_n_t_a219c7a3c530198cd4cffbecca8c10aea}{get\+Tube\+Separation} ()
+\item 
+double \hyperlink{class_c_n_t_a1d057f2fda6b4b7a89afaa6e50b597bb}{get\+Min\+Spacing} ()
+\item 
+int \hyperlink{class_c_n_t_ad381bb3de052f16417ab004df7fb1208}{getm} ()
+\item 
+int \hyperlink{class_c_n_t_a06d71da989e69e3ce4c2b7f5a2ac053b}{getn} ()
+\item 
+int \hyperlink{class_c_n_t_aa08eeaa7648119cce31a4e21042a2869}{get\+C\+N\+T\+Num} ()
+\item 
+bool \hyperlink{class_c_n_t_af2535e2a5cb24d3c1a0b31540ce28d62}{is\+Initialized} ()
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{class_c_n_t_a8bfda30cfb05e62b6a246d9dc5c15a44}{}shared\+\_\+ptr$<$ vector$<$ shared\+\_\+ptr$<$ \hyperlink{structsegment}{segment} $>$ $>$ $>$ {\bfseries segs}\label{class_c_n_t_a8bfda30cfb05e62b6a246d9dc5c15a44}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{class_c_n_t_a738f655cf3607971fb1ee78f0457fe54}{}\index{C\+N\+T@{C\+N\+T}!C\+N\+T@{C\+N\+T}}
+\index{C\+N\+T@{C\+N\+T}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{C\+N\+T()}]{\setlength{\rightskip}{0pt plus 5cm}C\+N\+T\+::\+C\+N\+T (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a738f655cf3607971fb1ee78f0457fe54}
+Sets the \hyperlink{class_c_n_t}{C\+N\+T} object to some default values. D\+O N\+O\+T U\+S\+E C\+N\+Ts C\+O\+N\+S\+T\+R\+U\+C\+T\+E\+D T\+H\+I\+S W\+A\+Y. This is only to appease the compiling gods.
+
+\begin{DoxyReturn}{Returns}
+\hyperlink{class_c_n_t}{C\+N\+T} Object 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_aebba0aaf1db3388185c51aa5ba1147fd}{}\index{C\+N\+T@{C\+N\+T}!C\+N\+T@{C\+N\+T}}
+\index{C\+N\+T@{C\+N\+T}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{C\+N\+T(const string file\+Name, const string file\+Path, double seg\+Len\+Min)}]{\setlength{\rightskip}{0pt plus 5cm}C\+N\+T\+::\+C\+N\+T (
+\begin{DoxyParamCaption}
+\item[{const string}]{file\+Name, }
+\item[{const string}]{folder\+Path, }
+\item[{double}]{seg\+Len}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_aebba0aaf1db3388185c51aa5ba1147fd}
+Reads a \hyperlink{class_c_n_t}{C\+N\+T} file and creates a \hyperlink{class_c_n_t}{C\+N\+T} object with all the information stored in that file.
+
+
+\begin{DoxyParams}{Parameters}
+{\em file\+Path} & The path of the file containing the \hyperlink{class_c_n_t}{C\+N\+T} info \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\hyperlink{class_c_n_t}{C\+N\+T} Object 
+\end{DoxyReturn}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{class_c_n_t_aa08eeaa7648119cce31a4e21042a2869}{}\index{C\+N\+T@{C\+N\+T}!get\+C\+N\+T\+Num@{get\+C\+N\+T\+Num}}
+\index{get\+C\+N\+T\+Num@{get\+C\+N\+T\+Num}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+C\+N\+T\+Num()}]{\setlength{\rightskip}{0pt plus 5cm}int C\+N\+T\+::get\+C\+N\+T\+Num (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_aa08eeaa7648119cce31a4e21042a2869}
+Gets the tube number
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\hyperlink{class_c_n_t}{C\+N\+T} number 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_a780a8ad296ba7dd8080a1302ae135882}{}\index{C\+N\+T@{C\+N\+T}!get\+Cylinder\+Height@{get\+Cylinder\+Height}}
+\index{get\+Cylinder\+Height@{get\+Cylinder\+Height}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+Cylinder\+Height()}]{\setlength{\rightskip}{0pt plus 5cm}double C\+N\+T\+::get\+Cylinder\+Height (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a780a8ad296ba7dd8080a1302ae135882}
+Gets the height of each compositional cylinders
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The height of each compositional cylinders 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_a070537729269aa475200066010cd24a0}{}\index{C\+N\+T@{C\+N\+T}!get\+Diameter@{get\+Diameter}}
+\index{get\+Diameter@{get\+Diameter}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+Diameter()}]{\setlength{\rightskip}{0pt plus 5cm}double C\+N\+T\+::get\+Diameter (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a070537729269aa475200066010cd24a0}
+Gets the diameter of the \hyperlink{class_c_n_t}{C\+N\+T}
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Diameter of the \hyperlink{class_c_n_t}{C\+N\+T} 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_ae5693d14f88d6fa437c1748e2961a73a}{}\index{C\+N\+T@{C\+N\+T}!get\+Length@{get\+Length}}
+\index{get\+Length@{get\+Length}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+Length()}]{\setlength{\rightskip}{0pt plus 5cm}double C\+N\+T\+::get\+Length (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_ae5693d14f88d6fa437c1748e2961a73a}
+Gets the length of the \hyperlink{class_c_n_t}{C\+N\+T}
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Length of the \hyperlink{class_c_n_t}{C\+N\+T} 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_ad381bb3de052f16417ab004df7fb1208}{}\index{C\+N\+T@{C\+N\+T}!getm@{getm}}
+\index{getm@{getm}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{getm()}]{\setlength{\rightskip}{0pt plus 5cm}int C\+N\+T\+::getm (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_ad381bb3de052f16417ab004df7fb1208}
+Gets m parameter of the \hyperlink{class_c_n_t}{C\+N\+T}
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+m 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_a1d057f2fda6b4b7a89afaa6e50b597bb}{}\index{C\+N\+T@{C\+N\+T}!get\+Min\+Spacing@{get\+Min\+Spacing}}
+\index{get\+Min\+Spacing@{get\+Min\+Spacing}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+Min\+Spacing()}]{\setlength{\rightskip}{0pt plus 5cm}double C\+N\+T\+::get\+Min\+Spacing (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a1d057f2fda6b4b7a89afaa6e50b597bb}
+Gets the minimum spacing between two nanotubes
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+minimum spacing between two nanotubes 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_a06d71da989e69e3ce4c2b7f5a2ac053b}{}\index{C\+N\+T@{C\+N\+T}!getn@{getn}}
+\index{getn@{getn}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{getn()}]{\setlength{\rightskip}{0pt plus 5cm}int C\+N\+T\+::getn (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a06d71da989e69e3ce4c2b7f5a2ac053b}
+Gets n parameter of the \hyperlink{class_c_n_t}{C\+N\+T}
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+n 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_a219c7a3c530198cd4cffbecca8c10aea}{}\index{C\+N\+T@{C\+N\+T}!get\+Tube\+Separation@{get\+Tube\+Separation}}
+\index{get\+Tube\+Separation@{get\+Tube\+Separation}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{get\+Tube\+Separation()}]{\setlength{\rightskip}{0pt plus 5cm}double C\+N\+T\+::get\+Tube\+Separation (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_a219c7a3c530198cd4cffbecca8c10aea}
+Gets the separation between two compositional cylinders
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The separation between two compositional cylinders 
+\end{DoxyReturn}
+\hypertarget{class_c_n_t_af2535e2a5cb24d3c1a0b31540ce28d62}{}\index{C\+N\+T@{C\+N\+T}!is\+Initialized@{is\+Initialized}}
+\index{is\+Initialized@{is\+Initialized}!C\+N\+T@{C\+N\+T}}
+\subsubsection[{is\+Initialized()}]{\setlength{\rightskip}{0pt plus 5cm}bool C\+N\+T\+::is\+Initialized (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{class_c_n_t_af2535e2a5cb24d3c1a0b31540ce28d62}
+Says whether or not the \hyperlink{class_c_n_t}{C\+N\+T} was initialized
+
+\begin{DoxyReturn}{Returns}
+initialization status 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+C\+N\+T\+M\+C\+\_\+\+Project/\+C\+N\+T\+M\+C\+\_\+\+Project/C\+N\+T.\+h\item 
+C\+N\+T\+M\+C\+\_\+\+Project/\+C\+N\+T\+M\+C\+\_\+\+Project/C\+N\+T.\+cpp\end{DoxyCompactItemize}

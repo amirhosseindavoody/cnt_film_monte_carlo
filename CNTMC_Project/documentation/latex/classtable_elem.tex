@@ -1,0 +1,186 @@
+\hypertarget{classtable_elem}{}\section{table\+Elem Class Reference}
+\label{classtable_elem}\index{table\+Elem@{table\+Elem}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classtable_elem_a75fb37aa6dabd0ef445848198bcc2c77}{table\+Elem} ()
+\item 
+\hyperlink{classtable_elem_ace84fdbfe67610b96b5323fd6f961c24}{table\+Elem} (double rnew, double t, double g, int tube, int seg)
+\item 
+\hyperlink{classtable_elem_af1c904452d77b2972f6d0077dee68639}{$\sim$table\+Elem} ()
+\item 
+double \hyperlink{classtable_elem_a1db2b8266dc9c909a0fb6f18c8f7443c}{get\+Rate} ()
+\item 
+double \hyperlink{classtable_elem_a6ec9d74259c528e32b93d44a727e89ec}{getr} ()
+\item 
+double \hyperlink{classtable_elem_a5687c5c5d6d9c3c290c3fe0495de08ac}{get\+Theta} ()
+\item 
+double \hyperlink{classtable_elem_a92ca4eba0818cd4a3a042f46e3c55ad5}{get\+Gamma} ()
+\item 
+int \hyperlink{classtable_elem_a107266e6f04b912b159db92e85b4a070}{get\+Tubeidx} ()
+\item 
+int \hyperlink{classtable_elem_af8c5f321cc70ffbff3bbe8b2ddc81207}{get\+Segidx} ()
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static double \hyperlink{classtable_elem_a4d6c2e62009c0aff199a23a72eb0db9c}{calc\+Dist} (Vector3d v1, Vector3d v2)
+\item 
+static double \hyperlink{classtable_elem_a0668fb1ba486bd13baf5e694b2aa5087}{calc\+Thet} (vector$<$ shared\+\_\+ptr$<$ \hyperlink{structsegment}{segment} $>$$>$\+::iterator s1, vector$<$ shared\+\_\+ptr$<$ \hyperlink{structsegment}{segment} $>$$>$\+::iterator s2)
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classtable_elem_a75fb37aa6dabd0ef445848198bcc2c77}{}\index{table\+Elem@{table\+Elem}!table\+Elem@{table\+Elem}}
+\index{table\+Elem@{table\+Elem}!table\+Elem@{table\+Elem}}
+\subsubsection[{table\+Elem()}]{\setlength{\rightskip}{0pt plus 5cm}table\+Elem\+::table\+Elem (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a75fb37aa6dabd0ef445848198bcc2c77}
+Creates table element object
+
+\begin{DoxyReturn}{Returns}
+\hyperlink{classtable_elem}{table\+Elem} Object 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_ace84fdbfe67610b96b5323fd6f961c24}{}\index{table\+Elem@{table\+Elem}!table\+Elem@{table\+Elem}}
+\index{table\+Elem@{table\+Elem}!table\+Elem@{table\+Elem}}
+\subsubsection[{table\+Elem(double rnew, double t, double g, int tube, int seg)}]{\setlength{\rightskip}{0pt plus 5cm}table\+Elem\+::table\+Elem (
+\begin{DoxyParamCaption}
+\item[{double}]{rnew, }
+\item[{double}]{t, }
+\item[{double}]{g, }
+\item[{int}]{tube, }
+\item[{int}]{seg}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_ace84fdbfe67610b96b5323fd6f961c24}
+Creates table element object
+
+\begin{DoxyReturn}{Returns}
+\hyperlink{classtable_elem}{table\+Elem} Object 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_af1c904452d77b2972f6d0077dee68639}{}\index{table\+Elem@{table\+Elem}!````~table\+Elem@{$\sim$table\+Elem}}
+\index{````~table\+Elem@{$\sim$table\+Elem}!table\+Elem@{table\+Elem}}
+\subsubsection[{$\sim$table\+Elem()}]{\setlength{\rightskip}{0pt plus 5cm}table\+Elem\+::$\sim$table\+Elem (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_af1c904452d77b2972f6d0077dee68639}
+Destructor for class 
+
+\subsection{Member Function Documentation}
+\hypertarget{classtable_elem_a4d6c2e62009c0aff199a23a72eb0db9c}{}\index{table\+Elem@{table\+Elem}!calc\+Dist@{calc\+Dist}}
+\index{calc\+Dist@{calc\+Dist}!table\+Elem@{table\+Elem}}
+\subsubsection[{calc\+Dist(\+Vector3d v1, Vector3d v2)}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::calc\+Dist (
+\begin{DoxyParamCaption}
+\item[{Vector3d}]{v1, }
+\item[{Vector3d}]{v2}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [static]}}\label{classtable_elem_a4d6c2e62009c0aff199a23a72eb0db9c}
+Calculates distance between two segments
+
+
+\begin{DoxyParams}{Parameters}
+{\em v1} & first segment center \\
+\hline
+{\em v2} & second segment center\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The distance between v1 and v2 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_a0668fb1ba486bd13baf5e694b2aa5087}{}\index{table\+Elem@{table\+Elem}!calc\+Thet@{calc\+Thet}}
+\index{calc\+Thet@{calc\+Thet}!table\+Elem@{table\+Elem}}
+\subsubsection[{calc\+Thet(vector$<$ shared\+\_\+ptr$<$ segment $>$$>$\+::iterator s1, vector$<$ shared\+\_\+ptr$<$ segment $>$$>$\+::iterator s2)}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::calc\+Thet (
+\begin{DoxyParamCaption}
+\item[{vector$<$ shared\+\_\+ptr$<$ {\bf segment} $>$$>$\+::iterator}]{s1, }
+\item[{vector$<$ shared\+\_\+ptr$<$ {\bf segment} $>$$>$\+::iterator}]{s2}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [static]}}\label{classtable_elem_a0668fb1ba486bd13baf5e694b2aa5087}
+Calculates the angle between two vectors
+
+
+\begin{DoxyParams}{Parameters}
+{\em s1} & first segment \\
+\hline
+{\em s2} & second segment \\
+\hline
+\end{DoxyParams}
+\hypertarget{classtable_elem_a92ca4eba0818cd4a3a042f46e3c55ad5}{}\index{table\+Elem@{table\+Elem}!get\+Gamma@{get\+Gamma}}
+\index{get\+Gamma@{get\+Gamma}!table\+Elem@{table\+Elem}}
+\subsubsection[{get\+Gamma()}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::get\+Gamma (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a92ca4eba0818cd4a3a042f46e3c55ad5}
+Gets gamma value
+
+\begin{DoxyReturn}{Returns}
+gamma value 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_a6ec9d74259c528e32b93d44a727e89ec}{}\index{table\+Elem@{table\+Elem}!getr@{getr}}
+\index{getr@{getr}!table\+Elem@{table\+Elem}}
+\subsubsection[{getr()}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::getr (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a6ec9d74259c528e32b93d44a727e89ec}
+Gets r value
+
+\begin{DoxyReturn}{Returns}
+r value 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_a1db2b8266dc9c909a0fb6f18c8f7443c}{}\index{table\+Elem@{table\+Elem}!get\+Rate@{get\+Rate}}
+\index{get\+Rate@{get\+Rate}!table\+Elem@{table\+Elem}}
+\subsubsection[{get\+Rate()}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::get\+Rate (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a1db2b8266dc9c909a0fb6f18c8f7443c}
+Gets the total transition rate based on gamma, r, and theta
+
+\begin{DoxyReturn}{Returns}
+The transition rate in inverse seconds 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_af8c5f321cc70ffbff3bbe8b2ddc81207}{}\index{table\+Elem@{table\+Elem}!get\+Segidx@{get\+Segidx}}
+\index{get\+Segidx@{get\+Segidx}!table\+Elem@{table\+Elem}}
+\subsubsection[{get\+Segidx()}]{\setlength{\rightskip}{0pt plus 5cm}int table\+Elem\+::get\+Segidx (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_af8c5f321cc70ffbff3bbe8b2ddc81207}
+Gets the segment number
+
+\begin{DoxyReturn}{Returns}
+segment number 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_a5687c5c5d6d9c3c290c3fe0495de08ac}{}\index{table\+Elem@{table\+Elem}!get\+Theta@{get\+Theta}}
+\index{get\+Theta@{get\+Theta}!table\+Elem@{table\+Elem}}
+\subsubsection[{get\+Theta()}]{\setlength{\rightskip}{0pt plus 5cm}double table\+Elem\+::get\+Theta (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a5687c5c5d6d9c3c290c3fe0495de08ac}
+Gets theta value
+
+\begin{DoxyReturn}{Returns}
+theta value 
+\end{DoxyReturn}
+\hypertarget{classtable_elem_a107266e6f04b912b159db92e85b4a070}{}\index{table\+Elem@{table\+Elem}!get\+Tubeidx@{get\+Tubeidx}}
+\index{get\+Tubeidx@{get\+Tubeidx}!table\+Elem@{table\+Elem}}
+\subsubsection[{get\+Tubeidx()}]{\setlength{\rightskip}{0pt plus 5cm}int table\+Elem\+::get\+Tubeidx (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\label{classtable_elem_a107266e6f04b912b159db92e85b4a070}
+Gets tube number
+
+\begin{DoxyReturn}{Returns}
+tube number 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+C\+N\+T\+M\+C\+\_\+\+Project/\+C\+N\+T\+M\+C\+\_\+\+Project/table\+Elem.\+h\item 
+C\+N\+T\+M\+C\+\_\+\+Project/\+C\+N\+T\+M\+C\+\_\+\+Project/table\+Elem.\+cpp\end{DoxyCompactItemize}
