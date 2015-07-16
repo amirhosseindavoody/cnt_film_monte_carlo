@@ -25,9 +25,10 @@ using namespace std;
 string folderPathPrompt(bool incorrect);
 string xmlFilePathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, double maxDist);
-int getIndex(shared_ptr<vector<double>> vec, double prob);
-int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
+	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
+int getIndex(shared_ptr<vector<double>> vec, double val);
+int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand();
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
@@ -178,9 +179,9 @@ int main(int argc, char *argv[])
 	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
 	shared_ptr<vector<double>> thetas = linspace(1, 90, 90);
 
-	vector<vector<int>> colorMap(vector<vector<int>>(rs->size()));
+	shared_ptr<vector<vector<int>>> colorMap(new vector<vector<int>>(rs->size()));
 	//initialize all other vectors in the vector to the correct size
-	for (vector<vector<int>>::iterator it = colorMap.begin(); it != colorMap.end(); ++it)
+	for (vector<vector<int>>::iterator it = colorMap->begin(); it != colorMap->end(); ++it)
 	{
 		it->resize(thetas->size());
 	}
@@ -233,7 +234,7 @@ int main(int argc, char *argv[])
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relelant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, colorMap,rs,thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -471,9 +472,11 @@ from the segment.
 @param CNT_List The list of carbon nanotubes to iterate over
 @param seg The segment that we will be adding table elements to
 @param maxDist If segments are within maxDist of seg, then they will be added to the table
+@param colorMap A count of all rs at particular thetas to get mesh statistics
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, double maxDist)
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
 	//iterate over CNTs
@@ -485,15 +488,21 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 		//iterate over all segments considered for seg
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double r;
-			//Check if within range
-			if ( ((r = tableElem::calcDist((*seg)->mid, (*segit)->mid)) <= maxDist) && (r != 0))
+			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
+			auto theta = tableElem::calcThet(seg, segit);
+
+			//Color Map Additions
+			if (r != 0)
 			{
-				auto theta = tableElem::calcThet(seg, segit);
-				auto g = 6.4000e+19; //First draft estimate
-				(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-				(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
-			}
+				(*colorMap)[getIndex(rs, r)][getIndex(thetas, theta)]++;
+				//Check if within range
+				if (r <= maxDist)
+				{
+					auto g = 6.4000e+19; //First draft estimate
+					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+				}
+			}	
 			j++;
 		}
 		i++;
