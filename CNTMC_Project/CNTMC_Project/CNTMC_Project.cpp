@@ -41,6 +41,11 @@ int main(int argc, char *argv[])
 		resultFolderPath = folderPathPrompt(false);
 		inputXMLPath = xmlFilePathPrompt(false);
 	}
+	else if (argc == 2)
+	{
+		resultFolderPath = argv[1];
+		inputXMLPath = xmlFilePathPrompt(false);
+	}
 	else if (argc > 3)
 	{
 		cout << "Incorrect parameters. Only enter file path of results folder to be processed.\n";
