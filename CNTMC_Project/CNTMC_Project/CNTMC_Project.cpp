@@ -271,8 +271,12 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 		int tblIdx = getIndex(seg.rateVec, getRand()*gamma);
 		tableElem tbl = (*seg.tbl)[tblIdx];
 		segment newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
-		done = newSeg.setExciton(e);
-		if (done)
+		if (seg.segNum != newSeg.segNum)
+		{
+			int stoppie = 0;
+		}
+		if (newSeg.hasExactExciton(e)){ done = true; }
+		else if (done = newSeg.setExciton(e))
 		{
 			if (!seg.removeExciton(e))
 			{
@@ -282,8 +286,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 			}
 			e->setCNTidx(tbl.getTubeidx());
 			e->setSegidx(tbl.getSegidx());
-		}
-
+		} 
 	}
 }
 

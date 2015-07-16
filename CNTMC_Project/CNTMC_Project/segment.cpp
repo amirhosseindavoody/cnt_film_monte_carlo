@@ -28,12 +28,6 @@ bool segment::hasExciton(shared_ptr<exciton> e)
 		exit(EXIT_FAILURE);
 	}
 
-	//If adding the same exciton to the same location, that is self scattering and allowed
-	if (e == ex1 || e == ex2)
-	{
-		return false;
-	}
-
 	//if energy is 1 and that slot is occupied return true
 	if (currEn == 1 && !(ex1 == nullptr))
 	{
@@ -112,4 +106,18 @@ bool segment::removeExciton(shared_ptr<exciton> e)
 		}
 	}
 	return false; //no exciton present to remove
+}
+
+/**
+Checks to see if the exciton that is passes is the exact exciton that
+already exists in the location.
+*/
+bool segment::hasExactExciton(shared_ptr<exciton> e)
+{
+	//If adding the same exciton to the same location, that is self scattering and allowed
+	if (e == ex1 || e == ex2)
+	{
+		return true;
+	}
+	return false;
 }

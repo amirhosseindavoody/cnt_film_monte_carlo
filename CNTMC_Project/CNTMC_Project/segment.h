@@ -34,4 +34,5 @@ struct segment
 	bool hasExciton(shared_ptr<exciton> e);
 	bool setExciton(shared_ptr<exciton> e);
 	bool removeExciton(shared_ptr<exciton> e);
+	bool hasExactExciton(shared_ptr<exciton> e);
 };
