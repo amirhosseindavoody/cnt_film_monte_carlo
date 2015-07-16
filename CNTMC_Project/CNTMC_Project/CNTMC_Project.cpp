@@ -271,10 +271,6 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 		int tblIdx = getIndex(seg->rateVec, getRand()*gamma);
 		tableElem tbl = (*seg->tbl)[tblIdx];
 		shared_ptr<segment> newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
-		if (seg->segNum != newSeg->segNum)
-		{
-			int stoppie = 0;
-		}
 		if (newSeg->hasExactExciton(e)){ done = true; }
 		else if (done = newSeg->setExciton(e))
 		{
