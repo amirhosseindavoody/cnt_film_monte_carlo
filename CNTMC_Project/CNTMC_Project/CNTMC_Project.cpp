@@ -13,6 +13,8 @@
 #include "tableElem.h"
 #include <locale>
 #include <math.h>
+#include "rapidxml.hpp"
+#include "rapidxml_utils.hpp"
 
 
 using namespace std;
@@ -29,6 +31,7 @@ int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 double getRand();
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
+double convertUnits(string unit, double val);
 
 int main(int argc, char *argv[])
 {
@@ -95,6 +98,72 @@ int main(int argc, char *argv[])
 	delete ent;
 
 	//////////////////////// XML FILE PARSE ////////////////////////////////////////////////
+	double rmax; //maximum possible differences between sections of CNTs
+	while (!done)
+	{
+		try
+		{
+			rapidxml::xml_document<> doc; //create xml object
+			rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
+			doc.parse<0>(xmlFile.data()); //parse contents of file
+			rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
+			currNode = currNode->first_node(); //Output folder
+			//Speed up to device dimensions
+			for (int i = 0; i < 6; i++)
+			{
+				currNode = currNode->next_sibling();
+			}
+			// DEVICE DIMENSIONS NODE //
+			auto xdim = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->value()));
+			auto ydim = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->next_sibling()->value()));
+			auto zdim = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->next_sibling()->next_sibling()->value()));
+			//incorrect units
+			if (xdim == INT_MIN / 2.0 || ydim == INT_MIN / 2.0 || zdim == INT_MIN / 2.0)
+			{
+				printf("Configuration Error: Incorrect units for device dimensions.\nRefer to manual"
+					" for valid unit entries.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			//incorrect range
+			else if (xdim <= 0 || ydim <= 0 || zdim <= 0)
+			{
+				printf("Configuration Error: Must enter positive device dimensions.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END DEVICE DIMENSIONS NODE //
+
+			rmax = max(max(xdim, ydim), zdim);
+
+			delete currNode;
+			done = true;
+		} 
+		catch (runtime_error err)
+		{
+			string temp;
+			int xmlArrayLength = 260; //Maximum path length for Windows
+			cout << err.what();
+			cout << "\n";
+			cout << "Continue? [y/n]: ";
+			cin >> temp;
+			if (temp.compare("y") != 0)
+			{
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			char *inputXMLPathArray = new char[xmlArrayLength];
+			system("cls");
+			cout << "Enter config xml path (Example in program files directory):\n";
+			cin.ignore();
+			cin.getline(inputXMLPathArray, xmlArrayLength);
+			inputXMLPath = inputXMLPathArray;
+			delete inputXMLPathArray;
+		}
+	}
 
 
 

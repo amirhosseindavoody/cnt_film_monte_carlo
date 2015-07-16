@@ -85,6 +85,7 @@
     <ClInclude Include="dirent.h" />
     <ClInclude Include="exciton.h" />
     <ClInclude Include="rapidxml.hpp" />
+    <ClInclude Include="rapidxml_utils.hpp" />
     <ClInclude Include="segment.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="tableElem.h" />
