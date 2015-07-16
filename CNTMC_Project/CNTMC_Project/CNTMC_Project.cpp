@@ -21,7 +21,7 @@ using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist);
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, double maxDist);
 int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
 double getRand();
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	{
 		double newGamma;
 		//loop over segments in each CNTs
-		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relelant table entries
 			newGamma = updateSegTable(CNT_List, segit, maxDist);
@@ -219,8 +219,8 @@ int main(int argc, char *argv[])
 			//sets seg index to a number between 0 and the number of segs for the cnt - 1.
 			//  The complicated part gets the number of segments from the current cnt
 			(*excitons)[exNum]->setSegidx(rand() % ((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs->size()));
-			shared_ptr<vector<segment>> temp((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs); //get segment list
-			done = (*temp)[(*excitons)[exNum]->getSegidx()].setExciton((*excitons)[exNum]);
+			shared_ptr<vector<shared_ptr<segment>>> temp((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs); //get segment list
+			done = ((*temp)[(*excitons)[exNum]->getSegidx()])->setExciton((*excitons)[exNum]);
 		}
 	}
 
@@ -265,20 +265,20 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 {
 	bool done = false; //flag for completion
 	//Segment the current exciton is located on
-	segment seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()]; 
+	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()]; 
 	while (!done)
 	{
-		int tblIdx = getIndex(seg.rateVec, getRand()*gamma);
-		tableElem tbl = (*seg.tbl)[tblIdx];
-		segment newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
-		if (seg.segNum != newSeg.segNum)
+		int tblIdx = getIndex(seg->rateVec, getRand()*gamma);
+		tableElem tbl = (*seg->tbl)[tblIdx];
+		shared_ptr<segment> newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
+		if (seg->segNum != newSeg->segNum)
 		{
 			int stoppie = 0;
 		}
-		if (newSeg.hasExactExciton(e)){ done = true; }
-		else if (done = newSeg.setExciton(e))
+		if (newSeg->hasExactExciton(e)){ done = true; }
+		else if (done = newSeg->setExciton(e))
 		{
-			if (!seg.removeExciton(e))
+			if (!seg->removeExciton(e))
 			{
 				cout << "Error: Exciton could not be removed from segment.\n";
 				system("pause");
@@ -305,13 +305,13 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 		//segment index
 		int j = 0; 
 		//loop over segments in each CNTs
-		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double currGam = segit->rateVec->back();
+			double currGam = (*segit)->rateVec->back();
 			if (maxGam > currGam)
 			{
-				segit->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				segit->rateVec->push_back(maxGam);
+				(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
+				(*segit)->rateVec->push_back(maxGam);
 			}
 			j++;
 		}
@@ -397,7 +397,7 @@ from the segment.
 @param maxDist If segments are within maxDist of seg, then they will be added to the table
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterator seg, double maxDist)
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, double maxDist)
 {
 	double rate = 0;
 	//iterate over CNTs
@@ -407,16 +407,16 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<segment>::iterato
 	{
 		int j = 0; //segment index counter
 		//iterate over all segments considered for seg
-		for (vector<segment>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			double r;
 			//Check if within range
-			if ( ((r = tableElem::calcDist(seg->mid, segit->mid)) <= maxDist) && (r != 0))
+			if ( ((r = tableElem::calcDist((*seg)->mid, (*segit)->mid)) <= maxDist) && (r != 0))
 			{
 				auto theta = tableElem::calcThet(seg, segit);
 				auto g = 6.4000e+19; //First draft estimate
-				seg->tbl->push_back(tableElem(r,theta,g,i,j)); //tbl initialized in CNT::calculateSegments
-				seg->rateVec->push_back(rate+=(seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+				(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+				(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 			}
 			j++;
 		}

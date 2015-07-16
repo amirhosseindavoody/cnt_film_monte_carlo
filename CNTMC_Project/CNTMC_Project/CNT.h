@@ -45,7 +45,7 @@ class CNT
 
 private:
 	void setDiameter(int n, int m);
-	shared_ptr<vector<segment>> calculateSegments(double segLen);
+	shared_ptr<vector<shared_ptr<segment>>> calculateSegments(double segLen);
 	Vector3d CNT::getPoint(int idx);
 	Vector3d CNT::calcEndPt(int idx, double extra);
 	Vector3d CNT::calcFinalEndPt(int idx);
@@ -62,7 +62,7 @@ public:
 	int getn();
 	int getCNTNum();
 	bool isInitialized();
-	shared_ptr<vector<segment>> segs; //The sections of the CNT used to create the MC tables
+	shared_ptr<vector<shared_ptr<segment>>> segs; //The sections of the CNT used to create the MC tables
 };
 
 #endif

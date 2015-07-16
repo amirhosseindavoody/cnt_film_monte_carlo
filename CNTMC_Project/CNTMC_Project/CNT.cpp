@@ -392,7 +392,7 @@ Calculates the segments used for the MC simulations
 @param segLen The desired length of the segments
 @return Vector of the segments
 */
-shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
+shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 {
 	//parameter check
 	if (length < segLenMin)
@@ -415,7 +415,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 	double segLen = (segLenMin + extra / numSegs) / 2.0;
 
 	//return value for the function
-	shared_ptr<vector<segment>> retVec(new vector<segment>(numSegs));
+	shared_ptr<vector<shared_ptr<segment>>> retVec(new vector<shared_ptr<segment>>(numSegs));
 
 	//create a starting position for the segments and set it to first point
 	Vector3d firstPos = calcEndPt(0, -cylinderHeight/2.0);
@@ -429,11 +429,11 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 	for (int i = 0; i < numPt && currSeg < numSegs; i++)
 	{
 		//need to initialize the tbl vector otherwise nothing can be assigned to it
-		(*retVec)[currSeg].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		(*retVec)[currSeg].rateVec = make_shared<vector<double>>(vector<double>(0));
-		(*retVec)[currSeg].segNum = currSeg;
+		((*retVec)[currSeg])->tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
+		((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
+		((*retVec)[currSeg])->segNum = currSeg;
 		
-		(*retVec)[currSeg].p1 = firstPos;
+		((*retVec)[currSeg])->p1 = firstPos;
 		Vector3d currPos = firstPos; //curr point being analyzed
 		Vector3d nextPos; //next curr point to be analyzed
 		double currSecLen = 0; //amount of space between currPos and nextPos
@@ -459,7 +459,7 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 		}
 		currPos = calcEndPt(i, extra);
 		//segLenDeb += (currPos - getPoint(i)).norm();
-		(*retVec)[currSeg].mid = currPos;
+		((*retVec)[currSeg])->mid = currPos;
 		i++;
 
 		currLen = 0; //reset the current seg length
@@ -491,12 +491,12 @@ shared_ptr<vector<segment>> CNT::calculateSegments(double segLenMin)
 			}
 			firstPos = calcEndPt(i, extra);
 			//segLenDeb += (firstPos - getPoint(i)).norm();
-			(*retVec)[currSeg].p2 = firstPos;
+			((*retVec)[currSeg])->p2 = firstPos;
 			currLen = 0;
 		} 
 		else //final segment needs to 
 		{
-			(*retVec)[currSeg].p2 = calcFinalEndPt(i);
+			((*retVec)[currSeg])->p2 = calcFinalEndPt(i);
 		}
 		currSeg++;
 	}
