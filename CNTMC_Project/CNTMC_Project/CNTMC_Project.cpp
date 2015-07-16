@@ -32,6 +32,7 @@ double getRand();
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
 double convertUnits(string unit, double val);
+shared_ptr<vector<double>> linspace(double low, double high, int num);
 
 int main(int argc, char *argv[])
 {
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
 	delete ent;
 
 	//////////////////////// XML FILE PARSE ////////////////////////////////////////////////
-	double rmax; //maximum possible differences between sections of CNTs
+	double rmax = 0; //maximum possible differences between sections of CNTs
 	while (!done)
 	{
 		try
@@ -139,7 +140,8 @@ int main(int argc, char *argv[])
 
 			rmax = max(max(xdim, ydim), zdim);
 
-			delete currNode;
+			// Will not let me delete, says it is null pointer even though I can get values from it. 
+			//delete currNode; 
 			done = true;
 		} 
 		catch (runtime_error err)
@@ -165,7 +167,13 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
+	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
+	
+	shared_ptr<vector<double>> rs; //Vector containing range of r's
+	rmax = 100 * ceil(rmax / 100.0);
+	int numBins = static_cast<int>( rmax / 10.0 ); //number of bins to place r's into 
+	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
+	rs = linspace(minBin, rmax, numBins);
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
@@ -628,4 +636,24 @@ string checkPath(string path, bool folder)
 			}
 		}
 	}
+}
+
+/**
+Creates a vector with matlab style linspace numbering
+
+@param low The lowest number to be in vector
+@param high The highest number to be in vector
+@param num The number of points to be in vector
+@return A pointer to the resulting vector
+*/
+shared_ptr<vector<double>> linspace(double low, double high, int num)
+{
+	shared_ptr<vector<double>> retVec(new vector<double>(num));
+	double step = (high - low) / static_cast<double>(num - 1);
+	for (int i = 0; i < num; i++)
+	{
+		(*retVec)[i] = low;
+		low += step;
+	}
+	return retVec;
 }
