@@ -173,7 +173,17 @@ int main(int argc, char *argv[])
 	rmax = 100 * ceil(rmax / 100.0);
 	int numBins = static_cast<int>( rmax / 10.0 ); //number of bins to place r's into 
 	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	rs = linspace(minBin, rmax, numBins);
+	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
+
+	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
+	shared_ptr<vector<double>> thetas = linspace(1, 90, 90);
+
+	vector<vector<int>> colorMap(vector<vector<int>>(rs->size()));
+	//initialize all other vectors in the vector to the correct size
+	for (vector<vector<int>>::iterator it = colorMap.begin(); it != colorMap.end(); ++it)
+	{
+		it->resize(thetas->size());
+	}
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
