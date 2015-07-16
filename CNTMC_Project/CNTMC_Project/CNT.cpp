@@ -416,6 +416,12 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 
 	//return value for the function
 	shared_ptr<vector<shared_ptr<segment>>> retVec(new vector<shared_ptr<segment>>(numSegs));
+	//Must initialize the shared_ptrs in the return vector
+	for (int i = 0; i < numSegs; i++)
+	{
+		segment initSeg;
+		(*retVec)[i] = make_shared<segment>(initSeg);
+	}
 
 	//create a starting position for the segments and set it to first point
 	Vector3d firstPos = calcEndPt(0, -cylinderHeight/2.0);
