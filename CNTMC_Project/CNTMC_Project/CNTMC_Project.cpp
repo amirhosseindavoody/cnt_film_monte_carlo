@@ -21,6 +21,8 @@ using namespace std;
 
 //method declarations
 string folderPathPrompt(bool incorrect);
+string xmlFilePathPrompt(bool incorrect);
+string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, double maxDist);
 int getIndex(shared_ptr<vector<double>> vec, double prob);
 int getIndex(shared_ptr<vector<double>> vec, double prob, int left, int right);
@@ -30,14 +32,16 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 
 int main(int argc, char *argv[])
 {
-
+	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
+	string inputXMLPath = " ";
 
 	if (argc == 1)
 	{
 		resultFolderPath = folderPathPrompt(false);
+		inputXMLPath = xmlFilePathPrompt(false);
 	}
-	else if (argc > 2)
+	else if (argc > 3)
 	{
 		cout << "Incorrect parameters. Only enter file path of results folder to be processed.\n";
 		system("pause");
@@ -46,30 +50,12 @@ int main(int argc, char *argv[])
 	else
 	{
 		resultFolderPath = argv[1];
+		inputXMLPath = argv[2];
+
 	}
 
-	//Checking validity of folder path
-	bool done = false;
-	while (!done)
-	{
-		//Container for file/folder information
-		struct stat info;
-
-		if (stat(resultFolderPath.c_str(), &info) != 0)
-		{
-			printf("Cannot access %s\n", resultFolderPath.c_str());
-			resultFolderPath = folderPathPrompt(true);
-		}
-		else if (info.st_mode & S_IFDIR)
-		{
-			done = true;
-		}
-		else
-		{
-			printf("%s is not a directory\n", resultFolderPath.c_str());
-			resultFolderPath = folderPathPrompt(true);
-		}
-	}
+	resultFolderPath = checkPath(resultFolderPath, true); //check result folder path
+	inputXMLPath = checkPath(inputXMLPath, false); //check xml file path
 
 	//Results folder exists and can be accessed
 
@@ -102,6 +88,9 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	delete ent;
+
+	//////////////////////// XML FILE PARSE ////////////////////////////////////////////////
+
 
 
 	/*
@@ -422,11 +411,10 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 
 
 /**
-Converts numbers with some units to angstroms
+Gets the path of the folder containing CNT mesh results
 
-@param unit The current unit
-@param val The current value
-@return the value in angstroms
+@param incorrect Runs special prompt in case that cmd args were incorrect
+@return The string containing the results folder path.
 */
 string folderPathPrompt(bool incorrect)
 {
@@ -454,4 +442,116 @@ string folderPathPrompt(bool incorrect)
 	returnString = inputResultsFolderPathArray;
 	delete[] inputResultsFolderPathArray;
 	return returnString;
+}
+
+/**
+Gets the path of the file used to configure the CNT mesh generation
+
+@param incorrect Runs special prompt in case that cmd args were incorrect
+@return The string containing the XML file path.
+*/
+string xmlFilePathPrompt(bool incorrect)
+{
+	if (incorrect)
+	{
+		string temp = " ";
+		cout << "Re-enter XML config file path? [y/n]: ";
+		cin >> temp;
+		//check response, end if decline retry
+		if (temp.compare("y") != 0)
+		{
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	int inputPathLengthMax = 260; //Maximum path length for Windows
+	string returnString;
+	char *inputXMLFilePathArray = new char[inputPathLengthMax];
+	cout << "Enter path of XML config file:\n";
+	if (incorrect)
+		cin.ignore(); //if reentering, must ignore the next input
+	cin.getline(inputXMLFilePathArray, inputPathLengthMax);
+	returnString = inputXMLFilePathArray;
+	delete[] inputXMLFilePathArray;
+	return returnString;
+}
+
+/**
+Converts numbers with some units to angstroms
+
+@param unit The current unit
+@param val The current value
+@return the value in angstroms
+*/
+double convertUnits(string unit, double val)
+{
+	if (unit.compare("mm") == 0 || unit.compare("millimeter") == 0)
+	{
+		return val * 10000000;
+	}
+	else if (unit.compare("um") == 0 || unit.compare("micrometer") == 0)
+	{
+		return val * 10000;
+	}
+	else if (unit.compare("nm") == 0 || unit.compare("nanometer") == 0)
+	{
+		return val * 10;
+	}
+	else if (unit.compare("pm") == 0 || unit.compare("picometer") == 0)
+	{
+		return val * .01;
+	}
+	else if (unit.compare("A") == 0 || unit.compare("angstrom") == 0)
+	{
+		return val;
+	}
+	else
+	{
+		return INT_MIN;
+	}
+}
+
+/**
+Checks to see if the file/folder exists and is accessable
+
+@param path The path of the file/folder
+@param folder If true, then the path is for a folder, file otherwise
+@return The string of the path that works
+*/
+string checkPath(string path, bool folder)
+{
+	//Checking validity of folder path
+	while (true)
+	{
+		//Container for file/folder information
+		struct stat info;
+
+		if (stat(path.c_str(), &info) != 0)
+		{
+			printf("Cannot access %s\n", path.c_str());
+			//get new path for next itr or quit
+			if (folder){ path = folderPathPrompt(true); }
+			else { path = xmlFilePathPrompt(true);}
+		}
+		//path is accessable
+		else
+		{
+			//Check to see if correctly dir or file
+			if ((folder && (info.st_mode & S_IFDIR)) || 
+				(!folder && (info.st_mode & S_IFREG))) { return path; }
+			
+			//Incorrect type for the path. Reprompt or quit
+			if (folder)
+			{
+				printf("%s is not a directory\n", path.c_str());
+				path = folderPathPrompt(true);
+			} 
+			else
+			{
+				printf("%s is not a file\n", path.c_str());
+				path = xmlFilePathPrompt(true);
+			}
+		}
+	}
 }
