@@ -24,6 +24,7 @@ using namespace std;
 //method declarations
 string folderPathPrompt(bool incorrect);
 string xmlFilePathPrompt(bool incorrect);
+string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
@@ -40,18 +41,27 @@ int main(int argc, char *argv[])
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
 	string inputXMLPath = " ";
+	string outputFolderPath = " ";
 
 	if (argc == 1)
 	{
 		resultFolderPath = folderPathPrompt(false);
 		inputXMLPath = xmlFilePathPrompt(false);
+		outputFolderPath = outputFolderPathPrompt(false);
 	}
 	else if (argc == 2)
 	{
 		resultFolderPath = argv[1];
 		inputXMLPath = xmlFilePathPrompt(false);
+		outputFolderPath = outputFolderPathPrompt(false);
 	}
-	else if (argc > 3)
+	else if (argc == 3)
+	{
+		resultFolderPath = argv[1];
+		inputXMLPath = argv[2];
+		outputFolderPath = outputFolderPathPrompt(false);
+	}
+	else if (argc > 4)
 	{
 		cout << "Incorrect parameters. Only enter file path of results folder to be processed.\n";
 		system("pause");
@@ -61,11 +71,57 @@ int main(int argc, char *argv[])
 	{
 		resultFolderPath = argv[1];
 		inputXMLPath = argv[2];
-
+		outputFolderPath = argv[3];
 	}
 
 	resultFolderPath = checkPath(resultFolderPath, true); //check result folder path
 	inputXMLPath = checkPath(inputXMLPath, false); //check xml file path
+
+	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
+
+	string timeStamp = "/Date_";
+	string response;
+	string outputPath;
+	{
+		time_t timer;
+		struct tm currTime;
+		if (time(&timer) != -1)
+		{
+			errno_t err = localtime_s(&currTime, &timer);
+			if (err)
+			{
+				printf("Invalid argument to localtime.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		timeStamp = timeStamp + to_string(currTime.tm_mday) + "." + to_string(currTime.tm_mon + 1) +
+			"." + to_string(currTime.tm_year % 100) + "_Time_" + to_string(currTime.tm_hour) + "." +
+			to_string(currTime.tm_min) + "." + to_string(currTime.tm_sec) + "/";
+	}
+
+	outputPath = outputFolderPath + timeStamp;
+	wstring wide_string(outputPath.begin(), outputPath.end());
+	if (CreateDirectory(wide_string.c_str(), nullptr) == 0)
+	{
+		auto error = GetLastError();
+		if (error == ERROR_ALREADY_EXISTS)
+		{
+			printf("Output folder already exists. Continue anyways? [y/n]\n");
+			cin >> response;
+			if (response.compare(string("y")) != 0)
+			{
+				exit(EXIT_FAILURE);
+			}
+		}
+		else if (error == ERROR_PATH_NOT_FOUND)
+		{
+			printf("Invalid output folder path.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	//Results folder exists and can be accessed
 
@@ -99,7 +155,7 @@ int main(int argc, char *argv[])
 	}
 	delete ent;
 
-	//////////////////////// XML FILE PARSE ////////////////////////////////////////////////
+	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
 	double rmax = 0; //maximum possible differences between sections of CNTs
 	while (!done)
 	{
@@ -570,6 +626,39 @@ string xmlFilePathPrompt(bool incorrect)
 	string returnString;
 	char *inputXMLFilePathArray = new char[inputPathLengthMax];
 	cout << "Enter path of XML config file:\n";
+	if (incorrect)
+		cin.ignore(); //if reentering, must ignore the next input
+	cin.getline(inputXMLFilePathArray, inputPathLengthMax);
+	returnString = inputXMLFilePathArray;
+	delete[] inputXMLFilePathArray;
+	return returnString;
+}
+
+/**
+Gets the path of output folder
+
+@param incorrect Runs special prompt in case that cmd args were incorrect
+@return The string containing the XML file path.
+*/
+string outputFolderPathPrompt(bool incorrect)
+{
+	if (incorrect)
+	{
+		string temp = " ";
+		cout << "Re-enter output folder path? [y/n]: ";
+		cin >> temp;
+		//check response, end if decline retry
+		if (temp.compare("y") != 0)
+		{
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	int inputPathLengthMax = 260; //Maximum path length for Windows
+	string returnString;
+	char *inputXMLFilePathArray = new char[inputPathLengthMax];
+	cout << "Enter path of output folder:\n";
 	if (incorrect)
 		cin.ignore(); //if reentering, must ignore the next input
 	cin.getline(inputXMLFilePathArray, inputPathLengthMax);
