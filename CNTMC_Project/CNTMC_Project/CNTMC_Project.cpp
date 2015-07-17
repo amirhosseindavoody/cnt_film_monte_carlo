@@ -240,9 +240,9 @@ int main(int argc, char *argv[])
 	int numAng = 90; //Number of angles to record. One per degree
 	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
 
-	shared_ptr<vector<vector<int>>> colorMap(new vector<vector<int>>(rs->size()));
+	shared_ptr<vector<vector<int>>> heatMap(new vector<vector<int>>(rs->size()));
 	//initialize all other vectors in the vector to the correct size
-	for (vector<vector<int>>::iterator it = colorMap->begin(); it != colorMap->end(); ++it)
+	for (vector<vector<int>>::iterator it = heatMap->begin(); it != heatMap->end(); ++it)
 	{
 		it->resize(thetas->size());
 	}
@@ -295,15 +295,15 @@ int main(int argc, char *argv[])
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relelant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, colorMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
 	}
 
-	/////////////////////////////// OUTPUT COLORMAP //////////////////////////////////////
+	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
-	string fileName = outputPath + "ColorMap.csv";
+	string fileName = outputPath + "heatMap.csv";
 	ofstream file;
 	file.open(fileName);
 	file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 	{
 		for (int j = 0; j < thetas->size(); j++)
 		{
-			file << (*colorMap)[i][j] << ",";
+			file << (*heatMap)[i][j] << ",";
 		}
 		file << "\n";
 	}
@@ -558,7 +558,7 @@ from the segment.
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
 	//iterate over CNTs
@@ -576,7 +576,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 			//Color Map Additions
 			if (r != 0)
 			{
-				(*colorMap)[getIndex(rs, r)][getIndex(thetas, theta)]++;
+				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++;
 				//Check if within range
 				if (r <= maxDist)
 				{
