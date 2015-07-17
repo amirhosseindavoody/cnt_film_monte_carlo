@@ -140,14 +140,15 @@ int main(int argc, char *argv[])
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
 	{
 		//throw away first two results as they are . and ..
-		readdir(resDir);readdir(resDir);
+		readdir(resDir); readdir(resDir);
 		//iterate over all of the real files
 		while ((ent = readdir(resDir)) != nullptr)
 		{
 			fileList->push_back(ent->d_name);
 		}
 		closedir(resDir); //deletes pointer
-	} else
+	}
+	else
 	{
 		cout << "Could not open directory. Please try program again.\n";
 		system("pause");
@@ -200,7 +201,7 @@ int main(int argc, char *argv[])
 			// Will not let me delete, says it is null pointer even though I can get values from it. 
 			//delete currNode; 
 			done = true;
-		} 
+		}
 		catch (runtime_error err)
 		{
 			string temp;
@@ -225,15 +226,19 @@ int main(int argc, char *argv[])
 	}
 
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
-	
+
 	shared_ptr<vector<double>> rs; //Vector containing range of r's
 	rmax = 100 * ceil(rmax / 100.0);
-	int numBins = static_cast<int>( rmax / 10.0 ); //number of bins to place r's into 
+	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
 	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
 	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
 
 	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
-	shared_ptr<vector<double>> thetas = linspace(1, 90, 90);
+	// do not forget to use radians
+	double lowAng = 1 * M_PI / 180.0;
+	double highAng = 90 * M_PI / 180.0;
+	int numAng = 90; //Number of angles to record. One per degree
+	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
 
 	shared_ptr<vector<vector<int>>> colorMap(new vector<vector<int>>(rs->size()));
 	//initialize all other vectors in the vector to the correct size
@@ -254,7 +259,7 @@ int main(int argc, char *argv[])
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
-		CNT_List->push_back(CNT(*(it), resultFolderPath,100.0));
+		CNT_List->push_back(CNT(*(it), resultFolderPath, 100.0));
 	}
 
 	//Extra check to ensure that all initilizations were successful
@@ -273,7 +278,7 @@ int main(int argc, char *argv[])
 	The next section will be filling the segments vector of table elements by calculating the necessary
 	additions to it.
 	*/
-	
+
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
 	//iterate through all of the CNTs and segments
@@ -290,11 +295,32 @@ int main(int argc, char *argv[])
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relelant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, colorMap,rs,thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, colorMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
 	}
+
+	/////////////////////////////// OUTPUT COLORMAP //////////////////////////////////////
+
+	string fileName = outputPath + "ColorMap.csv";
+	ofstream file;
+	file.open(fileName);
+	file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
+	file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
+	file << "Map (r vs. theta):\n";
+	//iterate through all of the rs and then thetas while printing to file
+	for (int i = 0; i < rs->size(); i++)
+	{
+		for (int j = 0; j < thetas->size(); j++)
+		{
+			file << (*colorMap)[i][j] << ",";
+		}
+		file << "\n";
+	}
+	file.close();
+
+
 
 	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
 

@@ -203,12 +203,18 @@ Calculates the angle between two vectors
 
 @param s1 first segment
 @param s2 second segment
+@return The angle between the two segments (0 to pi/2)
 */
 double tableElem::calcThet(vector<shared_ptr<segment>>::iterator s1, vector<shared_ptr<segment>>::iterator s2)
 {
 	Vector3d v1 = (*s1)->p2 - (*s1)->p1;
 	Vector3d v2 = (*s2)->p2 - (*s2)->p1;
-	return acos(v1.dot(v2) / (v1.norm()*v2.norm())); //range 0 to pi
+	double val = acos(v1.dot(v2) / (v1.norm()*v2.norm())); //range 0 to pi
+	if (val <= M_PI / 2.0)
+	{
+		return val;
+	}
+	return (M_PI - val);
 
 }
 
