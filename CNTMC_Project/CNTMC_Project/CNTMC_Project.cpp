@@ -35,9 +35,12 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
+void initRandomNumGen();
 
 int main(int argc, char *argv[])
 {
+	//Initialize random number generator before anything to ensure that getRand() always works
+	initRandomNumGen();
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -337,12 +340,6 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// PLACE EXCITON RANDOMLY //////////////////////////////////////////
 
-	//Initialize random number generation
-	time_t seconds;
-	time(&seconds); //assign time from clock
-	//Seed the random number generator
-	srand(static_cast<int>(seconds));
-
 	//Build the probability vector for CNTs
 	shared_ptr<vector<double>> cntProb(new vector<double>(CNT_List->size()));
 
@@ -379,7 +376,7 @@ int main(int argc, char *argv[])
 		while (!done)
 		{
 			//randomly sets energy level to 1 or 2
-			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand(false)s) + 1));
+			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand(false)) + 1));
 			(*excitons)[exNum]->setCNTidx(getIndex(cntProb, getRand(false)));
 			//sets seg index to a number between 0 and the number of segs for the cnt - 1.
 			//  The complicated part gets the number of segments from the current cnt
@@ -788,4 +785,17 @@ shared_ptr<vector<double>> linspace(double low, double high, int num)
 		low += step;
 	}
 	return retVec;
+}
+
+/**
+Initialized the random number generator by providing a seed value from 
+the time.
+*/
+void initRandomNumGen()
+{
+	//Initialize random number generation
+	time_t seconds;
+	time(&seconds); //assign time from clock
+	//Seed the random number generator
+	srand(static_cast<int>(seconds));
 }
