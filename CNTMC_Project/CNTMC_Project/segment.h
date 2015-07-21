@@ -27,6 +27,12 @@ struct segment
 	Vector3d mid; //middle point in segment
 	shared_ptr<vector<tableElem>> tbl;
 	shared_ptr<vector<double>> rateVec; // Vector to store all rates
+	
+	/*
+	7/20/15: It was decided that there are no limits on the number of excitons that
+	can be on a segment. Exciton structures and instance methods are left in for the
+	case that excitons are limited to one of each type for each segment
+	*/
 	shared_ptr<exciton> ex1; //first energy level for exciton
 	shared_ptr<exciton> ex2; //second energy level for exciton
 

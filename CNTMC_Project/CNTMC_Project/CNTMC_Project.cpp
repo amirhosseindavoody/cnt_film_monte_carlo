@@ -30,7 +30,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
-double getRand();
+double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
 double convertUnits(string unit, double val);
@@ -38,6 +38,7 @@ shared_ptr<vector<double>> linspace(double low, double high, int num);
 
 int main(int argc, char *argv[])
 {
+
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
 	string inputXMLPath = " ";
@@ -294,7 +295,7 @@ int main(int argc, char *argv[])
 		//loop over segments in each CNTs
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			//get add to each segment relelant table entries
+			//get add to each segment relevant table entries
 			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
@@ -378,8 +379,8 @@ int main(int argc, char *argv[])
 		while (!done)
 		{
 			//randomly sets energy level to 1 or 2
-			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand()) + 1));
-			(*excitons)[exNum]->setCNTidx(getIndex(cntProb, getRand()));
+			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand(false)s) + 1));
+			(*excitons)[exNum]->setCNTidx(getIndex(cntProb, getRand(false)));
 			//sets seg index to a number between 0 and the number of segs for the cnt - 1.
 			//  The complicated part gets the number of segments from the current cnt
 			(*excitons)[exNum]->setSegidx(rand() % ((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs->size()));
@@ -405,7 +406,7 @@ int main(int argc, char *argv[])
 			double tr_tot = 0; //the sum of all tr's in the current deltaT time step
 			while (tr_tot <= deltaT)
 			{
-				tr_tot+= -(1 / gamma)*log(getRand()); // add the tr calculation to current time for individual particle
+				tr_tot+= -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
 				if (tr_tot > deltaT)
 				{
 					//Do data recording
@@ -426,27 +427,18 @@ Assigns the specified exciton to the next state in the simulation.
 */
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma)
 {
-	bool done = false; //flag for completion
 	//Segment the current exciton is located on
 	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()]; 
-	while (!done)
-	{
-		int tblIdx = getIndex(seg->rateVec, getRand()*gamma);
-		tableElem tbl = (*seg->tbl)[tblIdx];
-		shared_ptr<segment> newSeg = (*((*CNT_List)[tbl.getTubeidx()].segs))[tbl.getSegidx()];
-		if (newSeg->hasExactExciton(e)){ done = true; }
-		else if (done = newSeg->setExciton(e))
-		{
-			if (!seg->removeExciton(e))
-			{
-				cout << "Error: Exciton could not be removed from segment.\n";
-				system("pause");
-				exit(EXIT_SUCCESS);
-			}
-			e->setCNTidx(tbl.getTubeidx());
-			e->setSegidx(tbl.getSegidx());
-		} 
-	}
+	//Get the table index for the
+	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+	//stores information about the excitons destination
+	tableElem tbl = (*seg->tbl)[tblIdx];
+	/*
+	It was decided that there are no limits on the number of excitons that
+	can be on a segment. 7/20/15
+	*/
+	e->setCNTidx(tbl.getTubeidx());
+	e->setSegidx(tbl.getSegidx());
 }
 
 /**
@@ -484,8 +476,14 @@ Gets a random number between 0 and 1
 
 @return The random number between 0 and 1
 */
-double getRand()
+double getRand(bool excludeZero)
 {
+	if (excludeZero)
+	{
+		int r;
+		while ((r = rand()) == 0){}
+		return static_cast<double>(r) / static_cast<double>(RAND_MAX);
+	}
 	return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
 }
 
