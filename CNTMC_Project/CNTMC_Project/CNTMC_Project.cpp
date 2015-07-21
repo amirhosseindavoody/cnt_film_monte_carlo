@@ -27,7 +27,9 @@ string xmlFilePathPrompt(bool incorrect);
 string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
-	double maxDist, shared_ptr<vector<vector<int>>> colorMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
+	shared_ptr<vector<double>> regionBdr, shared_ptr<vector<int>> secCountPerReg, 
+	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<shared_ptr<segment>>> outContact);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
@@ -39,6 +41,9 @@ void initRandomNumGen();
 
 int main(int argc, char *argv[])
 {
+	//Varible initialization
+	double segLenMin = 100.0; //[Angstroms]
+
 	//Initialize random number generator before anything to ensure that getRand() always works
 	initRandomNumGen();
 
@@ -162,6 +167,7 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
 	double rmax = 0; //maximum possible differences between sections of CNTs
+	double xdim = 0; //Dimension in which exciton populations will be monitored
 	while (!done)
 	{
 		try
@@ -177,7 +183,7 @@ int main(int argc, char *argv[])
 				currNode = currNode->next_sibling();
 			}
 			// DEVICE DIMENSIONS NODE //
-			auto xdim = convertUnits(string(currNode->first_node()->value()),
+			xdim = convertUnits(string(currNode->first_node()->value()),
 				atof(currNode->first_node()->next_sibling()->value()));
 			auto ydim = convertUnits(string(currNode->first_node()->value()),
 				atof(currNode->first_node()->next_sibling()->next_sibling()->value()));
@@ -263,7 +269,7 @@ int main(int argc, char *argv[])
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
-		CNT_List->push_back(CNT(*(it), resultFolderPath, 100.0));
+		CNT_List->push_back(CNT(*(it), resultFolderPath, segLenMin));
 	}
 
 	//Extra check to ensure that all initilizations were successful
@@ -285,6 +291,19 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
+	////// Variables for placing excitons in the future //////
+	int numRegions = static_cast<int>(xdim / segLenMin); //number of regions in the simulation
+	double extra = xdim - numRegions*segLenMin; //extra amount * numRegions that should be added to segLenMin
+	double regLen = segLenMin + extra / numRegions; //The length of each region.
+
+	//The boundary of the rgions in the x direction
+	shared_ptr<vector<double>> regionBdr = linspace(regLen - (xdim / 2), xdim / 2, numRegions);
+	shared_ptr<vector<int>> secCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
+	//List of segments in the first region, which is used as a input contact
+	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
+	//List of segments in the last region, which is used as an exit contact
+	shared_ptr<vector<shared_ptr<segment>>> outContact(new vector<shared_ptr<segment>>(0));
+
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
@@ -299,7 +318,8 @@ int main(int argc, char *argv[])
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas,
+				regionBdr,secCountPerReg,inContact,outContact);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -314,9 +334,9 @@ int main(int argc, char *argv[])
 	file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
 	file << "Map (r vs. theta):\n";
 	//iterate through all of the rs and then thetas while printing to file
-	for (int i = 0; i < rs->size(); i++)
+	for (UINT32 i = 0; i < rs->size(); i++)
 	{
-		for (int j = 0; j < thetas->size(); j++)
+		for (UINT32 j = 0; j < thetas->size(); j++)
 		{
 			file << (*heatMap)[i][j] << ",";
 		}
@@ -333,58 +353,19 @@ int main(int argc, char *argv[])
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
 	is, after a specific number of excitons are chosen to be created, each exciton will be created and assigned an index
-	that corresponds to the CNT mesh. First a random CNT will be chosen. This choice will come from a weighted probability
-	distribution, the weight being placed on the number of segments each CNT has vs the total number of segments. After the
-	CNT number is chosen, then the segment will be chosen from the segments part of the CNT.
+	that corresponds to the CNT mesh. The available locations for excitons to start will be determined by the number of 
+	segments that are within the delta x region specified. The exciton assignment will be equally and randomly distributed 
+	among the list of segments in the delta x region.
 	*/
 
-	//////////////////////////// PLACE EXCITON RANDOMLY //////////////////////////////////////////
+	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
-	//Build the probability vector for CNTs
-	shared_ptr<vector<double>> cntProb(new vector<double>(CNT_List->size()));
+	//The number of excitons to be in the simulation
+	int numExcitons = 100;
 
-	//Must set first index so that rest of the table can be built with simple loop
-	vector<CNT>::iterator it = CNT_List->begin();
-	(*cntProb)[0] = it->segs->size() / static_cast<double>(numSegs);
-	++it;
 
-	auto cntIdx = 1; //keeps index of cntProb vector as iterate through CNT_List
-	for ( it; it != CNT_List->end(); ++it)
-	{
-		(*cntProb)[cntIdx] = it->segs->size() / static_cast<double>(numSegs)+(*cntProb)[cntIdx - 1];
-		cntIdx++;
-	}
 
-	int numExcitons = 10; //number of excitons to add to simulation
-
-	if (numExcitons > 2*numSegs)
-	{
-		cout << "Error: More excitons than possible number of places for them in simulation.\n";
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
 	
-	//vector that stores all excitons
-	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons)); 
-
-	//assigns excitons to initial locations
-	for (UINT32 exNum = 0; exNum < excitons->size(); exNum++)
-	{
-		done = false; // Flag for successful exciton assignment
-		(*excitons)[exNum] = make_shared<exciton>(exciton());
-		//go until suitable position for exciton is found
-		while (!done)
-		{
-			//randomly sets energy level to 1 or 2
-			(*excitons)[exNum]->setEnergy(static_cast<int>(round(getRand(false)) + 1));
-			(*excitons)[exNum]->setCNTidx(getIndex(cntProb, getRand(false)));
-			//sets seg index to a number between 0 and the number of segs for the cnt - 1.
-			//  The complicated part gets the number of segments from the current cnt
-			(*excitons)[exNum]->setSegidx(rand() % ((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs->size()));
-			shared_ptr<vector<shared_ptr<segment>>> temp((*CNT_List)[(*excitons)[exNum]->getCNTidx()].segs); //get segment list
-			done = ((*temp)[(*excitons)[exNum]->getSegidx()])->setExciton((*excitons)[exNum]);
-		}
-	}
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
@@ -550,10 +531,18 @@ from the segment.
 @param seg The segment that we will be adding table elements to
 @param maxDist If segments are within maxDist of seg, then they will be added to the table
 @param colorMap A count of all rs at particular thetas to get mesh statistics
+@param rs The r values that are needed to place values in the heat map
+@param thetas The angles that are needed to place values in the heat map
+@param regionBdr The vector used to place segments into the following 3 variables
+@param secCountPerReg A count of the number of segments in each region. 
+@param inContact A list of the segments that will be used for injecting excitons
+@param outContact A list of the segments that will be used for removing excitons
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
+	shared_ptr<vector<double>> regionBdr, shared_ptr<vector<int>> secCountPerReg,
+	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<shared_ptr<segment>>> outContact)
 {
 	double rate = 0;
 	//iterate over CNTs
@@ -568,12 +557,12 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
 			auto theta = tableElem::calcThet(seg, segit);
 
-			//Color Map Additions
+			//Heat Map Additions
 			if (r != 0)
 			{
-				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++;
+				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
 				//Check if within range
-				if (r <= maxDist)
+				if (r <= maxDist) /////// Building TABLE /////
 				{
 					auto g = 6.4000e+19; //First draft estimate
 					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
