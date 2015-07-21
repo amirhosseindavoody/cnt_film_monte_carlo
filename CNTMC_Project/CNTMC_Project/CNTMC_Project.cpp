@@ -36,7 +36,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
-void injectExciton(shared_ptr<exciton> exiton, shared_ptr<vector<shared_ptr<segment>>> inContact);
+void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -44,6 +44,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
+
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
 
@@ -417,6 +418,23 @@ int main(int argc, char *argv[])
 	}
 	return 0;
 }
+
+/**
+Places the specified exciton into the input contact
+*/
+void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact)
+{
+	exciton->setEnergy(static_cast<int>(round(getRand(false)) + 1)); //randomly set the energy of the exciton
+	//choose a destination segment
+	shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(rand() % inContact->size())];
+	//The self scattering table will have the correct indices for the current segment
+	shared_ptr<vector<tableElem>> tbl = injectedSeg->tbl;
+	//Set the exciton indices to the current segment
+	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
+	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
+
+}
+
 
 /**
 Assigns the specified exciton to the next state in the simulation.
