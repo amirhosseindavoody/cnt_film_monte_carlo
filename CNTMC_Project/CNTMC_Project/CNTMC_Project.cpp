@@ -27,9 +27,7 @@ string xmlFilePathPrompt(bool incorrect);
 string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	shared_ptr<vector<double>> regionBdr, shared_ptr<vector<int>> secCountPerReg, 
-	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<shared_ptr<segment>>> outContact);
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
@@ -88,7 +86,7 @@ int main(int argc, char *argv[])
 
 	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
-	string timeStamp = "/Date_";
+	/*string timeStamp = "/Date_";
 	string response;
 	string outputPath;
 	{
@@ -130,7 +128,7 @@ int main(int argc, char *argv[])
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
-	}
+	}*/
 
 	//Results folder exists and can be accessed
 
@@ -291,7 +289,7 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
-	////// Variables for placing excitons in the future //////
+	///////////// Variables for placing excitons in the future /////////////
 	int numRegions = static_cast<int>(xdim / segLenMin); //number of regions in the simulation
 	double extra = xdim - numRegions*segLenMin; //extra amount * numRegions that should be added to segLenMin
 	double regLen = segLenMin + extra / numRegions; //The length of each region.
@@ -303,6 +301,8 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
 	//List of segments in the last region, which is used as an exit contact
 	shared_ptr<vector<shared_ptr<segment>>> outContact(new vector<shared_ptr<segment>>(0));
+
+	///////////////////////////////////////
 
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
@@ -317,9 +317,12 @@ int main(int argc, char *argv[])
 		//loop over segments in each CNTs
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
+			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
+			(*secCountPerReg)[regIdx]++; //increment the count based on where section is
+			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
+			else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(*segit); } //last region is output contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas,
-				regionBdr,secCountPerReg,inContact,outContact);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -327,22 +330,22 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
-	string fileName = outputPath + "heatMap.csv";
-	ofstream file;
-	file.open(fileName);
-	file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
-	file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
-	file << "Map (r vs. theta):\n";
-	//iterate through all of the rs and then thetas while printing to file
-	for (UINT32 i = 0; i < rs->size(); i++)
-	{
-		for (UINT32 j = 0; j < thetas->size(); j++)
-		{
-			file << (*heatMap)[i][j] << ",";
-		}
-		file << "\n";
-	}
-	file.close();
+	//string fileName = outputPath + "heatMap.csv";
+	//ofstream file;
+	//file.open(fileName);
+	//file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
+	//file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
+	//file << "Map (r vs. theta):\n";
+	////iterate through all of the rs and then thetas while printing to file
+	//for (UINT32 i = 0; i < rs->size(); i++)
+	//{
+	//	for (UINT32 j = 0; j < thetas->size(); j++)
+	//	{
+	//		file << (*heatMap)[i][j] << ",";
+	//	}
+	//	file << "\n";
+	//}
+	//file.close();
 
 
 
@@ -363,7 +366,7 @@ int main(int argc, char *argv[])
 	//The number of excitons to be in the simulation
 	int numExcitons = 100;
 
-
+	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons));
 
 	
 
@@ -533,16 +536,10 @@ from the segment.
 @param colorMap A count of all rs at particular thetas to get mesh statistics
 @param rs The r values that are needed to place values in the heat map
 @param thetas The angles that are needed to place values in the heat map
-@param regionBdr The vector used to place segments into the following 3 variables
-@param secCountPerReg A count of the number of segments in each region. 
-@param inContact A list of the segments that will be used for injecting excitons
-@param outContact A list of the segments that will be used for removing excitons
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	shared_ptr<vector<double>> regionBdr, shared_ptr<vector<int>> secCountPerReg,
-	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<shared_ptr<segment>>> outContact)
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
 	//iterate over CNTs

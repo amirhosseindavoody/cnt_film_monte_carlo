@@ -78,6 +78,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+    <Text Include="RemovedCode.txt" />
     <Text Include="TestCodeExtracts.txt" />
   </ItemGroup>
   <ItemGroup>
