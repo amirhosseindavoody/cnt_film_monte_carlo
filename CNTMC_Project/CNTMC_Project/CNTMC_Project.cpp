@@ -36,6 +36,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
+void injectExciton(shared_ptr<exciton> exiton, shared_ptr<vector<shared_ptr<segment>>> inContact);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -208,7 +209,10 @@ int main(int argc, char *argv[])
 			}
 			// END DEVICE DIMENSIONS NODE //
 
-			rmax = max(max(xdim, ydim), zdim);
+			//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
+			// to top other corner is included in r range. ymax is not defined so this is intermediate
+			// value. It is changed after CNT initialization.
+			rmax = sqrt(pow(xdim,2)+pow(ydim,2));
 
 			// Will not let me delete, says it is null pointer even though I can get values from it. 
 			//delete currNode; 
@@ -237,27 +241,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
-
-	shared_ptr<vector<double>> rs; //Vector containing range of r's
-	rmax = 100 * ceil(rmax / 100.0);
-	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
-	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
-
-	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
-	// do not forget to use radians
-	double lowAng = 1 * M_PI / 180.0;
-	double highAng = 90 * M_PI / 180.0;
-	int numAng = 90; //Number of angles to record. One per degree
-	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
-
-	shared_ptr<vector<vector<int>>> heatMap(new vector<vector<int>>(rs->size()));
-	//initialize all other vectors in the vector to the correct size
-	for (vector<vector<int>>::iterator it = heatMap->begin(); it != heatMap->end(); ++it)
-	{
-		it->resize(thetas->size());
-	}
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
@@ -285,6 +268,31 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	//Set final rmax value
+	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
+
+	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
+
+	shared_ptr<vector<double>> rs; //Vector containing range of r's
+	rmax = 100 * ceil(rmax / 100.0);
+	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
+	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
+	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
+
+	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
+	// do not forget to use radians
+	double lowAng = 1 * M_PI / 180.0;
+	double highAng = 90 * M_PI / 180.0;
+	int numAng = 90; //Number of angles to record. One per degree
+	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
+
+	shared_ptr<vector<vector<int>>> heatMap(new vector<vector<int>>(rs->size()));
+	//initialize all other vectors in the vector to the correct size
+	for (vector<vector<int>>::iterator it = heatMap->begin(); it != heatMap->end(); ++it)
+	{
+		it->resize(thetas->size());
+	}
+
 	/*
 	Building the table: Each CNT has a list of segments which has an empty list of table element objects.
 	The next section will be filling the segments vector of table elements by calculating the necessary
@@ -306,7 +314,7 @@ int main(int argc, char *argv[])
 	//List of segments in the last region, which is used as an exit contact
 	shared_ptr<vector<shared_ptr<segment>>> outContact(new vector<shared_ptr<segment>>(0));
 
-	///////////////////////////////////////
+	
 
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
@@ -369,8 +377,14 @@ int main(int argc, char *argv[])
 
 	//The number of excitons to be in the simulation
 	int numExcitons = 100;
-
+	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons));
+	int numLoc = (*secCountPerReg)[0];
+	for (int exNum = 0; exNum < numLoc; exNum++)
+	{
+		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
+		injectExciton((*excitons)[exNum], inContact);
+	}
 
 	
 
