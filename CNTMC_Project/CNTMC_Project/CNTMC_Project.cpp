@@ -37,6 +37,10 @@ double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
 
+//Global variables
+double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
+
+//Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
 	//Varible initialization

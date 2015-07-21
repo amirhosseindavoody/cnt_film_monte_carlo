@@ -16,6 +16,8 @@ Stores all relevant information for a carbon nanotube
 #include <fstream>
 #include <sstream>
 
+//Global variable
+extern double ymax;
 
 /**
 Sets the CNT object to some default values. DO NOT USE CNTs CONSTRUCTED
@@ -244,7 +246,9 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 			getline(ss, currPos, ',');
 			positions[0][i] = stod(currPos);
 			getline(ss, currPos, ',');
-			positions[1][i] = stod(currPos);
+			double y = stod(currPos);
+			if (y > ymax){ ymax = y; }
+			positions[1][i] = y;
 			getline(ss, currPos, ',');
 			positions[2][i] = stod(currPos);
 		} 
