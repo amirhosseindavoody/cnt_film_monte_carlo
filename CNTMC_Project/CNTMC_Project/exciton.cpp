@@ -74,6 +74,17 @@ void exciton::setEnergy(int energy)
 }
 
 /**
+Sets boolean for whether or not at end contact
+
+@param atContact Whether or not at end contact
+*/
+void exciton::setAtOutContact(bool atContact)
+{
+	atOutContact = atContact;
+}
+
+
+/**
 Gets cnt index
 
 @return cnt index
@@ -102,3 +113,7 @@ int exciton::getEnergy()
 {
 	return energyNum;
 }
+
+/**
+Checks whether or not the exciton is at the exit contact
+*/

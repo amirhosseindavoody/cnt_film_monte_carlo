@@ -11,6 +11,7 @@ class exciton
 	int cntidx; //Index of the CNT the exciton belongs to
 	int segidx; //Index of the segment the exciton belongs to
 	int energyNum; //Whether the 1st or 2nd energy level
+	bool atOutContact; //States whether or not the exciton is ready to leave mesh
 
 public:
 	exciton();
@@ -19,9 +20,11 @@ public:
 	void setCNTidx(int cidx);
 	void setSegidx(int sidx);
 	void setEnergy(int energy);
+	void setAtOutContact(bool atContact);
 	int getCNTidx();
 	int getSegidx();
 	int getEnergy();
+	bool isAtOutContact();
 
 };
 
