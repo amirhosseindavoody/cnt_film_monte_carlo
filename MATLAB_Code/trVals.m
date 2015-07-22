@@ -1,3 +1,7 @@
+% Simply looking at the plots of the random numbers vs the possible trs
+% that can come out of it.
+
+
 % plot of possible tr's 
 
 close all;

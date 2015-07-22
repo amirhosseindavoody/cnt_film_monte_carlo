@@ -1,5 +1,5 @@
-function [ ] = importRThetaDist( resultsFilePath )
-% Import R & Theta HeatMap files
+function [thetas,rs,hm] = importRThetaDist( resultsFilePath )
+% Import R & Theta HeatMap files. Plots distribution.
 
 file_name = ' '; %#ok<NASGU>
 path = ' ';%#ok<NASGU>
@@ -8,7 +8,8 @@ path = ' ';%#ok<NASGU>
         path = [path '/'];
         file_name = [file_name ext];
     else
-        [file_name, path] = uigetfile(pwd); %file dialog
+        [file_name, path] = ...
+            uigetfile('.csv','Select heat map file'); %file dialog
         [~,~,ext] = fileparts(file_name);
     end
 
