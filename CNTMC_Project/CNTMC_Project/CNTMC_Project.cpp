@@ -19,7 +19,8 @@
 
 using namespace std;
 
-#define TFAC 2.302585092994046 //Factor to multiply 1/gamma by to get 90% of rand numbers giving tr less than deltaT
+//#define TFAC 2.302585092994046 //Factor to multiply 1/gamma by to get 90% of rand numbers giving tr less than deltaT
+#define TFAC 1.203972804325936 //Factor to multiply 1/gamma by to get 70% of rand numbers giving tr less than deltaT
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -39,6 +40,9 @@ shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
+void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
+	shared_ptr<vector<double>> regionBdr);
+void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -94,7 +98,7 @@ int main(int argc, char *argv[])
 
 	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
-	/*string timeStamp = "/Date_";
+	string timeStamp = "/Date_";
 	string response;
 	string outputPath;
 	{
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
-	}*/
+	}
 
 	//Results folder exists and can be accessed
 
@@ -345,22 +349,22 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
-	//string fileName = outputPath + "heatMap.csv";
-	//ofstream file;
-	//file.open(fileName);
-	//file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
-	//file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
-	//file << "Map (r vs. theta):\n";
-	////iterate through all of the rs and then thetas while printing to file
-	//for (UINT32 i = 0; i < rs->size(); i++)
-	//{
-	//	for (UINT32 j = 0; j < thetas->size(); j++)
-	//	{
-	//		file << (*heatMap)[i][j] << ",";
-	//	}
-	//	file << "\n";
-	//}
-	//file.close();
+	string fileName = outputPath + "heatMap.csv";
+	ofstream file;
+	file.open(fileName);
+	file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
+	file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
+	file << "Map (r vs. theta):\n";
+	//iterate through all of the rs and then thetas while printing to file
+	for (UINT32 i = 0; i < rs->size(); i++)
+	{
+		for (UINT32 j = 0; j < thetas->size(); j++)
+		{
+			file << (*heatMap)[i][j] << ",";
+		}
+		file << "\n";
+	}
+	file.close();
 
 
 
@@ -382,28 +386,35 @@ int main(int argc, char *argv[])
 	int numExcitons = 100;
 	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons));
-	int numLoc = (*secCountPerReg)[0];
-	for (int exNum = 0; exNum < numLoc; exNum++)
+	for (int exNum = 0; exNum < numExcitons; exNum++)
 	{
 		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
 		injectExciton((*excitons)[exNum], inContact);
 	}
 
-	
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	double Tmax = deltaT * 1000; //maximum simulation time
+	double Tmax = deltaT * 100000; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
+
+	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
+
+	//File output initializations
+	string fileName2 = outputPath + "excitonDist.csv";
+	shared_ptr<ofstream> file2;
+	file2->open(fileName2);
 
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
-	while (T <= Tmax)
+	while (T <= Tmax) //iterates over time
 	{
+		//reset the exciton count after each time step
+		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
-		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++)
+		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 		{
 			double tr_tot = 0; //the sum of all tr's in the current deltaT time step
 			while (tr_tot <= deltaT)
@@ -411,14 +422,49 @@ int main(int argc, char *argv[])
 				tr_tot+= -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
 				if (tr_tot > deltaT)
 				{
-					//Do data recording
+					//Recording distribution
+					markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
+
 				}
 				//choose new state
-				assignNextState(CNT_List, (*excitons)[exNum],gamma,inContact , regionBdr);
+				assignNextState(CNT_List, (*excitons)[exNum], gamma, inContact , regionBdr);
 			}
 		}
+		//Output count vector to file since we want results after each time step.
+		writeStateToFile(file2, currCount, T);
 	}
 	return 0;
+}
+
+/**
+Writes the pertinent information of the current state of simulation to file
+
+@param file The file to write to
+@param currCount The distribution information to write to file
+@param T The current time of the simulation
+*/
+void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T)
+{
+	
+}
+
+
+/**
+Takes the current exciton and adds it to the count of excitons in a certain region. 
+This is called once per exciton per time step.
+
+@param CNT_List The indexable list that contains the position information of exciton
+@param exciton The exciton that we want to mark the position of.
+@param currCount The vector that stores the count of excitons in the regions
+@param regionBdr The region vector that allows selection of currCount index
+*/
+void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, 
+	shared_ptr<vector<int>> currCount, shared_ptr<vector<double>> regionBdr)
+{
+	//add count to the currCount vector in the location corresponding to the exciton 
+	//   region location
+	(*currCount)[getIndex(regionBdr,
+		((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)))]++;
 }
 
 /**
@@ -432,10 +478,9 @@ Checks to see if an exciton has moved into the out contact
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, 
 	shared_ptr<vector<CNT>> CNT_List)
 {
-	//Get middle point from the segment the exciton is on
-	double val = (*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0);
-	//If x comp is creater than the second to last index of regionBdr, then it is in the output
-	return (val > (*regionBdr)[regionBdr->size() - 2]);
+	//If x component is creater than the second to last index of regionBdr, then it is in the output
+	return (((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)) 
+					>= ((*regionBdr)[regionBdr->size() - 2]));
 }
 
 
@@ -476,7 +521,8 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 	{
 		injectExciton(e, inContact);
 	}
-	else{	
+	else
+	{	
 		//Segment the current exciton is located on
 		shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
 		//Get the table index for the
