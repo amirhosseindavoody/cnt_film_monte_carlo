@@ -402,8 +402,13 @@ int main(int argc, char *argv[])
 
 	//File output initializations
 	string fileName2 = outputPath + "excitonDist.csv";
-	shared_ptr<ofstream> file2;
+	shared_ptr<ofstream> file2(new ofstream);
 	file2->open(fileName2);
+
+	//Write helper information
+	*file2 << "numExcitons,Tmax,deltaT,numRegions,xdim" << endl;
+	*file2 << numExcitons << "," << Tmax << "," << deltaT << "," << numRegions << "," << xdim << endl;
+	*file2 << "seconds,countPerReg" << endl;
 
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
@@ -424,7 +429,6 @@ int main(int argc, char *argv[])
 				{
 					//Recording distribution
 					markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
-
 				}
 				//choose new state
 				assignNextState(CNT_List, (*excitons)[exNum], gamma, inContact , regionBdr);
@@ -433,6 +437,9 @@ int main(int argc, char *argv[])
 		//Output count vector to file since we want results after each time step.
 		writeStateToFile(file2, currCount, T);
 	}
+	//Close files finish program
+	file2->close();
+
 	return 0;
 }
 
@@ -445,7 +452,12 @@ Writes the pertinent information of the current state of simulation to file
 */
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T)
 {
-	
+	*file << T << "," << (*currCount)[0]; //Time followed by the counts
+	for (UINT32 i = 1; i < currCount->size(); i++)
+	{
+		*file << "," << (*currCount)[i];
+	}
+	*file << endl;
 }
 
 
