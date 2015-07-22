@@ -117,3 +117,7 @@ int exciton::getEnergy()
 /**
 Checks whether or not the exciton is at the exit contact
 */
+bool exciton::isAtOutContact()
+{
+	return atOutContact;
+}

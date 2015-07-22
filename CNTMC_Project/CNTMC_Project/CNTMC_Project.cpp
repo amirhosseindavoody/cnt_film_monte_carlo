@@ -32,11 +32,13 @@ int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma);
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, 
+	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<double>> regionBdr);
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
+bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -412,7 +414,7 @@ int main(int argc, char *argv[])
 					//Do data recording
 				}
 				//choose new state
-				assignNextState(CNT_List, (*excitons)[exNum],gamma);
+				assignNextState(CNT_List, (*excitons)[exNum],gamma,inContact , regionBdr);
 			}
 		}
 	}
@@ -420,7 +422,28 @@ int main(int argc, char *argv[])
 }
 
 /**
+Checks to see if an exciton has moved into the out contact
+
+@param exciton The exciton to check
+@param regionBdr The array that stores contact information
+@param CNT_List The indexable list that will reveal exciton location
+@return True if the exciton has moved into the output contact, false otherwise
+*/
+bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, 
+	shared_ptr<vector<CNT>> CNT_List)
+{
+	//Get middle point from the segment the exciton is on
+	double val = (*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0);
+	//If x comp is creater than the second to last index of regionBdr, then it is in the output
+	return (val > (*regionBdr)[regionBdr->size() - 2]);
+}
+
+
+/**
 Places the specified exciton into the input contact
+
+@param exciton The exciton to add to the contact
+@param inContact The list of segments for the injection contact
 */
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact)
 {
@@ -432,6 +455,7 @@ void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<seg
 	//Set the exciton indices to the current segment
 	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
 	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
+	exciton->setAtOutContact(false); //initialized out contact boolean
 
 }
 
@@ -441,21 +465,33 @@ Assigns the specified exciton to the next state in the simulation.
 
 @param CNT_List The list of carbon nanotubes
 @param e The exciton to be updated
+@param inContact The list of segments for the injection contact
+@param regionBdr The array that will help decide whether or not the exciton is in the out contact
 */
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma)
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, 
+	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<double>> regionBdr)
 {
-	//Segment the current exciton is located on
-	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()]; 
-	//Get the table index for the
-	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
-	//stores information about the excitons destination
-	tableElem tbl = (*seg->tbl)[tblIdx];
-	/*
-	It was decided that there are no limits on the number of excitons that
-	can be on a segment. 7/20/15
-	*/
-	e->setCNTidx(tbl.getTubeidx());
-	e->setSegidx(tbl.getSegidx());
+	//If the exciton is at the end contact, remove it and inject it into the in contact
+	if (e->isAtOutContact())
+	{
+		injectExciton(e, inContact);
+	}
+	else{	
+		//Segment the current exciton is located on
+		shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
+		//Get the table index for the
+		int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+		//stores information about the excitons destination
+		tableElem tbl = (*seg->tbl)[tblIdx];
+		/*
+		It was decided that there are no limits on the number of excitons that
+		can be on a segment. 7/20/15
+		*/
+		e->setCNTidx(tbl.getTubeidx());
+		e->setSegidx(tbl.getSegidx());
+		e->setAtOutContact(hasMovedToOutContact(e, regionBdr, CNT_List));
+	}
+
 }
 
 /**
