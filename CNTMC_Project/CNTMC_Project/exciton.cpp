@@ -17,7 +17,6 @@ Creates exciton object
 exciton::exciton()
 {
 	textra = 0;
-	justInjected = true;
 }
 
 /**
@@ -34,7 +33,6 @@ exciton::exciton(int cidx, int sidx, int energy)
 	segidx = sidx;
 	energyNum = energy;
 	textra = 0;
-	justInjected = true;
 }
 
 /**
@@ -96,16 +94,6 @@ void exciton::setTExtra(double t)
 	textra = t;
 }
 
-/**
-Set whether or not exciton was just injected
-
-@param j The injection state
-*/
-void exciton::setJustInjected(bool j)
-{
-	justInjected = j;
-}
-
 
 /**
 Gets cnt index
@@ -154,10 +142,3 @@ double exciton::getTExtra()
 	return textra;
 }
 
-/**
-Checks if the exciton was just injected
-*/
-bool exciton::wasJustInjected()
-{
-	return justInjected;
-}

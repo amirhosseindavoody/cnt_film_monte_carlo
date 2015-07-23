@@ -13,7 +13,6 @@ class exciton
 	int energyNum; //Whether the 1st or 2nd energy level
 	bool atOutContact; //States whether or not the exciton is ready to leave mesh
 	double textra; //The extra amount of time past deltaT the exciton had in last step
-	bool justInjected;
 
 public:
 	exciton();
