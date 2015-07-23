@@ -1,4 +1,4 @@
-function [thetas,rs,hm] = importRThetaDist( resultsFilePath )
+function [thetas,rs,hm] = importRThetaDistOld( resultsFilePath )
 % Import R & Theta HeatMap files. Plots distribution.
 
 file_name = ' '; %#ok<NASGU>

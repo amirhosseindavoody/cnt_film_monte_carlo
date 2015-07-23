@@ -44,6 +44,8 @@ bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>
 void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
+void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, int numRegions,
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -323,7 +325,6 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<shared_ptr<segment>>> outContact(new vector<shared_ptr<segment>>(0));
 
 	
-
 	//iterate through all of the CNTs and segments
 	double maxDist = 500; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
@@ -350,22 +351,19 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
-	string fileName = outputPath + "heatMap.csv";
-	ofstream file;
-	file.open(fileName);
-	file << "R Linspace:," << minBin << "," << rmax << "," << numBins << "\n";
-	file << "Theta Linspace:," << lowAng << "," << highAng << "," << numAng << "\n";
-	file << "Map (r vs. theta):\n";
+	string heatMapFileName = outputPath + "heatMap.csv";
+	ofstream heatMapFile;
+	heatMapFile.open(heatMapFileName);
 	//iterate through all of the rs and then thetas while printing to file
 	for (UINT32 i = 0; i < rs->size(); i++)
 	{
 		for (UINT32 j = 0; j < thetas->size(); j++)
 		{
-			file << (*heatMap)[i][j] << ",";
+			heatMapFile << (*heatMap)[i][j] << ",";
 		}
-		file << "\n";
+		heatMapFile << "\n";
 	}
-	file.close();
+	heatMapFile.close();
 
 
 
@@ -402,15 +400,14 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
 
 	//File output initializations
-	string fileName2 = outputPath + "excitonDist.csv";
-	shared_ptr<ofstream> file2(new ofstream);
-	file2->open(fileName2);
+	string excitonDistFileName = outputPath + "excitonDist.csv";
+	shared_ptr<ofstream> excitonDistFile(new ofstream);
+	excitonDistFile->open(excitonDistFileName);
 
 	//Write helper information
-	*file2 << "numExcitons,Tmax,deltaT,numRegions,xdim" << endl;
-	*file2 << numExcitons << "," << Tmax << "," << deltaT << "," << numRegions << "," << xdim << endl;
-	*file2 << "seconds,countPerReg" << endl;
-
+	writeExcitonDistSupportingInfo(outputPath, numExcitons,Tmax,deltaT,numRegions,xdim,
+		minBin,rmax,numBins,lowAng,highAng,numAng);
+	
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
@@ -436,12 +433,26 @@ int main(int argc, char *argv[])
 			}
 		}
 		//Output count vector to file since we want results after each time step.
-		writeStateToFile(file2, currCount, T);
+		writeStateToFile(excitonDistFile, currCount, T);
 	}
 	//Close files finish program
-	file2->close();
+	excitonDistFile->close();
 
 	return 0;
+}
+
+/**
+Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
+*/
+void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, int numRegions, 
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng)
+{
+	string detailsFileName = outputPath + "details.csv";
+	shared_ptr<ofstream> detailsFile(new ofstream);
+	detailsFile->open(detailsFileName);
+	*detailsFile << "numExcitons,Tmax,deltaT,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng" << endl;
+	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << numRegions << "," << xdim << "," 
+		<< minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << endl;
 }
 
 /**
@@ -625,7 +636,8 @@ int getIndex(shared_ptr<vector<double>> vec, double val)
 	}
 
 	//use recursive helper method
-	return getIndex(vec, val, 0, vec->size() - 1);
+	return getIndex(vec, val, 0, static_cast<int>(vec->size() - 1));
+	//size_t is 64 bit unsigned. int is 32 bit signed. Cast should still work always
 }
 
 /**
