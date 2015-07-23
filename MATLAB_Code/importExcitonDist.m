@@ -1,4 +1,4 @@
-function [t, excitonDist] = importExcitonDist(filename, startRow, endRow)
+function [t, excitonDist] = importExcitonDist(filename, startRow, endRow, startCol, endCol)
 %IMPORTFILE Import numeric data from a text file as a matrix.
 %   EXCITONDIST1 = IMPORTFILE(FILENAME) Reads data from text file FILENAME
 %   for the default selection.
@@ -20,19 +20,11 @@ if nargin<=2
 end
 
 %% Format string for each line of text:
-%   column1: double (%f)
-%	column2: double (%f)
-%   column3: double (%f)
-%	column4: double (%f)
-%   column5: double (%f)
-%	column6: double (%f)
-%   column7: double (%f)
-%	column8: double (%f)
-%   column9: double (%f)
-%	column10: double (%f)
-%   column11: double (%f)
-% For more information, see the TEXTSCAN documentation.
-formatSpec = '%f%f%f%f%f%f%f%f%f%f%f%[^\n\r]';
+formatSpec = char.empty(0,2*(endCol-startCol+1));
+for i=1:(endCol - startCol+1)
+  formatSpec(i*2-1:i*2) =  '%f'; 
+end
+formatSpec = [formatSpec '%[^\n\r]'];
 
 %% Open the text file.
 fileID = fopen(filename,'r');

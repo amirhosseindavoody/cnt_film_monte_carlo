@@ -34,8 +34,7 @@ int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, 
-	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<double>> regionBdr);
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
@@ -44,8 +43,10 @@ bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>
 void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng);
+void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps);
+void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
+	shared_ptr<vector<shared_ptr<segment>>> inContact);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -381,11 +382,11 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
-	//The number of excitons to be in the simulation
-	int numExcitons = 100;
+	//The number of excitons to be in injection contact
+	int numExcitonsAtCont = 100;
 	//Vector of excitons. Positions and energies must still be assigned
-	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitons));
-	for (int exNum = 0; exNum < numExcitons; exNum++)
+	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
+	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
 	{
 		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
 		injectExciton((*excitons)[exNum], inContact);
@@ -404,9 +405,6 @@ int main(int argc, char *argv[])
 	shared_ptr<ofstream> excitonDistFile(new ofstream);
 	excitonDistFile->open(excitonDistFileName);
 
-	//Write helper information
-	writeExcitonDistSupportingInfo(outputPath, numExcitons,Tmax,deltaT,numRegions,xdim,
-		minBin,rmax,numBins,lowAng,highAng,numAng);
 	
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
@@ -419,40 +417,117 @@ int main(int argc, char *argv[])
 		T += deltaT; //set new time checkpoint
 		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 		{
-			double tr_tot = 0; //the sum of all tr's in the current deltaT time step
-			while (tr_tot <= deltaT)
+			/*There is a change that the previous tr that was calculated was so long that it
+			not only has extra time in the next deltaT, but it skips it completely. In this case
+			the exciton movement is skipped all together and its extra time is decreased by deltaT
+			until the exciton can move again. Otherwise the code runs as usual.
+			*/
+			double extraT = (*excitons)[exNum]->getTExtra();
+			if (extraT > deltaT)
 			{
-				tr_tot+= -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
-				if (tr_tot > deltaT)
+				(*excitons)[exNum]->setTExtra((*excitons)[exNum]->getTExtra() - deltaT);
+				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
+			}
+			else
+			{
+				double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
+				/*give time to excitons that have no extra time. This means that either the
+				exitons are new and there must be some time passing for the exciton to move
+				or the previous exciton movement laned on deltaT and was recorded on the previous
+				step (so we need a new point)*/
+				if (extraT == 0)
 				{
-					//Recording distribution
-					markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
+					tr_tot += -(1 / gamma)*log(getRand(true));
 				}
-				//choose new state
-				assignNextState(CNT_List, (*excitons)[exNum], gamma, inContact , regionBdr);
+				while (tr_tot < deltaT) //if tr_tot == delta
+				{
+					//choose new state
+					assignNextState(CNT_List, (*excitons)[exNum], gamma, regionBdr);
+					tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+				}
+				//Recording distribution
+				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
+				//record the time past deltaT that the assign next state will cover
+				(*excitons)[exNum]->setTExtra(tr_tot - deltaT);
 			}
 		}
 		//Output count vector to file since we want results after each time step.
 		writeStateToFile(excitonDistFile, currCount, T);
+
+		//Update Exciton List for injection and exit contact
+		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
 	}
 	//Close files finish program
 	excitonDistFile->close();
+
+	UINT64 numTSteps = static_cast<UINT64>(T / deltaT);
+
+	//Write helper information
+	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
+		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps);
 
 	return 0;
 }
 
 /**
+Removes excitons from the list if they are in the exit contact and inject excitons into the inContact if there are
+not enough excitons
+
+@param numExcitonAtCont The number of excitons at the injection contact
+@param excitons The list of excitons to modify
+@param currCount The count of excitons in each of the regions
+@param inContact The list of segments in the injection contact
+*/
+void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, 
+	shared_ptr<vector<int>> currCount, shared_ptr<vector<shared_ptr<segment>>> inContact)
+{
+	// Adding excitons to the injection contact
+	int numExAdd = 0; //The number of excitons to be added to the injection contact
+	if ((numExAdd = numExcitonsAtCont - (*currCount)[0]) > 0)
+	{
+		for (int i = 0; i < numExAdd; i++)
+		{
+			excitons->push_back(make_shared<exciton>(exciton())); //initialize exciton at end of exciton list
+			injectExciton((*excitons)[excitons->size()-1], inContact); //last element is the exciton to inject
+		}
+	}
+
+	//Removing excitons from the exit contact
+	int numExRem = (*currCount)[currCount->size() - 1]; //Last element in the count list = num of excitons to remove
+	if (numExRem > 0)
+	{
+		for (int i = 0; i < excitons->size(); i++)
+		{
+			if ((*excitons)[i]->isAtOutContact())
+			{
+				shared_ptr<exciton> swap = (*excitons)[excitons->size() - 1];
+				(*excitons)[excitons->size() - 1] = (*excitons)[i];
+				(*excitons)[i] = swap;
+				excitons->pop_back();
+				//excitons->erase(excitons->begin() + i);
+				i--;
+			}
+		}
+	}
+}
+
+
+
+
+
+/**
 Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
 */
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, int numRegions, 
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng)
+void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps)
 {
 	string detailsFileName = outputPath + "details.csv";
 	shared_ptr<ofstream> detailsFile(new ofstream);
 	detailsFile->open(detailsFileName);
-	*detailsFile << "numExcitons,Tmax,deltaT,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng" << endl;
-	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << numRegions << "," << xdim << "," 
-		<< minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << endl;
+	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps" << endl;
+	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << segLenMin << "," << numRegions << "," << xdim 
+		<< "," << minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << 
+		"," << numTSteps << endl;
 }
 
 /**
@@ -537,30 +612,21 @@ Assigns the specified exciton to the next state in the simulation.
 @param inContact The list of segments for the injection contact
 @param regionBdr The array that will help decide whether or not the exciton is in the out contact
 */
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, 
-	shared_ptr<vector<shared_ptr<segment>>> inContact, shared_ptr<vector<double>> regionBdr)
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr)
 {
-	//If the exciton is at the end contact, remove it and inject it into the in contact
-	if (e->isAtOutContact())
-	{
-		injectExciton(e, inContact);
-	}
-	else
-	{	
-		//Segment the current exciton is located on
-		shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
-		//Get the table index for the
-		int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
-		//stores information about the excitons destination
-		tableElem tbl = (*seg->tbl)[tblIdx];
-		/*
-		It was decided that there are no limits on the number of excitons that
-		can be on a segment. 7/20/15
-		*/
-		e->setCNTidx(tbl.getTubeidx());
-		e->setSegidx(tbl.getSegidx());
-		e->setAtOutContact(hasMovedToOutContact(e, regionBdr, CNT_List));
-	}
+	//Segment the current exciton is located on
+	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
+	//Get the table index for the
+	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+	//stores information about the excitons destination
+	tableElem tbl = (*seg->tbl)[tblIdx];
+	/*
+	It was decided that there are no limits on the number of excitons that
+	can be on a segment. 7/20/15
+	*/
+	e->setCNTidx(tbl.getTubeidx());
+	e->setSegidx(tbl.getSegidx());
+	e->setAtOutContact(hasMovedToOutContact(e, regionBdr, CNT_List));
 
 }
 

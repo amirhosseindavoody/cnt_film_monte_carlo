@@ -16,7 +16,8 @@ Creates exciton object
 */
 exciton::exciton()
 {
-	
+	textra = 0;
+	justInjected = true;
 }
 
 /**
@@ -32,6 +33,8 @@ exciton::exciton(int cidx, int sidx, int energy)
 	cntidx = cidx;
 	segidx = sidx;
 	energyNum = energy;
+	textra = 0;
+	justInjected = true;
 }
 
 /**
@@ -83,6 +86,26 @@ void exciton::setAtOutContact(bool atContact)
 	atOutContact = atContact;
 }
 
+/**
+Set the amount of extra time that was left after deltaT
+
+@param t The time that was extra
+*/
+void exciton::setTExtra(double t)
+{
+	textra = t;
+}
+
+/**
+Set whether or not exciton was just injected
+
+@param j The injection state
+*/
+void exciton::setJustInjected(bool j)
+{
+	justInjected = j;
+}
+
 
 /**
 Gets cnt index
@@ -120,4 +143,21 @@ Checks whether or not the exciton is at the exit contact
 bool exciton::isAtOutContact()
 {
 	return atOutContact;
+}
+
+/**
+Gets the time that should be added to tr total as some time overlapped from 
+the previous time step deltaT
+*/
+double exciton::getTExtra()
+{
+	return textra;
+}
+
+/**
+Checks if the exciton was just injected
+*/
+bool exciton::wasJustInjected()
+{
+	return justInjected;
 }

@@ -7,6 +7,8 @@
 *.sln.docstates
 *.tlog
 *.asv
+*.mat
+*.csv
 
 # Build results
 CNTMC_Project/CNTMC_Project/Debug/
