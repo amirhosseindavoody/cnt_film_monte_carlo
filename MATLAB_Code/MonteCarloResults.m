@@ -46,32 +46,58 @@ x = linspace(regLen-(xdim/2), xdim/2, numRegions) - regLen/2;
 xx = linspace(x(1),x(end),numRegions*4); % Points to be used for spline interpolation
 
 %Figure for all plots. All get captured for video making
-capFig = figure('Visible','off'); 
+capFig = figure('visible','off'); 
 
-numTimeSteps = floor(length(excitonDist)/10);
-%F(numTimeSteps) = struct('cdata',[],'colormap',[]); %Array to capture frames
-count= zeros(numTimeSteps,1); 
+numAve = 1000; %number of vectors the results will be averaged over for each plot
+numTimeSteps = floor(length(excitonDist)/numAve);
+F(numTimeSteps) = struct('cdata',[],'colormap',[]); %Array to capture frames
+endCount= zeros(numTimeSteps,1); %average exciton count in exit contact
+excitonCount = zeros(numTimeSteps,1); %average exciton count in simulation
 
-for i=1:floor(numTimeSteps)
+currDist = zeros(1,length(xx));
+exDistAve = zeros(1,length(excitonDist(1,:)));
+sparset = zeros(numTimeSteps,1); %[nS] time vector representing time at each average
+
+for i=1:numTimeSteps
     
-    currDist = spline(x,excitonDist(i,:),xx);
-    plot(xx,currDist,x,excitonDist(i,:),'*');
-    titleString = sprintf('Time: %f pS',t(i)*10^12);
+    %Summation for average
+    for j=1:numAve
+        exDistAve = exDistAve + excitonDist((i-1)*numAve+j,:);
+        %Look at output contact
+        endCount(i) = endCount(i) + excitonDist((i-1)*numAve+j,end);
+        excitonCount(i) = excitonCount(i) + sum(excitonDist((i-1)*numAve+j,:));
+    end
+    %Division for average
+    exDistAve = exDistAve/numAve;
+    endCount(i) = endCount(i)/numAve;
+    excitonCount(i) = excitonCount(i)/numAve;
+    
+    sparset(i) = t(i*numAve)*10^9;
+    
+    currDist = spline(x,exDistAve,xx);
+    plot(xx,currDist,x,exDistAve,'*');
+    titleString = sprintf('Time: %f nS',t(i*numAve)*10^9);
     title(titleString);
-    axis([x(1) x(end) 0 numExcitons]);
+    axis([x(1) x(end) 0 numExcitons*3]);
     xlabel('Position (nm)');
     ylabel('Exciton Count');
     F(i) = getframe(capFig);
     
-    %Look at output contact
-    count(i) = excitonDist(i,end);
-%     yaxis([0,100]);
+
 end
 close(capFig); %Close figure
 
 %Plot the num particles at the output contact vs time
-plot(t(1:numTimeSteps),count);
+plot(sparset,endCount);
+title('Exciton count in output contact vs. time');
+xlabel('time [nS]');
+ylabel('Exciton count');
 
-vidFig = figure; %figure used for displaying movie
-movie(vidFig,F,1)
+figure;
+plot(sparset,excitonCount);
+title('Total exciton count vs. time');
+xlabel('time [nS]');
+ylabel('Exciton count');
+
+movie2avi(F,[folder '/excitonDist.avi']);
 

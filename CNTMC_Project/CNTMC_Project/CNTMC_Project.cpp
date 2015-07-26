@@ -69,22 +69,8 @@ int main(int argc, char *argv[])
 	if (argc == 1)
 	{
 		resultFolderPath = folderPathPrompt(false);
-		inputXMLPath = xmlFilePathPrompt(false);
-		outputFolderPath = outputFolderPathPrompt(false);
 	}
-	else if (argc == 2)
-	{
-		resultFolderPath = argv[1];
-		inputXMLPath = xmlFilePathPrompt(false);
-		outputFolderPath = outputFolderPathPrompt(false);
-	}
-	else if (argc == 3)
-	{
-		resultFolderPath = argv[1];
-		inputXMLPath = argv[2];
-		outputFolderPath = outputFolderPathPrompt(false);
-	}
-	else if (argc > 4)
+	else if (argc > 2)
 	{
 		cout << "Incorrect parameters. Only enter file path of results folder to be processed.\n";
 		system("pause");
@@ -93,8 +79,6 @@ int main(int argc, char *argv[])
 	else
 	{
 		resultFolderPath = argv[1];
-		inputXMLPath = argv[2];
-		outputFolderPath = argv[3];
 	}
 
 	resultFolderPath = checkPath(resultFolderPath, true); //check result folder path
@@ -431,15 +415,13 @@ int main(int argc, char *argv[])
 			else
 			{
 				double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
-				/*give time to excitons that have no extra time. This means that either the
-				exitons are new and there must be some time passing for the exciton to move
-				or the previous exciton movement laned on deltaT and was recorded on the previous
-				step (so we need a new point)*/
+				/*give time to excitons that have no extra time. This happens only when excitons
+				are just injected.*/
 				if (extraT == 0)
 				{
 					tr_tot += -(1 / gamma)*log(getRand(true));
 				}
-				while (tr_tot < deltaT) //if tr_tot == delta
+				while (tr_tot <= deltaT) 
 				{
 					//choose new state
 					assignNextState(CNT_List, (*excitons)[exNum], gamma, regionBdr);
