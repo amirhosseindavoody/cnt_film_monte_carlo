@@ -9,7 +9,10 @@ close all;
 
 folder = uigetdir(pwd);
 
-if(exist([folder '.mat'],'file') ~= 2) 
+matFileNameIdx = strfind(folder,'\');
+matFileName = folder(matFileNameIdx(end)+1:length(folder));
+
+if(exist([folder '\' matFileName '.mat'],'file') ~= 2) 
 
     %import supporting information
     [numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,...
@@ -21,11 +24,11 @@ if(exist([folder '.mat'],'file') ~= 2)
     %Import exciton dist. All rows and columns of T and all num regions
     [t, excitonDist]=importExcitonDist([folder '/excitonDist.csv'],1,inf,1,numRegions+1);
 
-    save([folder '.mat']);
+    save([folder '\' matFileName '.mat']);
 
 else
     
-    load([folder '.mat']);
+    load([folder '\' matFileName '.mat']);
     
 end
 
@@ -50,13 +53,16 @@ capFig = figure('visible','off');
 
 numAve = 1000; %number of vectors the results will be averaged over for each plot
 numTimeSteps = floor(length(excitonDist)/numAve);
-F(numTimeSteps) = struct('cdata',[],'colormap',[]); %Array to capture frames
 endCount= zeros(numTimeSteps,1); %average exciton count in exit contact
 excitonCount = zeros(numTimeSteps,1); %average exciton count in simulation
 
 currDist = zeros(1,length(xx));
 exDistAve = zeros(1,length(excitonDist(1,:)));
 sparset = zeros(numTimeSteps,1); %[nS] time vector representing time at each average
+
+%Movie structures
+writerObj = VideoWriter([folder '/excitonDist']);
+open(writerObj);
 
 for i=1:numTimeSteps
     
@@ -81,11 +87,12 @@ for i=1:numTimeSteps
     axis([x(1) x(end) 0 numExcitons*3]);
     xlabel('Position (nm)');
     ylabel('Exciton Count');
-    F(i) = getframe(capFig);
+    writeVideo(writerObj,getframe(capFig));
     
 
 end
 close(capFig); %Close figure
+close(writerObj); %close movie maker
 
 %Plot the num particles at the output contact vs time
 plot(sparset,endCount);
@@ -98,6 +105,4 @@ plot(sparset,excitonCount);
 title('Total exciton count vs. time');
 xlabel('time [nS]');
 ylabel('Exciton count');
-
-movie2avi(F,[folder '/excitonDist.avi']);
 
