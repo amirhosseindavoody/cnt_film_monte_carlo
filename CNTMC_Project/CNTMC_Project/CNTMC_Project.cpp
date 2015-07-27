@@ -89,9 +89,7 @@ int main(int argc, char *argv[])
 	// All checks are already completed
 	string outputPath = resultFolderPath + "/"; 
 
-
 	//Results folder exists and can be accessed
-
 	//grab file list
 	DIR *resDir;
 	struct dirent *ent = nullptr;
@@ -129,6 +127,11 @@ int main(int argc, char *argv[])
 	delete ent;
 
 	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
+	
+	//First need to get correct xml file name
+	auto xmlNamePos = resultFolderPath.rfind('/', resultFolderPath.size() - 1) + 1;
+	inputXMLPath = outputPath + resultFolderPath.substr(xmlNamePos, outputPath.size() - xmlNamePos) + ".xml";
+	
 	double rmax = 0; //maximum possible differences between sections of CNTs
 	double xdim = 0; //Dimension in which exciton populations will be monitored
 	while (!done)

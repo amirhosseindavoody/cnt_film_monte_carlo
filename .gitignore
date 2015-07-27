@@ -9,6 +9,7 @@
 *.asv
 *.mat
 *.csv
+*.idb
 
 # Build results
 CNTMC_Project/CNTMC_Project/Debug/
