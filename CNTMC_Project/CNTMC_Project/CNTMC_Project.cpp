@@ -64,7 +64,6 @@ int main(int argc, char *argv[])
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
 	string inputXMLPath = " ";
-	string outputFolderPath = " ";
 
 	if (argc == 1)
 	{
@@ -82,53 +81,14 @@ int main(int argc, char *argv[])
 	}
 
 	resultFolderPath = checkPath(resultFolderPath, true); //check result folder path
-	inputXMLPath = checkPath(inputXMLPath, false); //check xml file path
+
 
 	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
-	string timeStamp = "/Date_";
-	string response;
-	string outputPath;
-	{
-		time_t timer;
-		struct tm currTime;
-		if (time(&timer) != -1)
-		{
-			errno_t err = localtime_s(&currTime, &timer);
-			if (err)
-			{
-				printf("Invalid argument to localtime.\n");
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-		}
+	//Outputfolder should be the same as the result folder for the mesh
+	// All checks are already completed
+	string outputPath = resultFolderPath + "/"; 
 
-		timeStamp = timeStamp + to_string(currTime.tm_mday) + "." + to_string(currTime.tm_mon + 1) +
-			"." + to_string(currTime.tm_year % 100) + "_Time_" + to_string(currTime.tm_hour) + "." +
-			to_string(currTime.tm_min) + "." + to_string(currTime.tm_sec) + "/";
-	}
-
-	outputPath = outputFolderPath + timeStamp;
-	wstring wide_string(outputPath.begin(), outputPath.end());
-	if (CreateDirectory(wide_string.c_str(), nullptr) == 0)
-	{
-		auto error = GetLastError();
-		if (error == ERROR_ALREADY_EXISTS)
-		{
-			printf("Output folder already exists. Continue anyways? [y/n]\n");
-			cin >> response;
-			if (response.compare(string("y")) != 0)
-			{
-				exit(EXIT_FAILURE);
-			}
-		}
-		else if (error == ERROR_PATH_NOT_FOUND)
-		{
-			printf("Invalid output folder path.\n");
-			system("pause");
-			exit(EXIT_FAILURE);
-		}
-	}
 
 	//Results folder exists and can be accessed
 
@@ -151,7 +111,12 @@ int main(int argc, char *argv[])
 		//iterate over all of the real files
 		while ((ent = readdir(resDir)) != nullptr)
 		{
-			fileList->push_back(ent->d_name);
+			string fileType(ent->d_name);
+			fileType = fileType.substr(fileType.size() - 4, 4);
+			if (!fileType.compare(".csv"))
+			{
+				fileList->push_back(ent->d_name);
+			}
 		}
 		closedir(resDir); //deletes pointer
 	}
