@@ -15,6 +15,8 @@
 #include <math.h>
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
+#include <thread>
+#include <omp.h>
 
 
 
@@ -28,7 +30,7 @@ string folderPathPrompt(bool incorrect);
 string xmlFilePathPrompt(bool incorrect);
 string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
@@ -54,7 +56,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
-
+	unsigned int NUM_THREADS = omp_get_max_threads();
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
 
@@ -279,26 +281,49 @@ int main(int argc, char *argv[])
 
 	
 	//iterate through all of the CNTs and segments
-	double maxDist = 500; //[Angstroms]
+	double maxDist = 300; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
 	auto numSegs = 0;
 	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
 	double gamma = 0;
+
+	omp_set_num_threads(NUM_THREADS);
+	int nThreads = 0;
+
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
-		double newGamma;
-		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		int begin = 0;
+		int end = cntit->segs->size();
+
+		#pragma omp parallel default(none) private(segit,newGamma,regIdx,currSeg) shared(gamma, begin, end,numSegs)
 		{
-			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
-			(*secCountPerReg)[regIdx]++; //increment the count based on where section is
-			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
-			else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(*segit); } //last region is output contact
-			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
-			if (newGamma > gamma){ gamma = newGamma; }
-			numSegs++;
+			#pragma omp master
+			nThreads = omp_get_num_threads();
+			double newGamma;
+			//loop over segments in each CNTs
+			#pragma omp parallel for
+			for (int segidx = begin; segidx < end; segidx++)
+			{
+				shared_ptr<segment> currSeg = (*(cntit->segs))[segidx];
+				int regIdx = getIndex(regionBdr, currSeg->mid(0));
+				(*secCountPerReg)[regIdx]++; //increment the count based on where section is
+				if (regIdx == 0){ inContact->push_back(currSeg); } //First region is injection contact
+				else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(currSeg); } //last region is output contact
+				//get add to each segment relevant table entries
+				newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
+				if (newGamma > gamma)
+				{
+					#pragma omp atomic
+					gamma = newGamma;
+				}
+				#pragma omp atomic
+				numSegs++;
+			}
+		}
+		if (nThreads == NUM_THREADS) {
+			cout << "Tube Number: " << cntit->getCNTNum() << endl;
+			printf_s("%d OpenMP threads were used.\n", NUM_THREADS);
 		}
 	}
 
@@ -697,7 +722,7 @@ from the segment.
 @param thetas The angles that are needed to place values in the heat map
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg,
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
@@ -710,7 +735,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 		//iterate over all segments considered for seg
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
+			double r = tableElem::calcDist(seg->mid, (*segit)->mid);
 			auto theta = tableElem::calcThet(seg, segit);
 
 			//Heat Map Additions
@@ -721,8 +746,8 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 				if (r <= maxDist) /////// Building TABLE /////
 				{
 					auto g = 6.4000e+19; //First draft estimate
-					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					seg->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+					seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 				}
 			}	
 			j++;

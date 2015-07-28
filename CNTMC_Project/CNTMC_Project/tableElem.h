@@ -36,6 +36,6 @@ public:
 	int getTubeidx();
 	int getSegidx();
 	static double calcDist(Vector3d v1, Vector3d v2);
-	static double calcThet(vector<shared_ptr<segment>>::iterator s1, vector<shared_ptr<segment>>::iterator s2);
+	static double calcThet(shared_ptr<segment> s1, vector<shared_ptr<segment>>::iterator s2);
 };
 
