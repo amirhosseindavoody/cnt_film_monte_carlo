@@ -57,6 +57,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 int main(int argc, char *argv[])
 {
 	unsigned int NUM_THREADS = omp_get_max_threads();
+
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
 
@@ -293,28 +294,34 @@ int main(int argc, char *argv[])
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
+		//define variables before using in parallel processing loop
 		int begin = 0;
-		int end = cntit->segs->size();
+		int end = static_cast<int>(cntit->segs->size());
+		int segidx;
+		shared_ptr<segment> currSeg;
+		double newGamma;
+		int regIdx;
 
-		#pragma omp parallel default(none) private(segit,newGamma,regIdx,currSeg) shared(gamma, begin, end,numSegs)
+		#pragma omp parallel default(shared) private(segidx,newGamma,regIdx,currSeg) shared(gamma, begin, end,numSegs)
 		{
 			#pragma omp master
 			nThreads = omp_get_num_threads();
-			double newGamma;
+			cout << nThreads << endl;
+			
 			//loop over segments in each CNTs
 			#pragma omp parallel for
-			for (int segidx = begin; segidx < end; segidx++)
+			for (segidx = begin; segidx < end; segidx++)
 			{
-				shared_ptr<segment> currSeg = (*(cntit->segs))[segidx];
-				int regIdx = getIndex(regionBdr, currSeg->mid(0));
+				currSeg = (*(cntit->segs))[segidx];
+				regIdx = getIndex(regionBdr, currSeg->mid(0));
 				(*secCountPerReg)[regIdx]++; //increment the count based on where section is
 				if (regIdx == 0){ inContact->push_back(currSeg); } //First region is injection contact
 				else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(currSeg); } //last region is output contact
 				//get add to each segment relevant table entries
 				newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
+				#pragma omp critical
 				if (newGamma > gamma)
 				{
-					#pragma omp atomic
 					gamma = newGamma;
 				}
 				#pragma omp atomic
