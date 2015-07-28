@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
 	//The number of excitons to be in injection contact
-	int numExcitonsAtCont = 100;
+	int numExcitonsAtCont = 10000;
 	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
 	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
