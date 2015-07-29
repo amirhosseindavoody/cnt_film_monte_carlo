@@ -47,6 +47,7 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
+double diffclock(clock_t end, clock_t start);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -279,11 +280,16 @@ int main(int argc, char *argv[])
 
 	
 	//iterate through all of the CNTs and segments
-	double maxDist = 500; //[Angstroms]
+	double maxDist = 300; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
 	auto numSegs = 0;
 	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
 	double gamma = 0;
+
+
+	//timing functions
+	clock_t start = clock();
+
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -301,6 +307,9 @@ int main(int argc, char *argv[])
 			numSegs++;
 		}
 	}
+
+	clock_t end = clock();
+	cout << "\nTime: " << diffclock(end, start) << " ms" << endl;
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
@@ -943,4 +952,20 @@ void initRandomNumGen()
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
 	srand(static_cast<int>(seconds));
+}
+
+/*
+Measures time difference between two clocks
+
+@param end end time
+@param start start time
+@return The difference in milliseconds
+*/
+double diffclock(clock_t end, clock_t start)
+{
+
+	double diffticks = end - start;
+	double diffms = diffticks / (CLOCKS_PER_SEC / 1000);
+
+	return diffms;
 }
