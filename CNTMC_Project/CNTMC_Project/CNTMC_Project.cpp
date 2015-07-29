@@ -311,6 +311,22 @@ int main(int argc, char *argv[])
 	clock_t end = clock();
 	cout << "\nTime: " << diffclock(end, start) << " ms" << endl;
 
+	string fileCheck = outputPath + "singleThreadCheck.csv";
+	ofstream fileCheckfile;
+	fileCheckfile.open(fileCheck);
+	//Check results
+	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	{
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		{
+			for (vector<tableElem>::iterator tbit = ((*segit)->tbl)->begin(); tbit != ((*segit)->tbl)->end(); ++tbit)
+			{
+				fileCheckfile << (*tbit).getGamma() << "," << (*tbit).getTheta() << "," << (*tbit).getTheta() << endl;
+			}
+		}
+	}
+	fileCheckfile.close();
+
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
 	string heatMapFileName = outputPath + "heatMap.csv";
