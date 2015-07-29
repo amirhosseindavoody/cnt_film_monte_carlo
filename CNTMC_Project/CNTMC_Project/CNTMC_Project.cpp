@@ -49,6 +49,7 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
+double diffclock(clock_t end, clock_t start);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -291,6 +292,9 @@ int main(int argc, char *argv[])
 	omp_set_num_threads(NUM_THREADS);
 	int nThreads = 0;
 
+	//timing functions
+	clock_t start = clock();
+
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -306,7 +310,6 @@ int main(int argc, char *argv[])
 		{
 			#pragma omp master
 			nThreads = omp_get_num_threads();
-			cout << nThreads << endl;
 			
 			//loop over segments in each CNTs
 			#pragma omp parallel for
@@ -314,9 +317,18 @@ int main(int argc, char *argv[])
 			{
 				currSeg = (*(cntit->segs))[segidx];
 				regIdx = getIndex(regionBdr, currSeg->mid(0));
+				#pragma omp atomic
 				(*secCountPerReg)[regIdx]++; //increment the count based on where section is
-				if (regIdx == 0){ inContact->push_back(currSeg); } //First region is injection contact
-				else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(currSeg); } //last region is output contact
+				if (regIdx == 0) // First region is injection contact
+				{
+					#pragma omp critical
+					inContact->push_back(currSeg);
+				}
+				else if (regIdx == secCountPerReg->size() - 1)//last region is output contact
+				{
+					#pragma omp critical
+					outContact->push_back(currSeg);
+				} 
 				//get add to each segment relevant table entries
 				newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
 				#pragma omp critical
@@ -333,6 +345,9 @@ int main(int argc, char *argv[])
 			printf_s("%d OpenMP threads were used.\n", NUM_THREADS);
 		}
 	}
+
+	clock_t end = clock();
+	cout << "\nTime: " << diffclock(end, start) << " ms"<< endl;
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
@@ -753,7 +768,9 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg,
 				if (r <= maxDist) /////// Building TABLE /////
 				{
 					auto g = 6.4000e+19; //First draft estimate
+					#pragma omp critical
 					seg->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+					#pragma omp critical
 					seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 				}
 			}	
@@ -975,4 +992,20 @@ void initRandomNumGen()
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
 	srand(static_cast<int>(seconds));
+}
+
+/*
+Measures time difference between two clocks
+
+@param end end time
+@param start start time
+@return The difference in milliseconds
+*/
+double diffclock(clock_t end, clock_t start) 
+{
+
+	double diffticks = end - start;
+	double diffms = diffticks / (CLOCKS_PER_SEC / 1000);
+
+	return diffms;
 }
