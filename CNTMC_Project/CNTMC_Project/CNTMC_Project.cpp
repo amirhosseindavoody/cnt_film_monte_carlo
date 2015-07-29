@@ -340,10 +340,10 @@ int main(int argc, char *argv[])
 				numSegs++;
 			}
 		}
-		if (nThreads == NUM_THREADS) {
-			cout << "Tube Number: " << cntit->getCNTNum() << endl;
-			printf_s("%d OpenMP threads were used.\n", NUM_THREADS);
-		}
+		//if (nThreads == NUM_THREADS) {
+		//	cout << "Tube Number: " << cntit->getCNTNum() << endl;
+		//	printf_s("%d OpenMP threads were used.\n", NUM_THREADS);
+		//}
 	}
 
 	clock_t end = clock();
