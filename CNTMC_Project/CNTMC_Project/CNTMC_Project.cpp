@@ -298,39 +298,37 @@ int main(int argc, char *argv[])
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
-		//define variables before using in parallel processing loop
 		int begin = 0;
 		int end = static_cast<int>(cntit->segs->size());
-		int segidx;
-		shared_ptr<segment> currSeg;
-		double newGamma;
-		int regIdx;
 
-		#pragma omp parallel default(shared) private(segidx,newGamma,regIdx,currSeg) shared(gamma, begin, end,numSegs)
+		//define variables before using in parallel processing loop
+		#pragma omp parallel default(none) shared(gamma, begin, end,numSegs, nThreads,cntit,regionBdr,secCountPerReg,heatMap,outContact,rs,thetas,CNT_List,inContact,maxDist)
 		{
 			#pragma omp master
 			nThreads = omp_get_num_threads();
 			
 			//loop over segments in each CNTs
-			#pragma omp parallel for
-			for (segidx = begin; segidx < end; segidx++)
+			#pragma omp parallel for schedule(static) ordered
+			for (int segidx = begin; segidx < end; segidx++)
 			{
-				currSeg = (*(cntit->segs))[segidx];
-				regIdx = getIndex(regionBdr, currSeg->mid(0));
+				double newGamma;
+				shared_ptr<segment> currSeg = (*(cntit->segs))[segidx];
+				int regIdx = getIndex(regionBdr, currSeg->mid(0));
 				#pragma omp atomic
 				(*secCountPerReg)[regIdx]++; //increment the count based on where section is
-				if (regIdx == 0) // First region is injection contact
+				#pragma omp ordered
 				{
-					#pragma omp critical
-					inContact->push_back(currSeg);
+					if (regIdx == 0) // First region is injection contact
+					{
+						inContact->push_back(currSeg);
+					}
+					else if (regIdx == secCountPerReg->size() - 1)//last region is output contact
+					{
+						outContact->push_back(currSeg);
+					}
+					//get add to each segment relevant table entries
+					newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
 				}
-				else if (regIdx == secCountPerReg->size() - 1)//last region is output contact
-				{
-					#pragma omp critical
-					outContact->push_back(currSeg);
-				} 
-				//get add to each segment relevant table entries
-				newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
 				#pragma omp critical
 				if (newGamma > gamma)
 				{
@@ -348,6 +346,22 @@ int main(int argc, char *argv[])
 
 	clock_t end = clock();
 	cout << "\nTime: " << diffclock(end, start) << " ms"<< endl;
+
+	string fileCheck = outputPath + "multiThreadCheck.csv";
+	ofstream fileCheckfile;
+	fileCheckfile.open(fileCheck);
+	//Check results
+	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	{
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		{
+			for (vector<tableElem>::iterator tbit = ((*segit)->tbl)->begin(); tbit != ((*segit)->tbl)->end(); ++tbit)
+			{
+				fileCheckfile << (*tbit).getGamma() << "," << (*tbit).getTheta() << "," << (*tbit).getTheta() << endl;
+			}
+		}
+	}
+	fileCheckfile.close();
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
@@ -763,17 +777,19 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg,
 			//Heat Map Additions
 			if (r != 0)
 			{
+				#pragma omp critical
 				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
 				//Check if within range
 				if (r <= maxDist) /////// Building TABLE /////
 				{
 					auto g = 6.4000e+19; //First draft estimate
 					#pragma omp critical
-					seg->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					#pragma omp critical
-					seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					{
+						seg->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+						seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					}
 				}
-			}	
+			}
 			j++;
 		}
 		i++;
