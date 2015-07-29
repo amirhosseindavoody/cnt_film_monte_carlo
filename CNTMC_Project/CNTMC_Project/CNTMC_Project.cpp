@@ -15,7 +15,7 @@
 #include <math.h>
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
-
+#include <regex>
 
 
 using namespace std;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 	*/
 
 	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
-
+	regex rgx("CNT_Num_\\d+\\.csv"); //files we want to look through
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(resultFolderPath.c_str())) != nullptr)
 	{
@@ -110,9 +110,9 @@ int main(int argc, char *argv[])
 		//iterate over all of the real files
 		while ((ent = readdir(resDir)) != nullptr)
 		{
-			string fileType(ent->d_name);
-			fileType = fileType.substr(fileType.size() - 4, 4);
-			if (!fileType.compare(".csv"))
+			smatch matches; //match_results for string objects
+			regex_search(string(ent->d_name), matches, rgx);
+			if (!matches.empty())
 			{
 				fileList->push_back(ent->d_name);
 			}
