@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
 		injectExciton((*excitons)[exNum], inContact);
 	}
 	clock_t end1 = clock();
-	double exTime = diffclock(endu, startu);
+	double exTime = diffclock(end1, start1);
 	cout << "Place Exciton Time: " << exTime << endl;
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
@@ -433,6 +433,7 @@ int main(int argc, char *argv[])
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
+	clock_t startSim = clock();
 	while (T <= Tmax) //iterates over time
 	{
 		//reset the exciton count after each time step
@@ -441,7 +442,7 @@ int main(int argc, char *argv[])
 		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
 		{
 			#pragma omp for 
-			for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
+			for (int exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 			{
 				shared_ptr<exciton> currEx = (*excitons)[exNum];
 				/*There is a change that the previous tr that was calculated was so long that it
@@ -485,6 +486,9 @@ int main(int argc, char *argv[])
 		//Update Exciton List for injection and exit contact
 		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
 	}
+	clock_t endSim = clock();
+	double mainLoopTime = diffclock(endSim, startSim);
+	cout << "Main Loop Time: " << mainLoopTime << endl;
 	//Close files finish program
 	excitonDistFile->close();
 
