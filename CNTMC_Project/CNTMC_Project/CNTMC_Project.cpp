@@ -387,38 +387,43 @@ int main(int argc, char *argv[])
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
-		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
+		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
 		{
-			/*There is a change that the previous tr that was calculated was so long that it
-			not only has extra time in the next deltaT, but it skips it completely. In this case
-			the exciton movement is skipped all together and its extra time is decreased by deltaT
-			until the exciton can move again. Otherwise the code runs as usual.
-			*/
-			double extraT = (*excitons)[exNum]->getTExtra();
-			if (extraT > deltaT)
+			#pragma omp for
+			for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 			{
-				(*excitons)[exNum]->setTExtra((*excitons)[exNum]->getTExtra() - deltaT);
-				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
-			}
-			else
-			{
-				double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
-				/*give time to excitons that have no extra time. This happens only when excitons
-				are just injected.*/
-				if (extraT == 0)
+				shared_ptr<exciton> currEx = (*excitons)[exNum];
+				/*There is a change that the previous tr that was calculated was so long that it
+				not only has extra time in the next deltaT, but it skips it completely. In this case
+				the exciton movement is skipped all together and its extra time is decreased by deltaT
+				until the exciton can move again. Otherwise the code runs as usual.
+				*/
+				double extraT = currEx->getTExtra();
+				if (extraT > deltaT)
 				{
-					tr_tot += .6*deltaT;//-(1 / gamma)*log(getRand(true));
+					currEx->setTExtra(currEx->getTExtra() - deltaT);
+					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
 				}
-				while (tr_tot <= deltaT) 
+				else
 				{
-					//choose new state
-					assignNextState(CNT_List, (*excitons)[exNum], gamma, regionBdr);
-					tr_tot += .6*deltaT;//-(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
+					/*give time to excitons that have no extra time. This happens only when excitons
+					are just injected.*/
+					if (extraT == 0)
+					{
+						tr_tot += -(1 / gamma)*log(getRand(true));
+					}
+					while (tr_tot <= deltaT)
+					{
+						//choose new state
+						assignNextState(CNT_List, currEx, gamma, regionBdr);
+						tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					}
+					//Recording distribution
+					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
+					//record the time past deltaT that the assign next state will cover
+					currEx->setTExtra(tr_tot - deltaT);
 				}
-				//Recording distribution
-				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
-				//record the time past deltaT that the assign next state will cover
-				(*excitons)[exNum]->setTExtra(tr_tot - deltaT);
 			}
 		}
 		//Output count vector to file since we want results after each time step.
@@ -428,7 +433,7 @@ int main(int argc, char *argv[])
 		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
 	}
 	clock_t end = clock();
-	cout << "\nTime: " << diffclock(end, start) << " ms" << endl;
+	cout << "\nMain Loop Run Time: " << diffclock(end, start) << " ms" << endl;
 	//Close files finish program
 	excitonDistFile->close();
 
@@ -534,6 +539,7 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 {
 	//add count to the currCount vector in the location corresponding to the exciton 
 	//   region location
+	#pragma omp critical
 	(*currCount)[getIndex(regionBdr,
 		((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)))]++;
 }
@@ -940,7 +946,7 @@ void initRandomNumGen()
 	time_t seconds;
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
-	srand(static_cast<int>(0));
+	srand(static_cast<int>(seconds));
 }
 
 /*
