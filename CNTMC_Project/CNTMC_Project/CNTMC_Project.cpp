@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
 	//The number of excitons to be in injection contact
-	int numExcitonsAtCont = 10000;
+	int numExcitonsAtCont = 100000;
 	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
 	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	int numSteps = 1000;
+	int numSteps = 100000;
 	double Tmax = deltaT * numSteps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
