@@ -16,6 +16,9 @@
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
 #include <regex>
+#include <thread>
+#include <Windows.h>
+#include <omp.h>
 
 
 using namespace std;
@@ -47,6 +50,8 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
+string getRunStatus(double T, double Tmax, double runtime);
+void ClearScreen();
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -54,9 +59,12 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
-
+	unsigned int NUM_THREADS = omp_get_max_threads();
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
+	double runtime;
+	//timing functions
+	clock_t start = clock();
 
 	//Initialize random number generator before anything to ensure that getRand() always works
 	initRandomNumGen();
@@ -303,22 +311,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	string fileCheck = outputPath + "singleThreadCheck.csv";
-	ofstream fileCheckfile;
-	fileCheckfile.open(fileCheck);
-	//Check results
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
-	{
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
-		{
-			for (vector<tableElem>::iterator tbit = ((*segit)->tbl)->begin(); tbit != ((*segit)->tbl)->end(); ++tbit)
-			{
-				fileCheckfile << (*tbit).getGamma() << "," << (*tbit).getTheta() << "," << (*tbit).getTheta() << endl;
-			}
-		}
-	}
-	fileCheckfile.close();
-
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
 	string heatMapFileName = outputPath + "heatMap.csv";
@@ -364,7 +356,8 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	double Tmax = deltaT * 1000; //maximum simulation time
+	int numSteps = 1000;
+	double Tmax = deltaT * numSteps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
@@ -374,13 +367,15 @@ int main(int argc, char *argv[])
 	shared_ptr<ofstream> excitonDistFile(new ofstream);
 	excitonDistFile->open(excitonDistFileName);
 
-	
+	int onePercent = static_cast<int>(numSteps / 100.0);
+	int printCnt = 0;
+	string status;
+
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
-	//timing functions
-	clock_t start = clock();
+	omp_set_num_threads(NUM_THREADS);
 	while (T <= Tmax) //iterates over time
 	{
 		//reset the exciton count after each time step
@@ -430,9 +425,20 @@ int main(int argc, char *argv[])
 
 		//Update Exciton List for injection and exit contact
 		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
+		//update time
+		clock_t end = clock();
+		runtime = diffclock(end, start);
+		printCnt++;
+		if (printCnt == onePercent)
+		{
+			ClearScreen();
+			status = getRunStatus(T, Tmax, runtime);
+			cout << status << endl;
+			printCnt = 0;
+		}
+		
 	}
-	clock_t end = clock();
-	cout << "\nMain Loop Run Time: " << diffclock(end, start) << " ms" << endl;
+
 	//Close files finish program
 	excitonDistFile->close();
 
@@ -944,7 +950,7 @@ void initRandomNumGen()
 	srand(static_cast<int>(seconds));
 }
 
-/*
+/**
 Measures time difference between two clocks
 
 @param end end time
@@ -958,4 +964,68 @@ double diffclock(clock_t end, clock_t start)
 	double diffms = diffticks / (CLOCKS_PER_SEC / 1000);
 
 	return diffms;
+}
+
+/**
+Prints the status of the simulation
+
+@param T The current time of the simulation
+@param Tmax The end time of the simulation
+@param runtime The amount of time the simulation has been running
+*/
+string getRunStatus(double T,double Tmax, double runtime)
+{
+	string ret;
+	if (T != 0 && Tmax != 0)
+	{
+		ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100)) 
+			+ "%\n";
+	}
+
+	ret += "Runtime: " + to_string(static_cast<int>(runtime / 1440000)) + ":" +
+		to_string(static_cast<int>(runtime / 60000.) % 24) + ":" +
+		to_string(static_cast<int>(runtime / 1000.) % 60) + "\n";
+
+	return ret;
+
+}
+
+/**
+Clears the console
+*/
+void ClearScreen()
+{
+	HANDLE                     hStdOut;
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	DWORD                      count;
+	DWORD                      cellCount;
+	COORD                      homeCoords = { 0, 0 };
+
+	hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (hStdOut == INVALID_HANDLE_VALUE) return;
+
+	/* Get the number of cells in the current buffer */
+	if (!GetConsoleScreenBufferInfo(hStdOut, &csbi)) return;
+	cellCount = csbi.dwSize.X *csbi.dwSize.Y;
+
+	/* Fill the entire buffer with spaces */
+	if (!FillConsoleOutputCharacter(
+		hStdOut,
+		static_cast<TCHAR>(' '),
+		cellCount,
+		homeCoords,
+		&count
+		)) return;
+
+	/* Fill the entire buffer with the current colors and attributes */
+	if (!FillConsoleOutputAttribute(
+		hStdOut,
+		csbi.wAttributes,
+		cellCount,
+		homeCoords,
+		&count
+		)) return;
+
+	/* Move the cursor home */
+	SetConsoleCursorPosition(hStdOut, homeCoords);
 }
