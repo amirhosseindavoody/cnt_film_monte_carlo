@@ -16,7 +16,6 @@
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
 #include <regex>
-#include <thread>
 #include <Windows.h>
 #include <omp.h>
 
@@ -46,12 +45,13 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps);
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, string status);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
 string getRunStatus(double T, double Tmax, double runtime);
 void ClearScreen();
+string getRunTime(double runtime);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -60,6 +60,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 int main(int argc, char *argv[])
 {
 	unsigned int NUM_THREADS = omp_get_max_threads();
+	string status;
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
 	double runtime;
@@ -210,7 +211,13 @@ int main(int argc, char *argv[])
 			delete inputXMLPathArray;
 		}
 	}
-
+	//@@@@@@@@ TIME UPDATE @@@@@@@@//
+	clock_t end = clock();
+	runtime = diffclock(end, start);
+	ClearScreen();
+	status = getRunStatus(0, 0, runtime);
+	cout << status << endl;
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
@@ -240,6 +247,15 @@ int main(int argc, char *argv[])
 
 	//Set final rmax value
 	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
+	
+
+	//@@@@@@@@ TIME UPDATE @@@@@@@@//
+	end = clock();
+	runtime = diffclock(end, start);
+	ClearScreen();
+	status = getRunStatus(0, 0, runtime);
+	cout << status << endl;
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
 
@@ -292,7 +308,8 @@ int main(int argc, char *argv[])
 	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
 	double gamma = 0;
 
-
+	int buildTblDecPerc = static_cast<int>(CNT_List->size() / 10.0); //ten percent of total number of tubes
+	int buildTblCntr = 0;
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -309,6 +326,19 @@ int main(int argc, char *argv[])
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
+		buildTblCntr++;
+		if (buildTblCntr == buildTblDecPerc)
+		{
+			//@@@@@@@@ TIME UPDATE @@@@@@@@//
+			end = clock();
+			runtime = diffclock(end, start);
+			ClearScreen();
+			status = getRunStatus(0, 0, runtime);
+			cout << status << endl;
+			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
+			buildTblCntr = 0;
+		}
+		
 	}
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
@@ -369,7 +399,6 @@ int main(int argc, char *argv[])
 
 	int onePercent = static_cast<int>(numSteps / 100.0);
 	int printCnt = 0;
-	string status;
 
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
@@ -426,7 +455,7 @@ int main(int argc, char *argv[])
 		//Update Exciton List for injection and exit contact
 		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
 		//update time
-		clock_t end = clock();
+		end = clock();
 		runtime = diffclock(end, start);
 		printCnt++;
 		if (printCnt == onePercent)
@@ -446,7 +475,7 @@ int main(int argc, char *argv[])
 
 	//Write helper information
 	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
-		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps);
+		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps, getRunTime(runtime));
 
 	return 0;
 }
@@ -498,15 +527,15 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
 */
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps)
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, string status)
 {
 	string detailsFileName = outputPath + "details.csv";
 	shared_ptr<ofstream> detailsFile(new ofstream);
 	detailsFile->open(detailsFileName);
-	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps" << endl;
+	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,runtime" << endl;
 	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << segLenMin << "," << numRegions << "," << xdim 
 		<< "," << minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << 
-		"," << numTSteps << endl;
+		"," << numTSteps << "," << status << endl;
 }
 
 /**
@@ -972,6 +1001,7 @@ Prints the status of the simulation
 @param T The current time of the simulation
 @param Tmax The end time of the simulation
 @param runtime The amount of time the simulation has been running
+@return The status of the simulation
 */
 string getRunStatus(double T,double Tmax, double runtime)
 {
@@ -980,15 +1010,40 @@ string getRunStatus(double T,double Tmax, double runtime)
 	{
 		ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100)) 
 			+ "%\n";
+	} else
+	{
+		ret = "Preparing Simulation.\n";
 	}
+	ret += getRunTime(runtime);
+	return ret;
+}
 
-	ret += "Runtime: " + to_string(static_cast<int>(runtime / 1440000)) + ":" +
-		to_string(static_cast<int>(runtime / 60000.) % 24) + ":" +
-		to_string(static_cast<int>(runtime / 1000.) % 60) + "\n";
+
+/**
+Gets the runtime of the simulation
+
+@param runtime The total runtime of the simulation in milliseconds
+@return A formated string to beter display run time
+*/
+string getRunTime(double runtime)
+{
+	string ret = "Runtime: ";
+
+	int days = static_cast<int>(runtime / 1440000);
+	if (days < 10){ ret += "0" + to_string(days) + ":"; }
+	else{ ret += to_string(days) + ":"; }
+
+	int hours = static_cast<int>(runtime / 60000.) % 24;
+	if (hours < 10){ ret += "0" + to_string(hours) + ":"; }
+	else{ ret += to_string(hours) + ":"; }
+
+	int seconds = static_cast<int>(runtime / 1000.) % 60;
+	if (seconds < 10){ ret += "0" + to_string(seconds); }
+	else{ ret += to_string(seconds); }
 
 	return ret;
-
 }
+
 
 /**
 Clears the console
