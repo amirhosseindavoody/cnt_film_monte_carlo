@@ -31,7 +31,6 @@ string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
-int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
@@ -287,9 +286,6 @@ int main(int argc, char *argv[])
 	double gamma = 0;
 
 
-	//timing functions
-	clock_t start = clock();
-
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -307,9 +303,6 @@ int main(int argc, char *argv[])
 			numSegs++;
 		}
 	}
-
-	clock_t end = clock();
-	cout << "\nTime: " << diffclock(end, start) << " ms" << endl;
 
 	string fileCheck = outputPath + "singleThreadCheck.csv";
 	ofstream fileCheckfile;
@@ -372,7 +365,7 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	double Tmax = deltaT * 100000; //maximum simulation time
+	double Tmax = deltaT * 1000; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
@@ -387,6 +380,8 @@ int main(int argc, char *argv[])
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
+	//timing functions
+	clock_t start = clock();
 	while (T <= Tmax) //iterates over time
 	{
 		//reset the exciton count after each time step
@@ -412,13 +407,13 @@ int main(int argc, char *argv[])
 				are just injected.*/
 				if (extraT == 0)
 				{
-					tr_tot += -(1 / gamma)*log(getRand(true));
+					tr_tot += .6*deltaT;//-(1 / gamma)*log(getRand(true));
 				}
 				while (tr_tot <= deltaT) 
 				{
 					//choose new state
 					assignNextState(CNT_List, (*excitons)[exNum], gamma, regionBdr);
-					tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					tr_tot += .6*deltaT;//-(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
 				}
 				//Recording distribution
 				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
@@ -432,6 +427,8 @@ int main(int argc, char *argv[])
 		//Update Exciton List for injection and exit contact
 		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
 	}
+	clock_t end = clock();
+	cout << "\nTime: " << diffclock(end, start) << " ms" << endl;
 	//Close files finish program
 	excitonDistFile->close();
 
@@ -660,54 +657,30 @@ Does this recursively.
 @return the index that requires the conditions in the method description
 */
 int getIndex(shared_ptr<vector<double>> vec, double val)
-{	
-	//parameter check
+{
 	if (vec == nullptr)
 	{
 		cout << "Error: Empty vector passed to getIndex()";
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	//small simple cases that do not work with recursive helper method
-	if (vec->size() == 1) {return 0;}
-	if (vec->size() == 2)
+	int left = 0;
+	int right = static_cast<int>(vec->size() - 1);
+	while (left <= right)
 	{
-		if ((*vec)[0] >= val){ return 0; }
-		return 1;
+		if (right == left)
+		{
+			if ((*vec)[right] < val) { return right + 1; }
+			return right;
+		}
+		int mid = static_cast<int>(static_cast<double>(right + left) / 2.0);
+		double midVal = (*vec)[mid];
+		if (midVal == val){ return mid; }
+
+		if (midVal > val){ right = mid - 1; }
+		else { left = mid + 1; }
 	}
-
-	//use recursive helper method
-	return getIndex(vec, val, 0, static_cast<int>(vec->size() - 1));
-	//size_t is 64 bit unsigned. int is 32 bit signed. Cast should still work always
-}
-
-/**
-The helper method of the 2 parameter get index method. Simple binary search
-
-@param vec The vector to search
-@param prob The number to compare the indecies to
-@param right The highest index that is part of the vector
-@param lef The lowest index that is part of the vector
-@return the index that requires the conditions in the method description. Returns -1 if it fails
-*/
-int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right)
-{
-	if (right < left) { return left; }
-
-	if (right == left)
-	{
-		if ((*vec)[right] < val) { return right + 1; }
-		return right; 
-	} //base case
-	
-	int center = static_cast<int>(floor(static_cast<double>(right + left) / 2.0));
-	if ((*vec)[center] == val){ return center; } //base case
-	
-	//recursive cases
-	if ((*vec)[center] > val){ return getIndex(vec, val, left, center - 1); }
-	if ((*vec)[center] < val){ return getIndex(vec, val, center + 1, right); }
-	return -1;
-
+	return left;
 }
 
 /**
@@ -967,7 +940,7 @@ void initRandomNumGen()
 	time_t seconds;
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
-	srand(static_cast<int>(seconds));
+	srand(static_cast<int>(0));
 }
 
 /*
