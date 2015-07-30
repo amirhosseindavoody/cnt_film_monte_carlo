@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
-	string inputXMLPath = " ";
 
 	if (argc == 1)
 	{
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
 	
 	//First need to get correct xml file name
 	auto xmlNamePos = resultFolderPath.rfind('/', resultFolderPath.size() - 1) + 1;
-	inputXMLPath = outputPath + resultFolderPath.substr(xmlNamePos, outputPath.size() - xmlNamePos) + ".xml";
+	string inputXMLPath = outputPath + resultFolderPath.substr(xmlNamePos, outputPath.size() - xmlNamePos) + ".xml";
 	
 	double rmax = 0; //maximum possible differences between sections of CNTs
 	double xdim = 0; //Dimension in which exciton populations will be monitored
@@ -390,7 +389,7 @@ int main(int argc, char *argv[])
 		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
 		{
 			#pragma omp for
-			for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
+			for (int exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 			{
 				shared_ptr<exciton> currEx = (*excitons)[exNum];
 				/*There is a change that the previous tr that was calculated was so long that it
@@ -487,9 +486,6 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 		}
 	}
 }
-
-
-
 
 
 /**
@@ -656,7 +652,6 @@ double getRand(bool excludeZero)
 
 /**
 Finds the index of the vector that has the number closest to but greater than val.
-Does this recursively.
 
 @param vec The vector to search
 @param prob The number to compare the indicies to
