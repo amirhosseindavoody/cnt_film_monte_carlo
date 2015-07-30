@@ -627,6 +627,7 @@ void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<seg
 	exciton->setEnergy(static_cast<int>(round(getRand(false)) + 1)); //randomly set the energy of the exciton
 	//choose a destination segment
 	shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(rand() % inContact->size())];
+	//shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(0 % inContact->size())];
 	//The self scattering table will have the correct indices for the current segment
 	shared_ptr<vector<tableElem>> tbl = injectedSeg->tbl;
 	//Set the exciton indices to the current segment
@@ -651,6 +652,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
 	//Get the table index for the
 	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+	//int tblIdx = getIndex(seg->rateVec, 0.0*gamma);
 	//stores information about the excitons destination
 	tableElem tbl = (*seg->tbl)[tblIdx];
 	/*
