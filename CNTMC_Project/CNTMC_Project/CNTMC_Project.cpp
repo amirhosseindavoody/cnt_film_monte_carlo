@@ -33,7 +33,6 @@ string checkPath(string path, bool folder);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
-int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right);
 double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
@@ -53,7 +52,7 @@ double diffclock(clock_t end, clock_t start);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
-
+double timedoot = 0;
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
@@ -294,7 +293,7 @@ int main(int argc, char *argv[])
 
 	//timing functions
 	clock_t start = clock();
-
+	double updateTime = 0;
 	//loop over CNTs
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
@@ -302,21 +301,21 @@ int main(int argc, char *argv[])
 		int end = static_cast<int>(cntit->segs->size());
 
 		//define variables before using in parallel processing loop
-		#pragma omp parallel default(none) shared(gamma, begin, end,numSegs, nThreads,cntit,regionBdr,secCountPerReg,heatMap,outContact,rs,thetas,CNT_List,inContact,maxDist)
+		//#pragma omp parallel default(none) shared(gamma, begin, end,numSegs, nThreads,cntit,regionBdr,secCountPerReg,heatMap,outContact,rs,thetas,CNT_List,inContact,maxDist)
 		{
-			#pragma omp master
+			//#pragma omp master
 			nThreads = omp_get_num_threads();
 			
 			//loop over segments in each CNTs
-			#pragma omp parallel for schedule(static) ordered
+			//#pragma omp parallel for schedule(static) ordered
 			for (int segidx = begin; segidx < end; segidx++)
 			{
 				double newGamma;
 				shared_ptr<segment> currSeg = (*(cntit->segs))[segidx];
 				int regIdx = getIndex(regionBdr, currSeg->mid(0));
-				#pragma omp atomic
+				//#pragma omp atomic
 				(*secCountPerReg)[regIdx]++; //increment the count based on where section is
-				#pragma omp ordered
+				//#pragma omp ordered
 				{
 					if (regIdx == 0) // First region is injection contact
 					{
@@ -326,15 +325,19 @@ int main(int argc, char *argv[])
 					{
 						outContact->push_back(currSeg);
 					}
+					//timing functions
+					clock_t startu = clock();
 					//get add to each segment relevant table entries
 					newGamma = updateSegTable(CNT_List, currSeg, maxDist, heatMap, rs, thetas);
+					clock_t endu = clock();
+					updateTime += diffclock(endu, startu);
 				}
-				#pragma omp critical
+				//#pragma omp critical
 				if (newGamma > gamma)
 				{
 					gamma = newGamma;
 				}
-				#pragma omp atomic
+				//#pragma omp atomic
 				numSegs++;
 			}
 		}
@@ -345,23 +348,25 @@ int main(int argc, char *argv[])
 	}
 
 	clock_t end = clock();
-	cout << "\nTime: " << diffclock(end, start) << " ms"<< endl;
+	cout << "\nTimedoot: " << timedoot << " ms" << endl;
+	cout << "\nTotal Update Table Time: " << updateTime << " ms" << endl;
+	cout << "\nTotal Build Table Time: " << diffclock(end, start) << " ms"<< endl;
 
-	string fileCheck = outputPath + "multiThreadCheck.csv";
-	ofstream fileCheckfile;
-	fileCheckfile.open(fileCheck);
-	//Check results
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
-	{
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
-		{
-			for (vector<tableElem>::iterator tbit = ((*segit)->tbl)->begin(); tbit != ((*segit)->tbl)->end(); ++tbit)
-			{
-				fileCheckfile << (*tbit).getGamma() << "," << (*tbit).getTheta() << "," << (*tbit).getTheta() << endl;
-			}
-		}
-	}
-	fileCheckfile.close();
+	//string fileCheck = outputPath + "multiThreadCheck.csv";
+	//ofstream fileCheckfile;
+	//fileCheckfile.open(fileCheck);
+	////Check results
+	//for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	//{
+	//	for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+	//	{
+	//		for (vector<tableElem>::iterator tbit = ((*segit)->tbl)->begin(); tbit != ((*segit)->tbl)->end(); ++tbit)
+	//		{
+	//			fileCheckfile << (*tbit).getGamma() << "," << (*tbit).getTheta() << "," << (*tbit).getTheta() << endl;
+	//		}
+	//	}
+	//}
+	//fileCheckfile.close();
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
@@ -382,9 +387,11 @@ int main(int argc, char *argv[])
 
 
 	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
-
+	clock_t startu = clock();
 	addSelfScattering(CNT_List, gamma);
-
+	clock_t endu = clock();
+	double scatTime = diffclock(endu, startu);
+	cout << "Self Scattering Time: " << scatTime << endl;
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
 	is, after a specific number of excitons are chosen to be created, each exciton will be created and assigned an index
@@ -399,16 +406,19 @@ int main(int argc, char *argv[])
 	int numExcitonsAtCont = 10000;
 	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
+	clock_t start1 = clock();
 	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
 	{
 		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
 		injectExciton((*excitons)[exNum], inContact);
 	}
-
+	clock_t end1 = clock();
+	double exTime = diffclock(endu, startu);
+	cout << "Place Exciton Time: " << exTime << endl;
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	double Tmax = deltaT * 100000; //maximum simulation time
+	double Tmax = deltaT * 1000; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
@@ -428,40 +438,47 @@ int main(int argc, char *argv[])
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
-		for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
+		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
 		{
-			/*There is a change that the previous tr that was calculated was so long that it
-			not only has extra time in the next deltaT, but it skips it completely. In this case
-			the exciton movement is skipped all together and its extra time is decreased by deltaT
-			until the exciton can move again. Otherwise the code runs as usual.
-			*/
-			double extraT = (*excitons)[exNum]->getTExtra();
-			if (extraT > deltaT)
+			#pragma omp for 
+			for (UINT32 exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
 			{
-				(*excitons)[exNum]->setTExtra((*excitons)[exNum]->getTExtra() - deltaT);
-				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
-			}
-			else
-			{
-				double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
-				/*give time to excitons that have no extra time. This happens only when excitons
-				are just injected.*/
-				if (extraT == 0)
+				shared_ptr<exciton> currEx = (*excitons)[exNum];
+				/*There is a change that the previous tr that was calculated was so long that it
+				not only has extra time in the next deltaT, but it skips it completely. In this case
+				the exciton movement is skipped all together and its extra time is decreased by deltaT
+				until the exciton can move again. Otherwise the code runs as usual.
+				*/
+				double extraT = currEx->getTExtra();
+				if (extraT > deltaT)
 				{
-					tr_tot += -(1 / gamma)*log(getRand(true));
+					currEx->setTExtra(currEx->getTExtra() - deltaT);
+					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
 				}
-				while (tr_tot <= deltaT) 
+				else
 				{
-					//choose new state
-					assignNextState(CNT_List, (*excitons)[exNum], gamma, regionBdr);
-					tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
+					/*give time to excitons that have no extra time. This happens only when excitons
+					are just injected.*/
+					if (extraT == 0)
+					{
+						tr_tot += -(1 / gamma)*log(getRand(true));
+					}
+					while (tr_tot <= deltaT)
+					{
+						//choose new state
+						assignNextState(CNT_List, currEx, gamma, regionBdr);
+						tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					}
+					//Recording distribution
+					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
+					//record the time past deltaT that the assign next state will cover
+					currEx->setTExtra(tr_tot - deltaT);
 				}
-				//Recording distribution
-				markCurrentExcitonPosition(CNT_List, (*excitons)[exNum], currCount, regionBdr);
-				//record the time past deltaT that the assign next state will cover
-				(*excitons)[exNum]->setTExtra(tr_tot - deltaT);
 			}
 		}
+		
+		
 		//Output count vector to file since we want results after each time step.
 		writeStateToFile(excitonDistFile, currCount, T);
 
@@ -573,6 +590,7 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 {
 	//add count to the currCount vector in the location corresponding to the exciton 
 	//   region location
+	#pragma omp critical
 	(*currCount)[getIndex(regionBdr,
 		((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)))]++;
 }
@@ -696,54 +714,30 @@ Does this recursively.
 @return the index that requires the conditions in the method description
 */
 int getIndex(shared_ptr<vector<double>> vec, double val)
-{	
-	//parameter check
+{
 	if (vec == nullptr)
 	{
 		cout << "Error: Empty vector passed to getIndex()";
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	//small simple cases that do not work with recursive helper method
-	if (vec->size() == 1) {return 0;}
-	if (vec->size() == 2)
+	int left = 0;
+	int right = static_cast<int>(vec->size() - 1);
+	while (left <= right)
 	{
-		if ((*vec)[0] >= val){ return 0; }
-		return 1;
+		if (right == left)
+		{
+			if ((*vec)[right] < val) { return right + 1; }
+			return right;
+		}
+		int mid = static_cast<int>(static_cast<double>(right + left) / 2.0);
+		double midVal = (*vec)[mid];
+		if (midVal == val){ return mid; }
+
+		if (midVal > val){ right = mid - 1; }
+		else { left = mid + 1; }
 	}
-
-	//use recursive helper method
-	return getIndex(vec, val, 0, static_cast<int>(vec->size() - 1));
-	//size_t is 64 bit unsigned. int is 32 bit signed. Cast should still work always
-}
-
-/**
-The helper method of the 2 parameter get index method. Simple binary search
-
-@param vec The vector to search
-@param prob The number to compare the indecies to
-@param right The highest index that is part of the vector
-@param lef The lowest index that is part of the vector
-@return the index that requires the conditions in the method description. Returns -1 if it fails
-*/
-int getIndex(shared_ptr<vector<double>> vec, double val, int left, int right)
-{
-	if (right < left) { return left; }
-
-	if (right == left)
-	{
-		if ((*vec)[right] < val) { return right + 1; }
-		return right; 
-	} //base case
-	
-	int center = static_cast<int>(floor(static_cast<double>(right + left) / 2.0));
-	if ((*vec)[center] == val){ return center; } //base case
-	
-	//recursive cases
-	if ((*vec)[center] > val){ return getIndex(vec, val, left, center - 1); }
-	if ((*vec)[center] < val){ return getIndex(vec, val, center + 1, right); }
-	return -1;
-
+	return left;
 }
 
 /**
@@ -768,30 +762,44 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, shared_ptr<segment> seg,
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
 		int j = 0; //segment index counter
-		//iterate over all segments considered for seg
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		int begin = 0;
+		int end = static_cast<int>(cntit->segs->size());
+		//#pragma omp parallel default(none) shared(begin,end,i,thetas,rs,heatMap,seg, cntit,rate,maxDist,timedoot)
 		{
-			double r = tableElem::calcDist(seg->mid, (*segit)->mid);
-			auto theta = tableElem::calcThet(seg, segit);
-
-			//Heat Map Additions
-			if (r != 0)
+			//iterate over all segments considered for seg
+			//#pragma omp for schedule(static) ordered
+			for (j = begin; j < end; j++)
 			{
-				#pragma omp critical
-				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
-				//Check if within range
-				if (r <= maxDist) /////// Building TABLE /////
+				shared_ptr<segment> currSeg = (*(cntit->segs))[j];
+				double r = tableElem::calcDist(seg->mid, currSeg->mid);
+				auto theta = tableElem::calcThet(seg, currSeg);
+				//Heat Map Additions
+				if (r != 0)
 				{
-					auto g = 6.4000e+19; //First draft estimate
-					#pragma omp critical
+					//#pragma omp critical
+					(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
+
+
+					
+
+					//Check if within range
+					if (r <= maxDist) /////// Building TABLE /////
 					{
-						seg->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-						seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+						auto g = 6.4000e+19; //First draft estimate
+						tableElem currElem(r, theta, g, i, j);
+						//#pragma omp ordered
+						{
+							//clock_t startu = clock();
+							seg->tbl->push_back(currElem); //tbl initialized in CNT::calculateSegments
+							seg->rateVec->push_back(rate += (seg->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+							//clock_t endu = clock();
+							//timedoot += diffclock(endu, startu);
+						}
 					}
 				}
 			}
-			j++;
 		}
+		
 		i++;
 	}
 	return rate;
@@ -1007,7 +1015,7 @@ void initRandomNumGen()
 	time_t seconds;
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
-	srand(static_cast<int>(seconds));
+	srand(static_cast<int>(0));
 }
 
 /*
