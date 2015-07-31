@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
 
 	//The boundary of the rgions in the x direction
 	shared_ptr<vector<double>> regionBdr = linspace(regLen - (xdim / 2), xdim / 2, numRegions);
-	shared_ptr<vector<int>> secCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
+	shared_ptr<vector<int>> segCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
 	//List of segments in the first region, which is used as a input contact
 	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
 
@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
-			(*secCountPerReg)[regIdx]++; //increment the count based on where section is
+			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
 			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
@@ -445,6 +445,20 @@ int main(int argc, char *argv[])
 		}
 		
 	}
+
+
+	/////////////////////////////// OUTPUT SEG COUNT PER REGION //////////////////////////////////////
+
+	string segmentCountFileName = outputPath + "segmentCountPerRegion.csv";
+	ofstream segmentCountFile;
+	segmentCountFile.open(segmentCountFileName);
+	segmentCountFile << (*segCountPerReg)[0];
+	//iterate through all of the rs and then thetas while printing to file
+	for (UINT32 i = 1; i < segCountPerReg->size(); i++)
+	{
+		segmentCountFile << "," << (*segCountPerReg)[i];
+	}
+	segmentCountFile.close();
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 

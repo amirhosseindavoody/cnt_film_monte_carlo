@@ -17,6 +17,9 @@ if(exist([folder '\' matFileName '.mat'],'file') ~= 2)
     %import supporting information
     [numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,...
         highAng,numAng,numTSteps,regLenMin]= importDetails([folder '/details.csv']);
+    
+    segmentCountPerRegion = ...
+        importSegmentCountPerRegion([folder '/segmentCountPerRegion.csv']);
 
     %import heat map data
     heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
@@ -53,56 +56,68 @@ capFig = figure('visible','off');
 
 numAve = 1000; %number of vectors the results will be averaged over for each plot
 numTimeSteps = floor(length(excitonDist)/numAve);
-endCount= zeros(numTimeSteps,1); %average exciton count in exit contact
-excitonCount = zeros(numTimeSteps,1); %average exciton count in simulation
 
-currDist = zeros(1,length(xx));
-exDistAve = zeros(1,length(excitonDist(1,:)));
-sparset = zeros(numTimeSteps,1); %[nS] time vector representing time at each average
+if(length(excitonDist) > numAve)
+    endCount= zeros(numTimeSteps,1); %average exciton count in exit contact
+    excitonCount = zeros(numTimeSteps,1); %average exciton count in simulation
 
-%Movie structures
-writerObj = VideoWriter([folder '/excitonDist']);
-open(writerObj);
+    currDist = zeros(1,length(xx));
+    exDistAve = zeros(1,length(excitonDist(1,:)));
+    sparset = zeros(numTimeSteps,1); %[nS] time vector representing time at each average
 
-for i=1:numTimeSteps
-    
-    %Summation for average
-    for j=1:numAve
-        exDistAve = exDistAve + excitonDist((i-1)*numAve+j,:);
-        %Look at output contact
-        endCount(i) = endCount(i) + excitonDist((i-1)*numAve+j,end);
-        excitonCount(i) = excitonCount(i) + sum(excitonDist((i-1)*numAve+j,:));
+    %Movie structures
+    writerObj = VideoWriter([folder '/excitonDist']);
+    open(writerObj);
+
+    for i=1:numTimeSteps
+
+        %Summation for average
+        for j=1:numAve
+            exDistAve = exDistAve + excitonDist((i-1)*numAve+j,:);
+            %Look at output contact
+            endCount(i) = endCount(i) + excitonDist((i-1)*numAve+j,end);
+            excitonCount(i) = excitonCount(i) + sum(excitonDist((i-1)*numAve+j,:));
+        end
+        %Division for average
+        exDistAve = exDistAve/numAve;
+        endCount(i) = endCount(i)/numAve;
+        excitonCount(i) = excitonCount(i)/numAve;
+
+        sparset(i) = t(i*numAve)*10^9;
+
+        currDist = spline(x,exDistAve,xx);
+        plot(xx,currDist,x,exDistAve,'*');
+        titleString = sprintf('Time: %f nS',t(i*numAve)*10^9);
+        title(titleString);
+        axis([x(1) x(end) 0 numExcitons*3]);
+        xlabel('Position (nm)');
+        ylabel('Exciton Count');
+        writeVideo(writerObj,getframe(capFig));
+
+
     end
-    %Division for average
-    exDistAve = exDistAve/numAve;
-    endCount(i) = endCount(i)/numAve;
-    excitonCount(i) = excitonCount(i)/numAve;
-    
-    sparset(i) = t(i*numAve)*10^9;
-    
-    currDist = spline(x,exDistAve,xx);
-    plot(xx,currDist,x,exDistAve,'*');
-    titleString = sprintf('Time: %f nS',t(i*numAve)*10^9);
-    title(titleString);
-    axis([x(1) x(end) 0 numExcitons*3]);
-    xlabel('Position (nm)');
-    ylabel('Exciton Count');
-    writeVideo(writerObj,getframe(capFig));
-    
+    close(capFig); %Close figure
+    close(writerObj); %close movie maker
 
+    %Plot the num particles at the output contact vs time
+    plot(sparset,endCount);
+    title('Exciton count in output contact vs. time');
+    xlabel('time [nS]');
+    ylabel('Exciton count');
+
+    figure;
+    plot(sparset,excitonCount);
+    title('Total exciton count vs. time');
+    xlabel('time [nS]');
+    ylabel('Exciton count');
+else
+    disp('Not enough time steps for video making');
 end
-close(capFig); %Close figure
-close(writerObj); %close movie maker
 
-%Plot the num particles at the output contact vs time
-plot(sparset,endCount);
-title('Exciton count in output contact vs. time');
-xlabel('time [nS]');
-ylabel('Exciton count');
+%% Processing the number segments per region
 
 figure;
-plot(sparset,excitonCount);
-title('Total exciton count vs. time');
-xlabel('time [nS]');
-ylabel('Exciton count');
-
+bar(x,segmentCountPerRegion,.95,'b');
+title('Number of segments per region in x-direction');
+ylabel('Number of segments');
+xlabel('x [Angstroms]');
