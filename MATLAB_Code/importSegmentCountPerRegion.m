@@ -35,7 +35,12 @@ end
 formatSpec = '%f%f%f%f%f%f%f%f%f%f%[^\n\r]';
 
 %% Open the text file.
-fileID = fopen(filename,'r');
+if exist(filename,'file') == 2
+    fileID = fopen(filename,'r');
+else
+    segmentCountPerRegion = -1;
+    return 
+end
 
 %% Read columns of data according to format string.
 % This call is based on the structure of the file used to generate this

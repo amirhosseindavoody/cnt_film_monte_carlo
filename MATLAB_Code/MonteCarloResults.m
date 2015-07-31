@@ -42,6 +42,7 @@ thetas = linspace(lowAng,highAng,numAng); % Possible theta values
 
 figure;
 surf(thetas,rs,heatMap);
+savefig([folder '/heatmap.fig']);
 
 %% Processing the Exciton distribution vs time
 
@@ -104,20 +105,24 @@ if(length(excitonDist) > numAve)
     title('Exciton count in output contact vs. time');
     xlabel('time [nS]');
     ylabel('Exciton count');
-
+    savefig([folder '/ExCountCont.fig']);
+    
     figure;
     plot(sparset,excitonCount);
     title('Total exciton count vs. time');
     xlabel('time [nS]');
     ylabel('Exciton count');
+    savefig([folder '/ExCountTot.fig']);
 else
     disp('Not enough time steps for video making');
 end
 
 %% Processing the number segments per region
-
-figure;
-bar(x,segmentCountPerRegion,.95,'b');
-title('Number of segments per region in x-direction');
-ylabel('Number of segments');
-xlabel('x [Angstroms]');
+if(segmentCountPerRegion(1) ~= -1)
+    figure;
+    bar(x,segmentCountPerRegion,.95,'b');
+    title('Number of segments per region in x-direction');
+    ylabel('Number of segments');
+    xlabel('x [Angstroms]');
+    savefig([folder '/SegCountPerRegion.fig']);
+end
