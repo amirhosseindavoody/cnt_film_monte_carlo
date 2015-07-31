@@ -24,6 +24,7 @@ using namespace std;
 
 //#define TFAC 2.302585092994046 //Factor to multiply 1/gamma by to get 90% of rand numbers giving tr less than deltaT
 #define TFAC 1.203972804325936 //Factor to multiply 1/gamma by to get 70% of rand numbers giving tr less than deltaT
+#define MAX_T_STEPS 10000000 //maximum number of time steps allowed for the simulation
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -45,7 +46,7 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, string status);
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
@@ -64,7 +65,15 @@ int main(int argc, char *argv[])
 	string status;
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
+	double regLenMin = segLenMin;
 	double runtime;
+	int numSteps = 10000; //number of deltaT's the simulation runs if the user specifies
+	double maxDist = 300; //[Angstroms] The maximum segment separation to be considered for exciton transfer
+	//The number of excitons to be in injection contact at start
+	int numExcitonsAtCont = 100000;
+
+
+
 	//timing functions
 	clock_t start = clock();
 
@@ -187,6 +196,104 @@ int main(int argc, char *argv[])
 			// value. It is changed after CNT initialization.
 			rmax = sqrt(pow(xdim,2)+pow(ydim,2));
 
+			// NUMBER OF EXCITONS NODE //
+			currNode = currNode->next_sibling()->next_sibling(); //to number of excitons
+			int exNumTemp = atoi(currNode->value());
+			//accept only positive number of excitons otherwise have default value
+			if (exNumTemp > 0)
+			{
+				numExcitonsAtCont = exNumTemp;
+			}
+			else
+			{
+				printf("Configuration Error: Must have positive number of excitons.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END NUMBER OF EXCITONS NODE //
+
+			// REGION LENGTH NODE //
+			currNode = currNode->next_sibling();
+			double regLenTemp = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->value()));
+			if (regLenTemp >= 0)
+			{
+				regLenMin = regLenTemp;
+			}
+			else
+			{
+				printf("Configuration Error: Region length must be positive number.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END REGION LENGTH NODE //
+
+			// SEGMENT LENGTH NODE //
+			currNode = currNode->next_sibling();
+			double segLenTemp = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->value()));
+			if (segLenTemp >= 0)
+			{
+				segLenMin = segLenTemp;
+			}
+			else
+			{
+				printf("Configuration Error: Segment length must be positive number.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END SEGMENT LENGTH NODE //
+
+			//I want it to be the case that if either segLenMin or regLenMin = 0, then they assume
+			// the value of the other
+			if (segLenMin == 0 && regLenMin != 0)
+			{
+				segLenMin = regLenMin;
+			}
+			else if (segLenMin != 0 && regLenMin == 0)
+			{
+				regLenMin = segLenMin;
+			} 
+			else if (segLenMin == 0 && regLenMin == 0)
+			{
+				regLenMin = segLenMin = 100.0;
+			}
+
+			// SEGMENT SEPARATION //
+			currNode = currNode->next_sibling();
+			double segSepTemp = convertUnits(string(currNode->first_node()->value()),
+				atof(currNode->first_node()->next_sibling()->value()));
+			if (segSepTemp > 0)
+			{
+				maxDist = segSepTemp;
+			}
+			else
+			{
+				printf("Configuration Error: Segment separation must be a positive number.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END SEGMENT SEPARATION //
+
+			// NUMBER OF TIME STEPS //
+			currNode = currNode->next_sibling();
+			int numTStepsTemp = atoi(currNode->value());
+			if (numTStepsTemp > 0)
+			{
+				numSteps = numTStepsTemp;
+			}
+			else if (numTStepsTemp == 0)
+			{
+				numSteps = MAX_T_STEPS;
+			}
+			else
+			{
+				printf("Configuration Error: Must have positive number time steps. 0 steps if auto complete is desired.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END NUMBER OF TIME STEPS //
+
 			// Will not let me delete, says it is null pointer even though I can get values from it. 
 			//delete currNode; 
 			done = true;
@@ -290,9 +397,9 @@ int main(int argc, char *argv[])
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
 	///////////// Variables for placing excitons in the future /////////////
-	int numRegions = static_cast<int>(xdim / segLenMin); //number of regions in the simulation
-	double extra = xdim - numRegions*segLenMin; //extra amount * numRegions that should be added to segLenMin
-	double regLen = segLenMin + extra / numRegions; //The length of each region.
+	int numRegions = static_cast<int>(xdim / regLenMin); //number of regions in the simulation
+	double extra = xdim - numRegions*regLenMin; //extra amount * numRegions that should be added to regLenMin
+	double regLen = regLenMin + extra / numRegions; //The length of each region.
 
 	//The boundary of the rgions in the x direction
 	shared_ptr<vector<double>> regionBdr = linspace(regLen - (xdim / 2), xdim / 2, numRegions);
@@ -304,7 +411,6 @@ int main(int argc, char *argv[])
 
 	
 	//iterate through all of the CNTs and segments
-	double maxDist = 300; //[Angstroms]
 	//The total number of segments in the simulation, used in exciton placement
 	auto numSegs = 0;
 	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
@@ -375,8 +481,7 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
-	//The number of excitons to be in injection contact
-	int numExcitonsAtCont = 100000;
+	
 	//Vector of excitons. Positions and energies must still be assigned
 	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
 	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
@@ -388,7 +493,6 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
 	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
-	int numSteps = 100000;
 	double Tmax = deltaT * numSteps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
@@ -477,7 +581,7 @@ int main(int argc, char *argv[])
 
 	//Write helper information
 	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
-		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps, getRunTime(runtime));
+		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps, regLenMin, getRunTime(runtime));
 
 	return 0;
 }
@@ -529,15 +633,15 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
 */
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, string status)
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime)
 {
 	string detailsFileName = outputPath + "details.csv";
 	shared_ptr<ofstream> detailsFile(new ofstream);
 	detailsFile->open(detailsFileName);
-	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,runtime" << endl;
+	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,regLenMin,runtime" << endl;
 	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << segLenMin << "," << numRegions << "," << xdim 
 		<< "," << minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << 
-		"," << numTSteps << "," << status << endl;
+		"," << numTSteps << "," << "," << regLenMin << "," << runtime << endl;
 }
 
 /**
