@@ -1120,6 +1120,7 @@ string getRunStatus(double T,double Tmax, double runtime)
 	{
 		ret = "Preparing Simulation.\n";
 	}
+	ret += "Runtime: ";
 	ret += getRunTime(runtime);
 	return ret;
 }
@@ -1133,15 +1134,19 @@ Gets the runtime of the simulation
 */
 string getRunTime(double runtime)
 {
-	string ret = "Runtime: ";
+	string ret;
 
-	int days = static_cast<int>(runtime / 1440000);
+	int days = static_cast<int>(runtime / 86400000);
 	if (days < 10){ ret += "0" + to_string(days) + ":"; }
 	else{ ret += to_string(days) + ":"; }
 
-	int hours = static_cast<int>(runtime / 60000.) % 24;
+	int hours = static_cast<int>(runtime / 3600000.) % 24;
 	if (hours < 10){ ret += "0" + to_string(hours) + ":"; }
 	else{ ret += to_string(hours) + ":"; }
+
+	int minutes = static_cast<int>(runtime / 60000.) % 24;
+	if (minutes < 10){ ret += "0" + to_string(minutes) + ":"; }
+	else{ ret += to_string(minutes) + ":"; }
 
 	int seconds = static_cast<int>(runtime / 1000.) % 60;
 	if (seconds < 10){ ret += "0" + to_string(seconds); }
