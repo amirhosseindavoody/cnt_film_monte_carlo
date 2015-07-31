@@ -16,7 +16,7 @@ if(exist([folder '\' matFileName '.mat'],'file') ~= 2)
 
     %import supporting information
     [numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,...
-        highAng,numAng,numTSteps]= importDetails([folder '/details.csv']);
+        highAng,numAng,numTSteps,regLenMin]= importDetails([folder '/details.csv']);
 
     %import heat map data
     heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
