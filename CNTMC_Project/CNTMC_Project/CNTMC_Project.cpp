@@ -406,8 +406,6 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<int>> secCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
 	//List of segments in the first region, which is used as a input contact
 	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
-	//List of segments in the last region, which is used as an exit contact
-	shared_ptr<vector<shared_ptr<segment>>> outContact(new vector<shared_ptr<segment>>(0));
 
 	
 	//iterate through all of the CNTs and segments
@@ -428,7 +426,6 @@ int main(int argc, char *argv[])
 			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
 			(*secCountPerReg)[regIdx]++; //increment the count based on where section is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
-			else if (regIdx == secCountPerReg->size() - 1){ outContact->push_back(*segit); } //last region is output contact
 			//get add to each segment relevant table entries
 			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
