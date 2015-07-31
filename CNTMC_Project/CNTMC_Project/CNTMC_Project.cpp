@@ -52,6 +52,7 @@ double diffclock(clock_t end, clock_t start);
 string getRunStatus(double T, double Tmax, double runtime);
 void ClearScreen();
 string getRunTime(double runtime);
+string fixPath(string &path);
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -88,6 +89,7 @@ int main(int argc, char *argv[])
 		resultFolderPath = argv[1];
 	}
 
+	resultFolderPath = fixPath(resultFolderPath);
 	resultFolderPath = checkPath(resultFolderPath, true); //check result folder path
 
 
@@ -1083,4 +1085,15 @@ void ClearScreen()
 
 	/* Move the cursor home */
 	SetConsoleCursorPosition(hStdOut, homeCoords);
+}
+
+/**
+Changes \ to / in strings. This is to fix file paths
+
+@param path The path to be fixed
+*/
+string fixPath(string &path)
+{
+	regex rgx("\\\\");
+	return regex_replace(path, rgx, "/");
 }
