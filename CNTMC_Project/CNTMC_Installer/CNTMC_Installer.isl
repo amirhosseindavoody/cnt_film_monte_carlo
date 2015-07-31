@@ -1140,7 +1140,7 @@
 		<row><td>AdminToolsFolder</td><td>TARGETDIR</td><td>.:Admint~1|AdminTools</td><td/><td>0</td><td/></row>
 		<row><td>AppDataFolder</td><td>TARGETDIR</td><td>.:APPLIC~1|Application Data</td><td/><td>0</td><td/></row>
 		<row><td>CNTMC</td><td>KNEZEVICRESEARCH</td><td>CNTMC</td><td/><td>0</td><td/></row>
-		<row><td>CNTMC_SIMULATOR</td><td>KNEZEVICRESEARCH</td><td>CNTMC_~1|CNTMC_Simulator</td><td/><td>0</td><td/></row>
+		<row><td>CNTMC_SIMULATOR</td><td>ProgramFiles64Folder</td><td>CNTMC_~1|CNTMC_Simulator</td><td/><td>0</td><td/></row>
 		<row><td>CommonAppDataFolder</td><td>TARGETDIR</td><td>.:Common~1|CommonAppData</td><td/><td>0</td><td/></row>
 		<row><td>CommonFiles64Folder</td><td>TARGETDIR</td><td>.:Common64</td><td/><td>0</td><td/></row>
 		<row><td>CommonFilesFolder</td><td>TARGETDIR</td><td>.:Common</td><td/><td>0</td><td/></row>
@@ -2676,7 +2676,7 @@
 		<col def="I2">Encoded</col>
 		<col def="S0">Comment</col>
 		<col def="I4">TimeStamp</col>
-		<row><td>COMPANY_NAME</td><td>1033</td><td>KnezevicResearch</td><td>0</td><td/><td>-207405264</td></row>
+		<row><td>COMPANY_NAME</td><td>1033</td><td>KnezevicResearch</td><td>0</td><td/><td>-73170452</td></row>
 		<row><td>DN_AlwaysInstall</td><td>1033</td><td>Always Install</td><td>0</td><td/><td>-207407312</td></row>
 		<row><td>IDPROP_EXPRESS_LAUNCH_CONDITION_COLOR</td><td>1033</td><td>The color settings of your system are not adequate for running [ProductName].</td><td>0</td><td/><td>-207407312</td></row>
 		<row><td>IDPROP_EXPRESS_LAUNCH_CONDITION_OS</td><td>1033</td><td>The operating system is not adequate for running [ProductName].</td><td>0</td><td/><td>-207407312</td></row>
@@ -3777,8 +3777,8 @@
 		<row><td>IDS__TargetReq_DESC_PROCESSOR</td><td>1033</td><td>The processor is not adequate for running [ProductName].</td><td>0</td><td/><td>-207407312</td></row>
 		<row><td>IDS__TargetReq_DESC_RAM</td><td>1033</td><td>The amount of RAM is not adequate for running [ProductName].</td><td>0</td><td/><td>-207407312</td></row>
 		<row><td>IDS__TargetReq_DESC_RESOLUTION</td><td>1033</td><td>The screen resolution is not adequate for running [ProductName].</td><td>0</td><td/><td>-207407312</td></row>
-		<row><td>ID_STRING1</td><td>1033</td><td>www.wisc.edu</td><td>0</td><td/><td>-207378640</td></row>
-		<row><td>ID_STRING2</td><td>1033</td><td>KnezevicResearch</td><td>0</td><td/><td>-207405264</td></row>
+		<row><td>ID_STRING1</td><td>1033</td><td>www.wisc.edu</td><td>0</td><td/><td>-73143796</td></row>
+		<row><td>ID_STRING2</td><td>1033</td><td>KnezevicResearch</td><td>0</td><td/><td>-73170452</td></row>
 		<row><td>ID_STRING3</td><td>1033</td><td>CNT Monte Carlo Simulator</td><td>0</td><td/><td>-207414927</td></row>
 		<row><td>IIDS_UITEXT_FeatureUninstalled</td><td>1033</td><td>This feature will remain uninstalled.</td><td>0</td><td/><td>-207407312</td></row>
 	</table>
