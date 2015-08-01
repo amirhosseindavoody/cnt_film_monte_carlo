@@ -514,15 +514,30 @@ int main(int argc, char *argv[])
 	shared_ptr<ofstream> excitonDistFile(new ofstream);
 	excitonDistFile->open(excitonDistFileName);
 
+	//Status updates
 	int onePercent = static_cast<int>(numSteps / 100.0);
 	int printCnt = 0;
+
+	//For automatic simulation end there will be a comparison of differences to some threshold
+	// If the differences, divided by the maximum current differences are < threshold for more
+	// the numToFinish then the simulation will end.
+	const double threshold = 0.01; //The value that the difference/maxDiff must be below to finish
+	const int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
+	int numInARow = 0; //number of quotients that are below threshold in a row
+	const int numToCheck = 1000; //number of time steps to check finish completion
+	double difference = 0;//difference between average of numToCheck time step average num exciton points
+	double maxDiff = 0; //The maximum difference between points used for difference.
+	double prevAve =  numExcitonsAtCont; //average for last numToCheck time steps. Starts at init num of excitons
+	double currAve = 0; //Average for current numToCheck time steps
+	int timeSteps = 0; //current count of number of time steps
+	bool simDone = false; //boolean symbolizing a finished simulation
 
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
 	omp_set_num_threads(NUM_THREADS);
-	while (T <= Tmax) //iterates over time
+	while (T <= Tmax || simDone) //iterates over time
 	{
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
@@ -566,6 +581,14 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+
+		timeSteps++;
+		currAve += excitons->size();
+		if (numToCheck == timeSteps)
+		{
+			currAve /= numToCheck;
+		}
+
 		//Output count vector to file since we want results after each time step.
 		writeStateToFile(excitonDistFile, currCount, T);
 
