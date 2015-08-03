@@ -518,7 +518,9 @@ int main(int argc, char *argv[])
 	excitonDistFile->open(excitonDistFileName);
 
 	//Status updates
-	int onePercent = static_cast<int>(numSteps / 100.0);
+	int onePercent;
+	if (autoComplete){ onePercent = 100; }
+	else { onePercent = static_cast<int>(numSteps / 100.0); }
 	int printCnt = 0;
 
 	//For automatic simulation end there will be a comparison of differences to some threshold
