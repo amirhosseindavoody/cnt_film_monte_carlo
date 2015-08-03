@@ -50,7 +50,7 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
-string getRunStatus(double T, double Tmax, double runtime);
+string getRunStatus(double T, double Tmax, double runtime, boolean runtimeKnown);
 void ClearScreen();
 string getRunTime(double runtime);
 string fixPath(string &path);
@@ -61,6 +61,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
+
 	unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
 	double maxDist = 300; //[Angstroms] The maximum segment separation to be considered for exciton transfer
 	//The number of excitons to be in injection contact at start
 	int numExcitonsAtCont = 100000;
+	bool autoComplete = false;
 
 
 
@@ -284,6 +286,7 @@ int main(int argc, char *argv[])
 			}
 			else if (numTStepsTemp == 0)
 			{
+				autoComplete = true;
 				numSteps = MAX_T_STEPS;
 			}
 			else
@@ -324,7 +327,7 @@ int main(int argc, char *argv[])
 	clock_t end = clock();
 	runtime = diffclock(end, start);
 	ClearScreen();
-	status = getRunStatus(0, 0, runtime);
+	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
@@ -362,7 +365,7 @@ int main(int argc, char *argv[])
 	end = clock();
 	runtime = diffclock(end, start);
 	ClearScreen();
-	status = getRunStatus(0, 0, runtime);
+	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
@@ -438,7 +441,7 @@ int main(int argc, char *argv[])
 			end = clock();
 			runtime = diffclock(end, start);
 			ClearScreen();
-			status = getRunStatus(0, 0, runtime);
+			status = getRunStatus(0, 0, runtime, !autoComplete);
 			cout << status << endl;
 			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 			buildTblCntr = 0;
@@ -537,7 +540,7 @@ int main(int argc, char *argv[])
 	for T will contain a single/multiple step for each exciton. 
 	*/
 	omp_set_num_threads(NUM_THREADS);
-	while (T <= Tmax || simDone) //iterates over time
+	while (T <= Tmax && !simDone) //iterates over time
 	{
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
@@ -586,7 +589,12 @@ int main(int argc, char *argv[])
 		currAve += excitons->size();
 		if (numToCheck == timeSteps)
 		{
-			currAve /= numToCheck;
+			currAve /= numToCheck; //calculate average
+			//check for max difference
+			if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
+			if (difference / maxDiff < threshold && ++numInARow >= numToFinish){ simDone = true; }
+			else{ numInARow = 0; }
+			timeSteps = 0; //reset the time counter
 		}
 
 		//Output count vector to file since we want results after each time step.
@@ -601,7 +609,7 @@ int main(int argc, char *argv[])
 		if (printCnt == onePercent)
 		{
 			ClearScreen();
-			status = getRunStatus(T, Tmax, runtime);
+			status = getRunStatus(T, Tmax, runtime, !autoComplete);
 			cout << status << endl;
 			printCnt = 0;
 		}
@@ -1143,16 +1151,20 @@ Prints the status of the simulation
 @param runtime The amount of time the simulation has been running
 @return The status of the simulation
 */
-string getRunStatus(double T,double Tmax, double runtime)
+string getRunStatus(double T,double Tmax, double runtime, boolean runtimeKnown)
 {
 	string ret;
-	if (T != 0 && Tmax != 0)
+	if (runtimeKnown)
 	{
-		ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100)) 
-			+ "%\n";
-	} else
-	{
-		ret = "Preparing Simulation.\n";
+		if (T != 0 && Tmax != 0)
+		{
+			ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100))
+				+ "%\n";
+		}
+		else
+		{
+			ret = "Preparing Simulation.\n";
+		}
 	}
 	ret += "Runtime: ";
 	ret += getRunTime(runtime);
