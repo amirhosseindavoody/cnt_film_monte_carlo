@@ -594,8 +594,12 @@ int main(int argc, char *argv[])
 			currAve /= numToCheck; //calculate average
 			//check for max difference
 			if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
-			if (difference / maxDiff < threshold && ++numInARow >= numToFinish){ simDone = true; }
+			if (difference / maxDiff < threshold)
+			{
+				if(++numInARow >= numToFinish){ simDone = true; }
+			}
 			else{ numInARow = 0; }
+			prevAve = currAve;
 			timeSteps = 0; //reset the time counter
 		}
 

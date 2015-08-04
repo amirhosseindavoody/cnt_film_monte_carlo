@@ -55,7 +55,7 @@ xx = linspace(x(1),x(end),numRegions*4); % Points to be used for spline interpol
 %Figure for all plots. All get captured for video making
 capFig = figure('visible','off'); 
 
-numAve = 1000; %number of vectors the results will be averaged over for each plot
+numAve = 500; %number of vectors the results will be averaged over for each plot
 numTimeSteps = floor(length(excitonDist)/numAve);
 
 if(length(excitonDist) > numAve)

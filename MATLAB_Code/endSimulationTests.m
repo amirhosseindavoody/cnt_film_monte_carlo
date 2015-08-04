@@ -31,5 +31,5 @@ for i=bufSize+1:length(excitonDist)
     bufSum = bufSum + sum(excitonDist(i,:))/bufSize;
     output2(i-bufSize) = bufSum;
 end
-
+figure;
 plot(output2)
