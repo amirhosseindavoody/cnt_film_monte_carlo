@@ -22,8 +22,6 @@
 
 using namespace std;
 
-//#define TFAC 2.302585092994046 //Factor to multiply 1/gamma by to get 90% of rand numbers giving tr less than deltaT
-#define TFAC 1.203972804325936 //Factor to multiply 1/gamma by to get 70% of rand numbers giving tr less than deltaT
 #define MAX_T_STEPS 10000000 //maximum number of time steps allowed for the simulation
 
 //method declarations
@@ -73,6 +71,11 @@ int main(int argc, char *argv[])
 	//The number of excitons to be in injection contact at start
 	int numExcitonsAtCont = 100000;
 	bool autoComplete = false;
+	double threshold; //The value that the difference/maxDiff must be below to finish
+	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
+	int numInARow = 0; //number of quotients that are below threshold in a row
+	int numToCheck = 1000; //number of time steps to check finish completion
+	double tfac = log(.3);
 
 
 
@@ -297,6 +300,23 @@ int main(int argc, char *argv[])
 			}
 			// END NUMBER OF TIME STEPS //
 
+
+			// PERCENT FREE FLIGHT TIMES ABOVE DELTA T //
+			currNode = currNode->next_sibling();
+			double perc_tfacTemp = atoi(currNode->value()) / 100.0;
+			if (perc_tfacTemp <= 100 && perc_tfacTemp > 0)
+			{
+				tfac = log(perc_tfacTemp);
+			}
+			else
+			{
+				printf("Configuration Error: Percent of free flight times above delta T must be greater than 0 and less than or equal to 100.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END PERCENT FREE FLIGHT TIMES ABOVE DELTA T  //
+
+
 			// Will not let me delete, says it is null pointer even though I can get values from it. 
 			//delete currNode; 
 			done = true;
@@ -506,7 +526,7 @@ int main(int argc, char *argv[])
 
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
-	double deltaT = (1 / gamma)*TFAC; //time steps at which statistics are calculated
+	double deltaT = (1 / gamma)*tfac; //time steps at which statistics are calculated
 	double Tmax = deltaT * numSteps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
@@ -526,10 +546,6 @@ int main(int argc, char *argv[])
 	//For automatic simulation end there will be a comparison of differences to some threshold
 	// If the differences, divided by the maximum current differences are < threshold for more
 	// the numToFinish then the simulation will end.
-	const double threshold = 0.01; //The value that the difference/maxDiff must be below to finish
-	const int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
-	int numInARow = 0; //number of quotients that are below threshold in a row
-	const int numToCheck = 1000; //number of time steps to check finish completion
 	double difference = 0;//difference between average of numToCheck time step average num exciton points
 	double maxDiff = 0; //The maximum difference between points used for difference.
 	double prevAve =  numExcitonsAtCont; //average for last numToCheck time steps. Starts at init num of excitons
