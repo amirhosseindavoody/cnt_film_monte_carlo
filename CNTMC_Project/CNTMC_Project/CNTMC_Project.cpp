@@ -18,6 +18,7 @@
 #include <regex>
 #include <Windows.h>
 #include <omp.h>
+#include <conio.h>
 
 
 using namespace std;
@@ -52,6 +53,7 @@ string getRunStatus(double T, double Tmax, double runtime, boolean runtimeKnown)
 void ClearScreen();
 string getRunTime(double runtime);
 string fixPath(string &path);
+string GetLastErrorAsString();
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -75,7 +77,6 @@ int main(int argc, char *argv[])
 	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
-
 
 	//timing functions
 	clock_t start = clock();
@@ -606,6 +607,7 @@ int main(int argc, char *argv[])
 	int timeSteps = 0; //current count of number of time steps
 	bool simDone = false; //boolean symbolizing a finished simulation
 
+
 	/*
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
@@ -613,6 +615,15 @@ int main(int argc, char *argv[])
 	omp_set_num_threads(NUM_THREADS);
 	while (T <= Tmax && !simDone) //iterates over time
 	{
+		//input loop
+		while (_kbhit()) 
+		{
+			switch (_getch())
+			{
+				case 'Q':
+					simDone = true;
+			}
+		}
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
@@ -1330,4 +1341,24 @@ string fixPath(string &path)
 {
 	regex rgx("\\\\");
 	return regex_replace(path, rgx, "/");
+}
+
+//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+string GetLastErrorAsString()
+{
+	//Get the error message, if any.
+	DWORD errorMessageID = GetLastError();
+	if (errorMessageID == 0)
+		return string(); //No error message has been recorded
+
+	LPSTR messageBuffer = nullptr;
+	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&messageBuffer), 0, nullptr);
+
+	string message(messageBuffer, size);
+
+	//Free the buffer.
+	LocalFree(messageBuffer);
+
+	return message;
 }
