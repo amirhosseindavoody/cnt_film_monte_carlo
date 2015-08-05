@@ -71,12 +71,10 @@ int main(int argc, char *argv[])
 	//The number of excitons to be in injection contact at start
 	int numExcitonsAtCont = 100000;
 	bool autoComplete = false;
-	double threshold; //The value that the difference/maxDiff must be below to finish
+	double threshold = .01; //The value that the difference/maxDiff must be below to finish
 	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
-	int numInARow = 0; //number of quotients that are below threshold in a row
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
-
 
 
 	//timing functions
@@ -306,7 +304,7 @@ int main(int argc, char *argv[])
 			double perc_tfacTemp = atoi(currNode->value()) / 100.0;
 			if (perc_tfacTemp <= 100 && perc_tfacTemp > 0)
 			{
-				tfac = log(perc_tfacTemp);
+				tfac = abs(log(perc_tfacTemp));
 			}
 			else
 			{
@@ -315,6 +313,60 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			// END PERCENT FREE FLIGHT TIMES ABOVE DELTA T  //
+
+			// AUTO COMPLETE //
+			currNode = currNode->next_sibling()->first_node(); //enabled?
+			//if auto-complete enabled
+			if (!string(currNode->value()).compare("true"))
+			{
+				autoComplete |= true;
+				numSteps = MAX_T_STEPS;
+
+				//to threshold node
+				currNode = currNode->next_sibling();
+				double thresholdTemp = atof(currNode->value());
+				//check for range issues
+				if (threshold > 0.0 && threshold < 1.0)
+				{
+					threshold = thresholdTemp;
+				}
+				else
+				{
+					printf("Configuration Error: Threshold must be value greater than 0 and less than 1.\n");
+					system("pause");
+					exit(EXIT_FAILURE);
+				}
+
+				//to numBelowThresholdNode
+				currNode = currNode->next_sibling();
+				int numToFinishTemp = atoi(currNode->value());
+				if (numToFinishTemp > 0) //input validation
+				{
+					numToFinish = numToFinishTemp;
+				}
+				else
+				{
+					printf("Configuration Error: Number below threshold must be greater than 0.\n");
+					system("pause");
+					exit(EXIT_FAILURE);
+				}
+
+				//to numToAverage
+				currNode = currNode->next_sibling();
+				int numToCheckTemp = atoi(currNode->value());
+				if (numToCheckTemp > 0)
+				{
+					numToCheck = numToCheckTemp;
+				}
+				else
+				{
+					printf("Configuration Error: Number to average must be greater than 0.\n");
+					system("pause");
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			// END AUTO COMPLETE // 
 
 
 			// Will not let me delete, says it is null pointer even though I can get values from it. 
@@ -546,6 +598,7 @@ int main(int argc, char *argv[])
 	//For automatic simulation end there will be a comparison of differences to some threshold
 	// If the differences, divided by the maximum current differences are < threshold for more
 	// the numToFinish then the simulation will end.
+	int numInARow = 0; //number of quotients that are below threshold in a row
 	double difference = 0;//difference between average of numToCheck time step average num exciton points
 	double maxDiff = 0; //The maximum difference between points used for difference.
 	double prevAve =  numExcitonsAtCont; //average for last numToCheck time steps. Starts at init num of excitons
@@ -1188,6 +1241,7 @@ string getRunStatus(double T,double Tmax, double runtime, boolean runtimeKnown)
 			ret = "Preparing Simulation.\n";
 		}
 	}
+	ret += "Time Simulated: " + to_string(T*1.0e9) + " ns\n";
 	ret += "Runtime: ";
 	ret += getRunTime(runtime);
 	return ret;
