@@ -656,20 +656,23 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		timeSteps++;
-		currAve += excitons->size();
-		if (numToCheck == timeSteps)
+		if (autoComplete)
 		{
-			currAve /= numToCheck; //calculate average
-			//check for max difference
-			if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
-			if (difference / maxDiff < threshold)
+			timeSteps++;
+			currAve += excitons->size();
+			if (numToCheck == timeSteps)
 			{
-				if(++numInARow >= numToFinish){ simDone = true; }
+				currAve /= numToCheck; //calculate average
+				//check for max difference
+				if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
+				if (difference / maxDiff < threshold)
+				{
+					if (++numInARow >= numToFinish){ simDone = true; }
+				}
+				else{ numInARow = 0; }
+				prevAve = currAve;
+				timeSteps = 0; //reset the time counter
 			}
-			else{ numInARow = 0; }
-			prevAve = currAve;
-			timeSteps = 0; //reset the time counter
 		}
 
 		//Output count vector to file since we want results after each time step.
