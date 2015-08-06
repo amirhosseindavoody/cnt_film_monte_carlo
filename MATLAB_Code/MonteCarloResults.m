@@ -19,7 +19,7 @@ if(exist([folder '\' matFileName '.mat'],'file') ~= 2)
         highAng,numAng,numTSteps,regLenMin]= importDetails([folder '/details.csv']);
     
     segmentCountPerRegion = ...
-        importSegmentCountPerRegion([folder '/segmentCountPerRegion.csv']);
+        importSegmentCountPerRegion([folder '/segmentCountPerRegion.csv'],1,inf,1,numRegions);
 
     %import heat map data
     heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
@@ -42,6 +42,10 @@ thetas = linspace(lowAng,highAng,numAng); % Possible theta values
 
 figure;
 surf(thetas,rs,heatMap);
+xlabel('Theta [rads]','FontSize',20);
+ylabel('R [Angstroms]','FontSize',20);
+zlabel('Count','FontSize',20);
+title('R and Theta Distribution','FontSize',20);
 savefig([folder '/heatmap.fig']);
 
 %% Processing the Exciton distribution vs time
@@ -89,10 +93,10 @@ if(length(excitonDist) > numAve)
         currDist = spline(x,exDistAve,xx);
         plot(xx,currDist,x,exDistAve,'*');
         titleString = sprintf('Time: %f nS',t(i*numAve)*10^9);
-        title(titleString);
+        title(titleString,'FontSize',20);
         axis([x(1) x(end) 0 numExcitons*3]);
-        xlabel('Position (nm)');
-        ylabel('Exciton Count');
+        xlabel('Position (nm)','FontSize',20);
+        ylabel('Exciton Count','FontSize',20);
         writeVideo(writerObj,getframe(capFig));
 
 
@@ -102,16 +106,16 @@ if(length(excitonDist) > numAve)
 
     %Plot the num particles at the output contact vs time
     plot(sparset,endCount);
-    title('Exciton count in output contact vs. time');
-    xlabel('time [nS]');
-    ylabel('Exciton count');
+    title('Exciton count in output contact vs. time','FontSize',20);
+    xlabel('time [nS]','FontSize',20);
+    ylabel('Exciton count','FontSize',20);
     savefig([folder '/ExCountCont.fig']);
     
     figure;
     plot(sparset,excitonCount);
-    title('Total exciton count vs. time');
-    xlabel('time [nS]');
-    ylabel('Exciton count');
+    title('Total exciton count vs. time','FontSize',20);
+    xlabel('time [nS]','FontSize',20);
+    ylabel('Exciton count','FontSize',20);
     savefig([folder '/ExCountTot.fig']);
 else
     disp('Not enough time steps for video making');
@@ -121,8 +125,8 @@ end
 if(segmentCountPerRegion(1) ~= -1)
     figure;
     bar(x,segmentCountPerRegion,.95,'b');
-    title('Number of segments per region in x-direction');
-    ylabel('Number of segments');
-    xlabel('x [Angstroms]');
+    title('Number of segments per region in x-direction','FontSize',20);
+    ylabel('Number of segments','FontSize',20);
+    xlabel('x [Angstroms]','FontSize',20);
     savefig([folder '/SegCountPerRegion.fig']);
 end
