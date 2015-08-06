@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 			auto zdim = convertUnits(string(currNode->first_node()->value()),
 				atof(currNode->first_node()->next_sibling()->next_sibling()->next_sibling()->value()));
 			//incorrect units
-			if (xdim == INT_MIN / 2.0 || ydim == INT_MIN / 2.0 || zdim == INT_MIN / 2.0)
+			if (xdim == INT_MIN || ydim == INT_MIN || zdim == INT_MIN)
 			{
 				printf("Configuration Error: Incorrect units for device dimensions.\nRefer to manual"
 					" for valid unit entries.\n");
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 			//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
 			// to top other corner is included in r range. ymax is not defined so this is intermediate
 			// value. It is changed after CNT initialization.
-			rmax = sqrt(pow(xdim,2)+pow(ydim,2));
+			rmax = sqrt(pow(xdim,2)+pow(zdim,2));
 
 			// NUMBER OF EXCITONS NODE //
 			currNode = currNode->next_sibling()->next_sibling(); //to number of excitons
@@ -712,7 +712,7 @@ int main(int argc, char *argv[])
 
 	//Write helper information
 	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
-		minBin, rmax, numBins, lowAng, highAng, numAng,numTSteps, regLenMin, getRunTime(runtime));
+		minBin, rmax, numBins, lowAng, highAng, numAng, numTSteps, regLenMin, getRunTime(runtime));
 
 	return 0;
 }
