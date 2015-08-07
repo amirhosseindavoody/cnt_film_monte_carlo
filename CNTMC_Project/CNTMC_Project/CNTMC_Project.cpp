@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 			currNode = currNode->next_sibling();
 			double regLenTemp = convertUnits(string(currNode->first_node()->value()),
 				atof(currNode->first_node()->next_sibling()->value()));
-			if (regLenTemp >= 0)
+			if (regLenTemp >= 0 && regLenTemp < xdim)
 			{
 				regLenMin = regLenTemp;
 			}
