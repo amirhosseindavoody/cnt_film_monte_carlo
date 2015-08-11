@@ -772,7 +772,7 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,regLenMin,runtime" << endl;
 	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << segLenMin << "," << numRegions << "," << xdim 
 		<< "," << minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << 
-		"," << numTSteps << "," << "," << regLenMin << "," << runtime << endl;
+		"," << numTSteps << ","  << regLenMin << "," << runtime << endl;
 }
 
 /**
