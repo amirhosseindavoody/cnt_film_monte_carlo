@@ -30,7 +30,7 @@ string folderPathPrompt(bool incorrect);
 string xmlFilePathPrompt(bool incorrect);
 string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
+double updateSegTableOld(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 double getRand(bool excludeZero);
@@ -493,17 +493,17 @@ int main(int argc, char *argv[])
 	int buildTblDecPerc = static_cast<int>(CNT_List->size() / 10.0); //ten percent of total number of tubes
 	int buildTblCntr = 0;
 	//loop over CNTs
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	for (auto cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
 		double newGamma;
 		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTableOld(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -968,18 +968,18 @@ from the segment.
 @param thetas The angles that are needed to place values in the heat map
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+double updateSegTableOld(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
 	//iterate over CNTs
 	int i = 0; //CNT index counter
 	//originally structured without i and j
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	for (auto cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
 		int j = 0; //segment index counter
 		//iterate over all segments considered for seg
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
 			auto theta = tableElem::calcThet(seg, segit);
