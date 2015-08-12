@@ -30,30 +30,32 @@ string folderPathPrompt(bool incorrect);
 string xmlFilePathPrompt(bool incorrect);
 string outputFolderPathPrompt(bool incorrect);
 string checkPath(string path, bool folder);
-double updateSegTableOld(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
-int getIndex(shared_ptr<vector<double>> vec, double val);
 double getRand(bool excludeZero);
-void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
-bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
-void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
-	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
-void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
-	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
 string getRunStatus(double T, double Tmax, double runtime, boolean runtimeKnown);
 void ClearScreen();
 string getRunTime(double runtime);
 string fixPath(string &path);
 string GetLastErrorAsString();
+int getIndex(shared_ptr<vector<double>> vec, double val);
+
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
+void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
+bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
+void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
+	shared_ptr<vector<double>> regionBdr);
+void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
+	shared_ptr<vector<shared_ptr<segment>>> inContact);
+void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
+
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -503,7 +505,7 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTableOld(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -968,7 +970,7 @@ from the segment.
 @param thetas The angles that are needed to place values in the heat map
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTableOld(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
 {
 	double rate = 0;
@@ -1002,7 +1004,6 @@ double updateSegTableOld(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<seg
 	}
 	return rate;
 }
-
 
 /**
 Gets the path of the folder containing CNT mesh results
