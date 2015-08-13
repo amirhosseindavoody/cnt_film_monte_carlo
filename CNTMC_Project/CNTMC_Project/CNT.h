@@ -31,8 +31,8 @@ class tableElem; //class def to avoid circular dependency
 // Extracts and stores all of the pertinent information about a CNT
 class CNT
 {
-	int n; //Hamada n parameter
-	int m; //Hamada m parameter
+	//int n; //Hamada n parameter
+	//int m; //Hamada m parameter
 	double length; //Length of entire tube
 	double cylinderHeight; //Height of compositional cylinders
 	double tubeSeparation; //Separation between compositional cylinders
