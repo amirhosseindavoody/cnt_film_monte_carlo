@@ -440,7 +440,8 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 	{
 		//need to initialize the tbl vector otherwise nothing can be assigned to it
 		((*retVec)[currSeg])->tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
+		//((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
+		((*retVec)[currSeg])->rateVec = make_shared<vector<shared_ptr<vector<double>>>>(vector<shared_ptr<vector<double>>>(4));
 		((*retVec)[currSeg])->segNum = currSeg;
 		
 		((*retVec)[currSeg])->p1 = firstPos;

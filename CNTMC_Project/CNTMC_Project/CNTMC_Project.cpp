@@ -865,7 +865,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 	//Segment the current exciton is located on
 	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
 	//Get the table index for the
-	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+	int tblIdx = getIndex((*seg->rateVec)[0], getRand(false)*gamma);
 	//stores information about the excitons destination
 	tableElem tbl = (*seg->tbl)[tblIdx];
 	/*
@@ -895,11 +895,11 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 		//loop over segments in each CNTs
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double currGam = (*segit)->rateVec->back();
+			double currGam = (*(*segit)->rateVec)[0]->back();
 			if (maxGam > currGam)
 			{
 				(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				(*segit)->rateVec->push_back(maxGam);
+				(*(*segit)->rateVec)[0]->push_back(maxGam);
 			}
 			j++;
 		}
@@ -995,7 +995,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 				{
 					auto g = 6.4000e+19; //First draft estimate
 					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					(*(*seg)->rateVec)[0]->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 				}
 			}	
 			j++;
