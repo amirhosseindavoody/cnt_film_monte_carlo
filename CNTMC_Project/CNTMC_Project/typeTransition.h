@@ -10,6 +10,7 @@ Purpose: header for typeTransition.cpp
 #include "chirality.h"
 #include <memory>
 #include <vector>
+#include "energyTransition.h"
 
 using namespace std;
 

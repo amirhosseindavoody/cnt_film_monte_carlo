@@ -12,7 +12,7 @@ preparing tables based on exciton transition rate data.
 
 
 /**
-Sets the Chirality object to some default values. DO NOT USE CNTs CONSTRUCTED
+Sets the Chirality object to some default values. DO NOT USE Chirality CONSTRUCTED
 THIS WAY. This is only to appease the compiling gods.
 
 @return Chirality Object
