@@ -153,6 +153,7 @@
     <ClInclude Include="chirality.h" />
     <ClInclude Include="CNT.h" />
     <ClInclude Include="dirent.h" />
+    <ClInclude Include="energyTransition.h" />
     <ClInclude Include="exciton.h" />
     <ClInclude Include="rapidxml.hpp" />
     <ClInclude Include="rapidxml_utils.hpp" />
@@ -166,6 +167,7 @@
     <ClCompile Include="chirality.cpp" />
     <ClCompile Include="CNT.cpp" />
     <ClCompile Include="CNTMC_Project.cpp" />
+    <ClCompile Include="energyTransition.cpp" />
     <ClCompile Include="exciton.cpp" />
     <ClCompile Include="segment.cpp" />
     <ClCompile Include="stdafx.cpp">

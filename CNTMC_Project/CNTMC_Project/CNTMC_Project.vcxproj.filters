@@ -53,6 +53,9 @@
     <ClInclude Include="chirality.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="energyTransition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -77,6 +80,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="chirality.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="energyTransition.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

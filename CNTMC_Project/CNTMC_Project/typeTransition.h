@@ -18,7 +18,7 @@ class typeTransition
 
 	Chirality source_chirality; //chirality of tube exciton is currently located
 	Chirality dest_chirality; //chirality of tube exciton will move to
-
+	shared_ptr<vector<energyTransition>> ETransList; //List of the posible energy transitions
 
 public:
 	typeTransition();
