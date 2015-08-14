@@ -7,8 +7,19 @@ Purpose: header for typeTransition.cpp
 */
 
 #pragma once
+#include "chirality.h"
+#include <memory>
+#include <vector>
+
+using namespace std;
+
 class typeTransition
 {
+
+	Chirality source_chirality; //chirality of tube exciton is currently located
+	Chirality dest_chirality; //chirality of tube exciton will move to
+
+
 public:
 	typeTransition();
 	~typeTransition();
