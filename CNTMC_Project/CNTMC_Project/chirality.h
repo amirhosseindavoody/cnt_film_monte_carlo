@@ -1,3 +1,11 @@
+/**
+chirality.h
+Purpose: Header for chirality.cpp
+
+@author Alex Gabourie
+@version 1.00
+*/
+
 #pragma once
 class Chirality
 {

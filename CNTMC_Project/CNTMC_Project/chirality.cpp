@@ -1,3 +1,13 @@
+/**
+chirality.cpp
+Purpose: Stores the hamada parameters n, m as an object.
+This allows for better organization when dealing with 
+preparing tables based on exciton transition rate data.
+
+@author Alex Gabourie
+@version 1.00
+*/
+#include "stdafx.h"
 #include "chirality.h"
 
 
