@@ -19,6 +19,7 @@ Purpose: Header for CNT.cpp
 #include <memory>
 #include "tableElem.h"
 #include "segment.h"
+#include "chirality.h"
 
 
 using namespace std;
@@ -31,8 +32,7 @@ class tableElem; //class def to avoid circular dependency
 // Extracts and stores all of the pertinent information about a CNT
 class CNT
 {
-	//int n; //Hamada n parameter
-	//int m; //Hamada m parameter
+	Chirality chir; //Chirality of the nanotube
 	double length; //Length of entire tube
 	double cylinderHeight; //Height of compositional cylinders
 	double tubeSeparation; //Separation between compositional cylinders
@@ -58,8 +58,6 @@ public:
 	double getCylinderHeight();
 	double getTubeSeparation();
 	double getMinSpacing();
-	int getm();
-	int getn();
 	int getCNTNum();
 	bool isInitialized();
 	shared_ptr<vector<shared_ptr<segment>>> segs; //The sections of the CNT used to create the MC tables

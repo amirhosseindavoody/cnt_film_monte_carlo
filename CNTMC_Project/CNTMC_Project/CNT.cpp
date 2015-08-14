@@ -27,8 +27,7 @@ THIS WAY. This is only to appease the compiling gods.
 */
 CNT::CNT()
 {
-	n = 0;
-	m = 0;
+	chir = Chirality(0, 0);
 	length = 0;
 	cylinderHeight = 0;
 	tubeSeparation = 0;
@@ -88,17 +87,18 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	getline(file, temp, '\n');
 	{
 		istringstream ss(temp);
-		string chir = " ";
-		getline(ss, chir, ',');
-		getline(ss, chir, ',');
+		string chir_str = " ";
+		getline(ss, chir_str, ',');
+		getline(ss, chir_str, ',');
 		rgx.assign("(\\d+)(\\s+)(\\d+)");
 		smatch matches; //match_results for string objects
-		regex_match(chir, matches, rgx);
+		regex_match(chir_str, matches, rgx);
 		if (!matches.empty())
 		{
 			try{
-				n = stoi(matches[1]);
-				m = stoi(matches[3]);
+				
+				chir = Chirality(stoi(matches[1]), stoi(matches[3]));
+
 			} 
 			catch (runtime_error err)
 			{
@@ -198,7 +198,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	}
 	
 	//Now that all parameters are extracted, calculate diameter
-	setDiameter(n, m);
+	setDiameter(chir.getn(), chir.getm());
 
 	//move past coordinate labels line
 	getline(file, temp, '\n');
@@ -344,28 +344,6 @@ Gets the minimum spacing between two nanotubes
 double CNT::getMinSpacing()
 {
 	return minSpacing;
-}
-
-/**
-Gets m parameter of the CNT
-
-@param void
-@return m
-*/
-int CNT::getm()
-{
-	return m;
-}
-
-/**
-Gets n parameter of the CNT
-
-@param void
-@return n
-*/
-int CNT::getn()
-{
-	return n;
 }
 
 
