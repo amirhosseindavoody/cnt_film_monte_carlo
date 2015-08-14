@@ -155,8 +155,10 @@
     <ClInclude Include="dirent.h" />
     <ClInclude Include="energyTransition.h" />
     <ClInclude Include="exciton.h" />
+    <ClInclude Include="point.h" />
     <ClInclude Include="rapidxml.hpp" />
     <ClInclude Include="rapidxml_utils.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="segment.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="tableElem.h" />
@@ -178,6 +180,12 @@
     </ClCompile>
     <ClCompile Include="tableElem.cpp" />
     <ClCompile Include="typeTransition.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CNTMC_Simulator.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
