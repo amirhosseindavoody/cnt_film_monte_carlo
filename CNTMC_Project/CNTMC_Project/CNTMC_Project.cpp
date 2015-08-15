@@ -19,6 +19,8 @@
 #include <Windows.h>
 #include <omp.h>
 #include <conio.h>
+#include "typeTransition.h"
+#include "chirality.h"
 
 
 using namespace std;
@@ -43,6 +45,7 @@ string getRunTime(double runtime);
 string fixPath(string &path);
 string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
+int getIndex(Chirality &c);
 
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
@@ -64,6 +67,12 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 int main(int argc, char *argv[])
 {
 
+	//timing functions
+	clock_t start = clock();
+
+	//Initialize random number generator before anything to ensure that getRand() always works
+	initRandomNumGen();
+
 	unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
@@ -80,11 +89,30 @@ int main(int argc, char *argv[])
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
 
-	//timing functions
-	clock_t start = clock();
 
-	//Initialize random number generator before anything to ensure that getRand() always works
-	initRandomNumGen();
+	////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
+	bool tableFromFile = true; //tells simulation to either read table from file or create new table
+	uint32_t numChiralities = 2; //Number of different chiralities included in the simulation
+	uint32_t r_size = 0;  //number of r's the rates have been calculated for
+	uint32_t theta_size = 0; //number of theta's the rates have been calculated for
+	string tableFolderPath = " "; //path of transition rate tables folder
+
+	/*
+	C1,C2,C3   from
+	|  |  |     |
+	C1,C1,C1    to
+	C2,C2,C2
+	C3,C3,C3
+	*/
+	//main list to store input table information
+	auto c2c = make_shared<vector<vector<typeTransition>>>(vector<vector<typeTransition>>(numChiralities));
+	//initialize the rest c2c object
+	for (auto it = c2c->begin(); it != c2c->end(); ++it)
+	{
+		it->resize(numChiralities);
+	}
+
+	/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -405,6 +433,16 @@ int main(int argc, char *argv[])
 	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
+
+	/*
+	This section reads information from the table files if the option is chosen. While reading
+	the binary files, a data structure is initializes such that the tables can be read for 
+	transition table creation later.
+	*/
+
+	tableFolderPath = outputPath + "transitionTables/";
+
+
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
