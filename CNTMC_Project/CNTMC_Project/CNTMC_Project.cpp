@@ -47,8 +47,9 @@ string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(Chirality &c);
 
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
+template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
+	Func addDataToTable);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
@@ -59,6 +60,9 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
 
+// using a template allows us to ignore the differences between functors, function pointers 
+// and lambda
+//template<typename Func>
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -113,6 +117,14 @@ int main(int argc, char *argv[])
 	}
 
 	/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
+
+
+	/////////////////// LAMBDA DEFINITIONS /////////////////////////////////////////
+
+	auto getTableElem = [&]()
+	{
+		seg 
+	};
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -440,8 +452,11 @@ int main(int argc, char *argv[])
 	transition table creation later.
 	*/
 
-	tableFolderPath = outputPath + "transitionTables/";
 
+	if (tableFromFile)
+	{
+		tableFolderPath = outputPath + "transfer_rate_tables/";
+	}
 
 
 	/*
@@ -543,7 +558,7 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas, );
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -1006,10 +1021,12 @@ from the segment.
 @param colorMap A count of all rs at particular thetas to get mesh statistics
 @param rs The r values that are needed to place values in the heat map
 @param thetas The angles that are needed to place values in the heat map
+@param addDataToTable Lambda to change how data is added to table based on build or read table.
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
+template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
+	Func addDataToTable)
 {
 	double rate = 0;
 	//iterate over CNTs
