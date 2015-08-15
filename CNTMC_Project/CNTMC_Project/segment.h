@@ -26,7 +26,7 @@ struct segment
 	Vector3d p2; //second point in segment
 	Vector3d mid; //middle point in segment
 	shared_ptr<vector<tableElem>> tbl; //Stores destination segments
-	shared_ptr<vector<shared_ptr<vector<double>>>> rateVec; // Vector to store all rates
+	shared_ptr<vector<double>> rateVec; // Vector to store all rates
 	
 	/*
 	7/20/15: It was decided that there are no limits on the number of excitons that

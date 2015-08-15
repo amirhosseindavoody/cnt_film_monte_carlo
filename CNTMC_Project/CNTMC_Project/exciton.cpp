@@ -27,11 +27,11 @@ Creates exciton object
 @param energy Whether the 1st or 2nd energy level
 @return tableElem Object
 */
-exciton::exciton(int cidx, int sidx, int energy)
+exciton::exciton(int cidx, int sidx, energy energy_new)
 {
 	cntidx = cidx;
 	segidx = sidx;
-	energyNum = energy;
+	e = energy_new;
 	textra = 0;
 }
 
@@ -69,9 +69,9 @@ Sets energy level
 
 @param energy Whether the 1st or 2nd energy level
 */
-void exciton::setEnergy(int energy)
+void exciton::setEnergy(energy e_new)
 {
-	energyNum = energy;
+	e = e_new;
 }
 
 /**
@@ -120,9 +120,9 @@ Gets energy level
 
 @return energy level
 */
-int exciton::getEnergy()
+energy exciton::getEnergy()
 {
-	return energyNum;
+	return e;
 }
 
 /**

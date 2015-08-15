@@ -17,7 +17,7 @@ tableElem::tableElem()
 	setSegidx(0);
 }
 /**
-Creates table element object
+Creates table element object for building table through calculation
 
 @return tableElem Object
 */
@@ -32,17 +32,63 @@ tableElem::tableElem(double rnew, double t, double g, int tube, int seg)
 }
 
 /**
+Creates table element for building table through transfer rate table
+
+@return tableElem Object
+*/
+tableElem::tableElem(double rnew, double t, int tube, int seg, energy new_e, double rate)
+{
+	setr(rnew);
+	setTheta(t);
+	setTubeidx(tube);
+	setSegidx(seg);
+	setEnergy(new_e);
+	setRate(rate);
+}
+
+
+/**
 Destructor for class
 */
 tableElem::~tableElem()
 {
 }
 
+/**
+Sets the energy of the resulting state
+
+@param e_new The energy to set the state at
+*/
+void tableElem::setEnergy(energy e_new)
+{
+	e = e_new;
+}
+
+
+
+/**
+Calculates and sets the rate of transfer for exciton following
+transfer rates of gamma/r^6 * cos(theta)
+*/
 void tableElem::setRate()
 {
 	gammaTot = abs(gamma*cos(theta) / pow(r, 6));
 }
 
+/**
+Set the rate of transfer for exciton following rate based on 
+Amirhossein's calculations
+*/
+void tableElem::setRate(double new_rate)
+{
+	if (new_rate <= 0)
+	{
+		cout << "Error: Must set rate to be positive number.\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	gammaTot = new_rate;
+}
 
 /**
 Sets the distance r
@@ -183,6 +229,15 @@ int tableElem::getSegidx()
 {
 	return segidx;
 }
+
+/**
+Gets the energy of the state the table element represents
+*/
+energy tableElem::getEnergy()
+{
+	return e;
+}
+
 
 
 /**

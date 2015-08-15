@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
 	auto getTableElem = [&]()
 	{
-		seg 
+		
 	};
 
 	bool done = false; //Reused boolean variable for looping
@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas, );
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -918,7 +918,7 @@ void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, do
 	//Segment the current exciton is located on
 	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
 	//Get the table index for the
-	int tblIdx = getIndex((*seg->rateVec)[0], getRand(false)*gamma);
+	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
 	//stores information about the excitons destination
 	tableElem tbl = (*seg->tbl)[tblIdx];
 	/*
@@ -948,11 +948,11 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 		//loop over segments in each CNTs
 		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double currGam = (*(*segit)->rateVec)[0]->back();
+			double currGam = (*segit)->rateVec->back();
 			if (maxGam > currGam)
 			{
 				(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				(*(*segit)->rateVec)[0]->push_back(maxGam);
+				(*segit)->rateVec->push_back(maxGam);
 			}
 			j++;
 		}
@@ -1050,7 +1050,7 @@ template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, 
 				{
 					auto g = 6.4000e+19; //First draft estimate
 					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					(*(*seg)->rateVec)[0]->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
 				}
 			}	
 			j++;

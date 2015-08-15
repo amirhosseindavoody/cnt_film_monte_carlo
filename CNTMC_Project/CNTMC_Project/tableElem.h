@@ -3,6 +3,7 @@
 #include <Eigen>
 #include "CNT.h"
 #include "segment.h"
+#include "energyTransition.h"
 
 using namespace std;
 using namespace Eigen;
@@ -16,6 +17,7 @@ class tableElem
 	double gammaTot; //Transistion rate to be used in simulation
 	int tubeidx; //tube interacting with from current tube
 	int segidx; //segment number on the tube of tubeidx
+	energy e; //energy of state the table element represents
 
 private:
 	void setRate();
@@ -24,17 +26,21 @@ private:
 	void setGamma(double g);
 	void setTubeidx(int num);
 	void setSegidx(int num);
+	void setEnergy(energy e_new);
 
 public:
 	tableElem();
 	tableElem(double rnew, double t, double g, int tube, int seg);
+	tableElem(double rnew, double t, int tube, int seg, energy new_e, double rate);
 	~tableElem();
+	void setRate(double new_rate);
 	double getRate();
 	double getr();
 	double getTheta();
 	double getGamma();
 	int getTubeidx();
 	int getSegidx();
+	energy getEnergy();
 	static double calcDist(Vector3d v1, Vector3d v2);
 	static double calcThet(vector<shared_ptr<segment>>::iterator s1, vector<shared_ptr<segment>>::iterator s2);
 };
