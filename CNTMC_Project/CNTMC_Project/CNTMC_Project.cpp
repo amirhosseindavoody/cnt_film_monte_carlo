@@ -21,11 +21,16 @@
 #include <conio.h>
 #include "typeTransition.h"
 #include "chirality.h"
+#include "paramStructs.h"
 
 
 using namespace std;
 
 #define MAX_T_STEPS 10000000 //maximum number of time steps allowed for the simulation
+
+//function pointer for a function that takes current data and translates it into a value for the rate table
+//Typedef so that when passing as a parameter, the entire declaration doesn't need to be typed in.
+typedef void(*dat2tab) (tableUpdater);
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -47,9 +52,7 @@ string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(Chirality &c);
 
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	function<void()> addDataToTable, shared_ptr<vector<vector<typeTransition>>> c2c);
+double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater t, heatMapInfo &heatMap);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
@@ -59,17 +62,9 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
-void addDataToTableCalc(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
-	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c);
-void addDataToTableRead(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
-	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c);
+void addDataToTableCalc(tableUpdater t);
+void addDataToTableRead(tableUpdater t);
 
-//function pointer for a function that takes current data and translates it into a value for the rate table
-typedef void (*dat2tab) (vector<shared_ptr<segment>>::iterator, double&, double&, int&, int&, double&, shared_ptr<vector<vector<typeTransition>>>);
-
-// using a template allows us to ignore the differences between functors, function pointers 
-// and lambda
-//template<typename Func>
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -503,25 +498,25 @@ int main(int argc, char *argv[])
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
-
-	shared_ptr<vector<double>> rs; //Vector containing range of r's
+	heatMapInfo heatMap;
+	//shared_ptr<vector<double>> rs; //Vector containing range of r's
 	rmax = 100 * ceil(rmax / 100.0);
 	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
 	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
+	heatMap.rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
 
 	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
 	// do not forget to use radians
 	double lowAng = 1 * M_PI / 180.0;
 	double highAng = 90 * M_PI / 180.0;
 	int numAng = 90; //Number of angles to record. One per degree
-	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
+	heatMap.thetas = linspace(lowAng, highAng, numAng);
 
-	shared_ptr<vector<vector<int>>> heatMap(new vector<vector<int>>(rs->size()));
+	heatMap.map = make_shared<vector<vector<int>>>(vector<vector<int>>(heatMap.rs->size()));
 	//initialize all other vectors in the vector to the correct size
-	for (vector<vector<int>>::iterator it = heatMap->begin(); it != heatMap->end(); ++it)
+	for (vector<vector<int>>::iterator it = heatMap.map->begin(); it != heatMap.map->end(); ++it)
 	{
-		it->resize(thetas->size());
+		it->resize(heatMap.thetas->size());
 	}
 
 	/*
@@ -563,7 +558,7 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas, addDataToTable,c2c);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, addDataToTable,c2c);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -602,11 +597,11 @@ int main(int argc, char *argv[])
 	ofstream heatMapFile;
 	heatMapFile.open(heatMapFileName);
 	//iterate through all of the rs and then thetas while printing to file
-	for (UINT32 i = 0; i < rs->size(); i++)
+	for (UINT32 i = 0; i < heatMap.rs->size(); i++)
 	{
-		for (UINT32 j = 0; j < thetas->size(); j++)
+		for (UINT32 j = 0; j < heatMap.thetas->size(); j++)
 		{
-			heatMapFile << (*heatMap)[i][j] << ",";
+			heatMapFile << (*heatMap.map)[i][j] << ",";
 		}
 		heatMapFile << "\n";
 	}
@@ -1019,6 +1014,7 @@ int getIndex(shared_ptr<vector<double>> vec, double val)
 	return left;
 }
 
+
 /**
 Takes a segment and determines which elements should be added to its tables based on distance away
 from the segment.
@@ -1032,9 +1028,7 @@ from the segment.
 @param addDataToTable Lambda to change how data is added to table based on build or read table.
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	dat2tab addDataToTable, shared_ptr<vector<vector<typeTransition>>> c2c)
+double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater t, heatMapInfo &heatMap)
 {
 	double rate_tot = 0;
 	//iterate over CNTs
@@ -1436,8 +1430,7 @@ Function to add rates to table based on previous calculation
 @param rate_tot The running sum of the rates for the segment
 @param c2c Unused. Only to fit function pointer requirements
 */
-void addDataToTableCalc(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
-	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c)
+void addDataToTableCalc(tableUpdater t)
 {
 	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
 	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
@@ -1454,9 +1447,9 @@ Function to add rates to table based on values read from a table
 @param rate_tot The running sum of the rates for the segment
 @param c2c Amirhossein's tables used to extract rates
 */
-void addDataToTableRead(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
-	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c)
+void addDataToTableRead(tableUpdater t)
 {
 	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
 	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
 }
+
