@@ -14,7 +14,7 @@ class exciton
 	int segidx; //Index of the segment the exciton belongs to
 	bool atOutContact; //States whether or not the exciton is ready to leave mesh
 	double textra; //The extra amount of time past deltaT the exciton had in last step
-	energy e;
+	energy e; //Energy of exciton
 
 public:
 	exciton();

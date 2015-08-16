@@ -47,9 +47,9 @@ string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(Chirality &c);
 
-template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	Func addDataToTable);
+	function<void()> addDataToTable, shared_ptr<vector<vector<typeTransition>>> c2c);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
@@ -59,6 +59,13 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
+void addDataToTableCalc(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
+	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c);
+void addDataToTableRead(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
+	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c);
+
+//function pointer for a function that takes current data and translates it into a value for the rate table
+typedef void (*dat2tab) (vector<shared_ptr<segment>>::iterator, double&, double&, int&, int&, double&, shared_ptr<vector<vector<typeTransition>>>);
 
 // using a template allows us to ignore the differences between functors, function pointers 
 // and lambda
@@ -92,7 +99,7 @@ int main(int argc, char *argv[])
 	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
-
+	dat2tab addDataToTable; //function pointer for updating table
 
 	////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
 	bool tableFromFile = true; //tells simulation to either read table from file or create new table
@@ -117,14 +124,6 @@ int main(int argc, char *argv[])
 	}
 
 	/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
-
-
-	/////////////////// LAMBDA DEFINITIONS /////////////////////////////////////////
-
-	auto getTableElem = [&]()
-	{
-		
-	};
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -456,6 +455,12 @@ int main(int argc, char *argv[])
 	if (tableFromFile)
 	{
 		tableFolderPath = outputPath + "transfer_rate_tables/";
+
+		addDataToTable = addDataToTableRead;
+	}
+	else
+	{
+		addDataToTable = addDataToTableCalc;
 	}
 
 
@@ -558,7 +563,7 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas, addDataToTable,c2c);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -892,7 +897,10 @@ Places the specified exciton into the input contact
 */
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact)
 {
-	exciton->setEnergy(static_cast<int>(round(getRand(false)) + 1)); //randomly set the energy of the exciton
+	energy E;
+	if (static_cast<int>(round(getRand(false)))){ E = E11; }
+	else{ E = E22; }
+	exciton->setEnergy(E); //randomly set the energy of the exciton
 	//choose a destination segment
 	shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(rand() % inContact->size())];
 	//The self scattering table will have the correct indices for the current segment
@@ -1024,11 +1032,11 @@ from the segment.
 @param addDataToTable Lambda to change how data is added to table based on build or read table.
 @return The sum of all the rates calculated for the segment. For transition purposes
 */
-template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
+double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas,
-	Func addDataToTable)
+	dat2tab addDataToTable, shared_ptr<vector<vector<typeTransition>>> c2c)
 {
-	double rate = 0;
+	double rate_tot = 0;
 	//iterate over CNTs
 	int i = 0; //CNT index counter
 	//originally structured without i and j
@@ -1048,16 +1056,14 @@ template<typename Func> double updateSegTable(shared_ptr<vector<CNT>> CNT_List, 
 				//Check if within range
 				if (r <= maxDist) /////// Building TABLE /////
 				{
-					auto g = 6.4000e+19; //First draft estimate
-					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					addDataToTable(seg, r, theta, i, j, rate_tot, c2c);
 				}
 			}	
 			j++;
 		}
 		i++;
 	}
-	return rate;
+	return rate_tot;
 }
 
 /**
@@ -1417,4 +1423,40 @@ string GetLastErrorAsString()
 	LocalFree(messageBuffer);
 
 	return message;
+}
+
+/**
+Function to add rates to table based on previous calculation
+
+@param seg The segment the table element is being added to
+@param r The separation between two segs
+@param theta Angle between two segs
+@param i CNT index
+@param j segment index
+@param rate_tot The running sum of the rates for the segment
+@param c2c Unused. Only to fit function pointer requirements
+*/
+void addDataToTableCalc(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
+	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c)
+{
+	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
+	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
+}
+
+/**
+Function to add rates to table based on values read from a table
+
+@param seg The segment the table element is being added to
+@param r The separation between two segs
+@param theta Angle between two segs
+@param i CNT index
+@param j segment index
+@param rate_tot The running sum of the rates for the segment
+@param c2c Amirhossein's tables used to extract rates
+*/
+void addDataToTableRead(vector<shared_ptr<segment>>::iterator seg, double &r, double &theta, int &i, int &j,
+	double &rate_tot, shared_ptr<vector<vector<typeTransition>>> c2c)
+{
+	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
+	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
 }
