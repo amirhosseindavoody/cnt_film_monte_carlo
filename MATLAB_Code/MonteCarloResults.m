@@ -36,7 +36,7 @@ if(exist([folder '\' matFileName matExt],'file') ~= 2)
         highAng,numAng,numTSteps,regLenMin]= importDetails([folder details]);
     
     segmentCountPerRegion = ...
-        importSegmentCountPerRegion([folder '/segmentCountPerRegion_t.csv'],1,inf,1,numRegions);
+        importSegmentCountPerRegion([folder '/segmentCountPerRegion.csv'],1,inf,1,numRegions);
 
     %import heat map data
     heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
