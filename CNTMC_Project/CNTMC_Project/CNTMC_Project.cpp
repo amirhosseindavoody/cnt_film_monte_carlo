@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
 
 	//Initialize random number generator before anything to ensure that getRand() always works
 	initRandomNumGen();
-
+	
+	tableUpdater tableParams;//Paramater struct
 	unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
@@ -458,7 +459,7 @@ int main(int argc, char *argv[])
 	{
 		addDataToTable = addDataToTableCalc;
 	}
-
+	tableParams.c2c = c2c; //add pointer to parameter list
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
@@ -485,7 +486,7 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
-
+	tableParams.CNT_List = CNT_List; //add pointer to parameter list
 	//Set final rmax value
 	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
 	
@@ -538,14 +539,7 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<int>> segCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
 	//List of segments in the first region, which is used as a input contact
 	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
-
-	//Paramater struct
-	tableUpdater tableParams;
-	tableParams.CNT_List = CNT_List;
-	tableParams.c2c = c2c;
 	
-
-
 	//iterate through all of the CNTs and segments
 	//The total number of segments in the simulation, used in exciton placement
 	auto numSegs = 0;
@@ -1038,7 +1032,7 @@ from the segment.
 */
 double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h)
 {
-	double rate_tot = 0;
+	t.rate_tot = 0;
 	//iterate over CNTs
 	int i = 0; //CNT index counter
 	//originally structured without i and j
@@ -1048,16 +1042,18 @@ double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, h
 		//iterate over all segments considered for seg
 		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double r = tableElem::calcDist((*t.seg)->mid, (*segit)->mid);
-			auto theta = tableElem::calcThet(t.seg, segit);
+			t.r = tableElem::calcDist((*t.seg)->mid, (*segit)->mid);
+			t.theta = tableElem::calcThet(t.seg, segit);
 
 			//Heat Map Additions
-			if (r != 0)
+			if (t.r != 0)
 			{
-				(*h.map)[getIndex(h.rs, r)][getIndex(h.thetas, theta)]++; //////// Heat Map ///////
+				(*h.map)[getIndex(h.rs, t.r)][getIndex(h.thetas, t.theta)]++; //////// Heat Map ///////
 				//Check if within range
-				if (r <= maxDist) /////// Building TABLE /////
+				if (t.r <= maxDist) /////// Building TABLE /////
 				{
+					t.i = i;
+					t.j = j;
 					addDataToTable(t);
 				}
 			}	
@@ -1065,7 +1061,7 @@ double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, h
 		}
 		i++;
 	}
-	return rate_tot;
+	return t.rate_tot;
 }
 
 /**
@@ -1440,8 +1436,8 @@ Function to add rates to table based on previous calculation
 */
 void addDataToTableCalc(tableUpdater &t)
 {
-	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
-	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
+	(*t.seg)->tbl->push_back(tableElem(t.r, t.theta, 6.4000e+19, t.i, t.j)); //tbl initialized in CNT::calculateSegments
+	(*t.seg)->rateVec->push_back(t.rate_tot += ((*t.seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
 }
 
 /**
@@ -1457,7 +1453,6 @@ Function to add rates to table based on values read from a table
 */
 void addDataToTableRead(tableUpdater &t)
 {
-	(*seg)->tbl->push_back(tableElem(r, theta, 6.4000e+19, i, j)); //tbl initialized in CNT::calculateSegments
-	(*seg)->rateVec->push_back(rate_tot += ((*seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
+
 }
 
