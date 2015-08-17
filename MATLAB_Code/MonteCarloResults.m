@@ -11,27 +11,19 @@ folder = uigetdir(pwd);
 
 %#ok<*NASGU>
 details = '/details.csv'; 
-segmentCountPerRegion = '/segmentCountPerRegion.csv';
-heatMap = '/heatMap.csv';
 excitonDist = '/excitonDist.csv';
 matExt = '.mat';
-heatMapFig = '/heatmap.fig';
 excitonDistMov = '/excitonDist';
 excitonContCountFig = '/ExCountCont.fig';
 excitonCountFig = '/ExCountTot.fig';
-segCountPerRegionFig = '/SegCountPerRegion.fig';
 
 if(fromTable)
     details = '/details_t.csv';
-    segmentCountPerRegion = '/segmentCountPerRegion_t.csv';
-    heatMap = '/heatMap_t.csv';
     excitonDist = '/excitonDist_t.csv';
     matExt = '_t.mat';
-    heatMapFig = '/heatmap_t.fig';
     excitonDistMov = '/excitonDist_t';
     excitonContCountFig = '/ExCountCont_t.fig';
     excitonCountFig = '/ExCountTot_t.fig';
-    segCountPerRegionFig = '/SegCountPerRegion_t.fig';
 end
 
 matFileNameIdx = strfind(folder,'\');
@@ -44,10 +36,10 @@ if(exist([folder '\' matFileName matExt],'file') ~= 2)
         highAng,numAng,numTSteps,regLenMin]= importDetails([folder details]);
     
     segmentCountPerRegion = ...
-        importSegmentCountPerRegion([folder segmentCountPerRegion],1,inf,1,numRegions);
+        importSegmentCountPerRegion([folder '/segmentCountPerRegion_t.csv'],1,inf,1,numRegions);
 
     %import heat map data
-    heatMap = importRThetaDist([folder heatMap],1,inf,1,numAng);
+    heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
 
     %Import exciton dist. All rows and columns of T and all num regions
     [t, excitonDist]=importExcitonDist([folder excitonDist],1,inf,1,numRegions+1);
@@ -71,7 +63,7 @@ xlabel('Theta [rads]','FontSize',20);
 ylabel('R [Angstroms]','FontSize',20);
 zlabel('Count','FontSize',20);
 title('R and Theta Distribution','FontSize',20);
-savefig([folder heatMapFig]);
+savefig([folder '/heatmap.fig']);
 
 %% Processing the Exciton distribution vs time
 
@@ -153,5 +145,5 @@ if(segmentCountPerRegion(1) ~= -1)
     title('Number of segments per region in x-direction','FontSize',20);
     ylabel('Number of segments','FontSize',20);
     xlabel('x [Angstroms]','FontSize',20);
-    savefig([folder segCountPerRegionFig]);
+    savefig([folder '/SegCountPerRegion.fig']);
 end
