@@ -482,6 +482,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			ClearScreen();
 			cout << "Could not open transition_rate_tables directory. Please try program again.\n";
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -491,6 +492,7 @@ int main(int argc, char *argv[])
 		//check to make sure details are available.
 		if (tableDetailFilePath.empty())
 		{
+			ClearScreen();
 			printf("Table Conversion Error: No details.csv file provided in transition_rate_tables folder.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -501,6 +503,7 @@ int main(int argc, char *argv[])
 		//file can be read
 		if (!detFile.good())
 		{
+			ClearScreen();
 			cout << "Cannot read " + tableDetailFilePath + "\n";
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -515,6 +518,14 @@ int main(int argc, char *argv[])
 		getline(detFile, temp, ',');
 		theta_size = atoi(temp.c_str());
 
+		if (tableFileList->size() != numChiralities*numChiralities)
+		{
+			ClearScreen();
+			printf("Error: Not enough chirality files provided. "
+				"For n chiralities, must have n^2 transition files to capture all chirality combinations.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
 
 		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
 		/*
@@ -564,6 +575,7 @@ int main(int argc, char *argv[])
 	{
 		if (!(*it).isInitialized())
 		{
+			ClearScreen();
 			cout << "CNT initialization failure.\n";
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -1076,6 +1088,7 @@ int getIndex(shared_ptr<vector<double>> vec, double val)
 {
 	if (vec == nullptr)
 	{
+		ClearScreen();
 		cout << "Error: Empty vector passed to getIndex()";
 		system("pause");
 		exit(EXIT_FAILURE);
