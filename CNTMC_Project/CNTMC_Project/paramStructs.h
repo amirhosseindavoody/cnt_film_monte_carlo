@@ -26,6 +26,7 @@ struct tableUpdater
 	shared_ptr<vector<vector<typeTransition>>> c2c;
 	shared_ptr<vector<double>> r_vec;
 	shared_ptr<vector<double>> t_vec;
+	shared_ptr<vector<CNT>> CNT_List;
 };
 
 struct heatMapInfo

@@ -97,30 +97,7 @@ int main(int argc, char *argv[])
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
 	dat2tab addDataToTable; //function pointer for updating table
-
-	////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
-	bool tableFromFile = true; //tells simulation to either read table from file or create new table
-	uint32_t numChiralities = 2; //Number of different chiralities included in the simulation
-	uint32_t r_size = 0;  //number of r's the rates have been calculated for
-	uint32_t theta_size = 0; //number of theta's the rates have been calculated for
-	string tableFolderPath = " "; //path of transition rate tables folder
-
-	/*
-	C1,C2,C3   from
-	|  |  |     |
-	C1,C1,C1    to
-	C2,C2,C2
-	C3,C3,C3
-	*/
-	//main list to store input table information
-	auto c2c = make_shared<vector<vector<typeTransition>>>(vector<vector<typeTransition>>(numChiralities));
-	//initialize the rest c2c object
-	for (auto it = c2c->begin(); it != c2c->end(); ++it)
-	{
-		it->resize(numChiralities);
-	}
-
-	/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
+	bool tableFromFile = false; //tells simulation to either read table from file or create new table
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -451,15 +428,48 @@ int main(int argc, char *argv[])
 
 	if (tableFromFile)
 	{
-		tableFolderPath = outputPath + "transfer_rate_tables/";
 
+		////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
+
+		uint32_t numChiralities = 0; //Number of different chiralities included in the simulation
+		uint32_t r_size = 0;  //number of r's the rates have been calculated for
+		uint32_t theta_size = 0; //number of theta's the rates have been calculated for
+
+		//READ TABLE DETAILS FILE
+
+		//path of transition rate tables folder
+		string tableFolderPath = outputPath + "transfer_rate_tables/";
+		
+		
+		
+
+		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
+		/*
+		C1,C2,C3   from
+		|  |  |     |
+		C1,C1,C1    to
+		C2,C2,C2
+		C3,C3,C3
+		*/
+		//main list to store input table information
+		tableParams.c2c = make_shared<vector<vector<typeTransition>>>(vector<vector<typeTransition>>(numChiralities));
+		//initialize the rest c2c object
+		for (auto it = tableParams.c2c->begin(); it != tableParams.c2c->end(); ++it)
+		{
+			//resize empty should be as fast as construction at size 
+			it->resize(numChiralities);
+		}
+		tableParams.r_vec = make_shared<vector<double>>(vector<double>(r_size));
+		tableParams.t_vec = make_shared<vector<double>>(vector<double>(theta_size));
+		
 		addDataToTable = addDataToTableRead;
+
+		/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
 	}
 	else
 	{
 		addDataToTable = addDataToTableCalc;
 	}
-	tableParams.c2c = c2c; //add pointer to parameter list
 
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
