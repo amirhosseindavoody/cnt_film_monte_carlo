@@ -4,34 +4,59 @@
 %% Initialize program
 clear
 close all;
-
+fromTable = true;
 %% Build Workspace from files
 
 folder = uigetdir(pwd);
 
+%#ok<*NASGU>
+details = '/details.csv'; 
+segmentCountPerRegion = '/segmentCountPerRegion.csv';
+heatMap = '/heatMap.csv';
+excitonDist = '/excitonDist.csv';
+matExt = '.mat';
+heatMapFig = '/heatmap.fig';
+excitonDistMov = '/excitonDist';
+excitonContCountFig = '/ExCountCont.fig';
+excitonCountFig = '/ExCountTot.fig';
+segCountPerRegionFig = '/SegCountPerRegion.fig';
+
+if(fromTable)
+    details = '/details_t.csv';
+    segmentCountPerRegion = '/segmentCountPerRegion_t.csv';
+    heatMap = '/heatMap_t.csv';
+    excitonDist = '/excitonDist_t.csv';
+    matExt = '_t.mat';
+    heatMapFig = '/heatmap_t.fig';
+    excitonDistMov = '/excitonDist_t';
+    excitonContCountFig = '/ExCountCont_t.fig';
+    excitonCountFig = '/ExCountTot_t.fig';
+    segCountPerRegionFig = '/SegCountPerRegion_t.fig';
+end
+
 matFileNameIdx = strfind(folder,'\');
 matFileName = folder(matFileNameIdx(end)+1:length(folder));
 
-if(exist([folder '\' matFileName '.mat'],'file') ~= 2) 
+if(exist([folder '\' matFileName matExt],'file') ~= 2) 
 
     %import supporting information
     [numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,...
-        highAng,numAng,numTSteps,regLenMin]= importDetails([folder '/details.csv']);
+        highAng,numAng,numTSteps,regLenMin]= importDetails([folder details]);
     
     segmentCountPerRegion = ...
-        importSegmentCountPerRegion([folder '/segmentCountPerRegion.csv'],1,inf,1,numRegions);
+        importSegmentCountPerRegion([folder segmentCountPerRegion],1,inf,1,numRegions);
 
     %import heat map data
-    heatMap = importRThetaDist([folder '/heatMap.csv'],1,inf,1,numAng);
+    heatMap = importRThetaDist([folder heatMap],1,inf,1,numAng);
 
     %Import exciton dist. All rows and columns of T and all num regions
-    [t, excitonDist]=importExcitonDist([folder '/excitonDist.csv'],1,inf,1,numRegions+1);
+    [t, excitonDist]=importExcitonDist([folder excitonDist],1,inf,1,numRegions+1);
 
-    save([folder '\' matFileName '.mat']);
+    save([folder '\' matFileName matExt]);
 
 else
     
-    load([folder '\' matFileName '.mat']);
+    load([folder '\' matFileName matExt]);
     
 end
 
@@ -46,7 +71,7 @@ xlabel('Theta [rads]','FontSize',20);
 ylabel('R [Angstroms]','FontSize',20);
 zlabel('Count','FontSize',20);
 title('R and Theta Distribution','FontSize',20);
-savefig([folder '/heatmap.fig']);
+savefig([folder heatMapFig]);
 
 %% Processing the Exciton distribution vs time
 
@@ -71,7 +96,7 @@ if(length(excitonDist) > numAve)
     sparset = zeros(numTimeSteps,1); %[nS] time vector representing time at each average
 
     %Movie structures
-    writerObj = VideoWriter([folder '/excitonDist']);
+    writerObj = VideoWriter([folder excitonDistMov]);
     open(writerObj);
 
     for i=1:numTimeSteps
@@ -109,14 +134,14 @@ if(length(excitonDist) > numAve)
     title('Exciton count in output contact vs. time','FontSize',20);
     xlabel('time [nS]','FontSize',20);
     ylabel('Exciton count','FontSize',20);
-    savefig([folder '/ExCountCont.fig']);
+    savefig([folder excitonContCountFig]);
     
     figure;
     plot(sparset,excitonCount);
     title('Total exciton count vs. time','FontSize',20);
     xlabel('time [nS]','FontSize',20);
     ylabel('Exciton count','FontSize',20);
-    savefig([folder '/ExCountTot.fig']);
+    savefig([folder excitonCountFig]);
 else
     disp('Not enough time steps for video making');
 end
@@ -128,5 +153,5 @@ if(segmentCountPerRegion(1) ~= -1)
     title('Number of segments per region in x-direction','FontSize',20);
     ylabel('Number of segments','FontSize',20);
     xlabel('x [Angstroms]','FontSize',20);
-    savefig([folder '/SegCountPerRegion.fig']);
+    savefig([folder segCountPerRegionFig]);
 end
