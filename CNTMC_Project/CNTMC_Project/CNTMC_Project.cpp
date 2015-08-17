@@ -439,9 +439,57 @@ int main(int argc, char *argv[])
 
 		//path of transition rate tables folder
 		string tableFolderPath = outputPath + "transfer_rate_tables/";
+		string tableDetailFilePath;
+
+		unique_ptr<list<string>>  tableFileList(new list<string>(0));
+		regex chirrgx("\\d+,\\d+_\\d+,\\d+\\.dat"); //files we want to look through
+		regex detailrgx("details\\.csv");
+		//Check if folder can be opened - should work due to above checks
+		if ((resDir = opendir(tableFolderPath.c_str())) != nullptr)
+		{
+			//throw away first two results as they are . and ..
+			readdir(resDir); readdir(resDir);
+			//iterate over all of the real files
+			while ((ent = readdir(resDir)) != nullptr)
+			{
+				smatch matches; //match_results for string objects
+				regex_search(string(ent->d_name), matches, chirrgx);
+				if (!matches.empty())
+				{
+					tableFileList->push_back(ent->d_name);
+				}
+				else
+				{
+					smatch newMatch;
+					regex_search(string(ent->d_name), newMatch, detailrgx);
+					if (!newMatch.empty())
+					{
+						//define the details path if file exists
+						tableDetailFilePath = tableFolderPath + "details.csv";
+					}
+				}
+			}
+			closedir(resDir); //deletes pointer
+		}
+		else
+		{
+			cout << "Could not open transition_rate_tables directory. Please try program again.\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		delete ent;
 		
-		
-		
+		//check to make sure details are available.
+		if (tableDetailFilePath.empty())
+		{
+			printf("Table Conversion Error: No details.csv file provided in transition_rate_tables folder.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+		//read details file.
+
+
 
 		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
 		/*
