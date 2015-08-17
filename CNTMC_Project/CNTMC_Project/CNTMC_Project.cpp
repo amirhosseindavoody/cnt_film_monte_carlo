@@ -61,7 +61,7 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 	shared_ptr<vector<double>> regionBdr);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
+void writeExcitonDistSupportingInfo(bool tableFromFile, string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
 void addDataToTableCalc(tableUpdater &t);
 void addDataToTableRead(tableUpdater &t);
@@ -738,7 +738,16 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
 
 	//File output initializations
-	string excitonDistFileName = outputPath + "excitonDist.csv";
+	string excitonDistFileName;
+	//choose file name based on type of simulation
+	if (tableFromFile)
+	{
+		excitonDistFileName = outputPath + "excitonDist_t.csv";
+	}
+	else
+	{
+		excitonDistFileName = outputPath + "excitonDist.csv";
+	}
 	shared_ptr<ofstream> excitonDistFile(new ofstream);
 	excitonDistFile->open(excitonDistFileName);
 
@@ -863,7 +872,7 @@ int main(int argc, char *argv[])
 	UINT64 numTSteps = static_cast<UINT64>(T / deltaT);
 
 	//Write helper information
-	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
+	writeExcitonDistSupportingInfo(tableFromFile, outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
 		minBin, rmax, numBins, lowAng, highAng, numAng, numTSteps, regLenMin, getRunTime(runtime));
 
 	return 0;
@@ -915,10 +924,18 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 /**
 Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
 */
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
+void writeExcitonDistSupportingInfo(bool tableFromFile, string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime)
 {
-	string detailsFileName = outputPath + "details.csv";
+	string detailsFileName;
+	if (tableFromFile)
+	{
+		detailsFileName = outputPath + "details_t.csv";
+	}
+	else
+	{
+		detailsFileName = outputPath + "details.csv";
+	}
 	shared_ptr<ofstream> detailsFile(new ofstream);
 	detailsFile->open(detailsFileName);
 	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,regLenMin,runtime" << endl;
