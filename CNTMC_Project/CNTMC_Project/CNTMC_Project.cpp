@@ -215,8 +215,17 @@ int main(int argc, char *argv[])
 			// value. It is changed after CNT initialization.
 			rmax = sqrt(pow(xdim,2)+pow(zdim,2));
 
+			// USE PREBUILT TABLE NODE //
+			currNode = currNode->next_sibling()->next_sibling(); //to prebuilt node
+			//check to see state
+			if (!string(currNode->value()).compare("true"))
+			{
+				tableFromFile = true;
+			}
+			// END USE PREBUILT TABLE NODE //
+
 			// NUMBER OF EXCITONS NODE //
-			currNode = currNode->next_sibling()->next_sibling(); //to number of excitons
+			currNode = currNode->next_sibling(); //to number of excitons
 			int exNumTemp = atoi(currNode->value());
 			//accept only positive number of excitons otherwise have default value
 			if (exNumTemp > 0)
@@ -431,9 +440,9 @@ int main(int argc, char *argv[])
 
 		////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
 
-		uint32_t numChiralities = 0; //Number of different chiralities included in the simulation
-		uint32_t r_size = 0;  //number of r's the rates have been calculated for
-		uint32_t theta_size = 0; //number of theta's the rates have been calculated for
+		uint32_t numChiralities; //Number of different chiralities included in the simulation
+		uint32_t r_size;  //number of r's the rates have been calculated for
+		uint32_t theta_size; //number of theta's the rates have been calculated for
 
 		//READ TABLE DETAILS FILE
 
