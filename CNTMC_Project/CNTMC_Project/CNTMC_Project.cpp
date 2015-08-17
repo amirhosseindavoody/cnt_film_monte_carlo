@@ -488,7 +488,23 @@ int main(int argc, char *argv[])
 		}
 
 		//read details file.
-
+		ifstream detFile(tableDetailFilePath);
+		//file can be read
+		if (!detFile.good())
+		{
+			cout << "Cannot read " + tableDetailFilePath + "\n";
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		string temp = " "; //stores intermediate strings during parsing
+		//skip first line as its only for user readability
+		getline(detFile, temp, '\n');
+		getline(detFile, temp, ',');
+		numChiralities = atoi(temp.c_str());
+		getline(detFile, temp, ',');
+		r_size = atoi(temp.c_str());
+		getline(detFile, temp, ',');
+		theta_size = atoi(temp.c_str());
 
 
 		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
