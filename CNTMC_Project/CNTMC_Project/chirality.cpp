@@ -34,7 +34,7 @@ Gets m parameter of the CNT
 @param void
 @return m
 */
-int Chirality::getm()
+int Chirality::getm() const
 {
 	return m;
 }
@@ -45,7 +45,7 @@ Gets n parameter of the CNT
 @param void
 @return n
 */
-int Chirality::getn()
+int Chirality::getn() const
 {
 	return n;
 }
@@ -81,4 +81,16 @@ Compares this object to the passed object.
 int Chirality::compare(Chirality &obj)
 {
 	return n * 100 + m - (obj.getn() * 100 + obj.getm());
+}
+
+/**
+
+*/
+bool Chirality::operator==(const Chirality val)
+{
+	if (n == val.getn() && m == val.getm())
+	{
+		return true;
+	}
+	return false;
 }

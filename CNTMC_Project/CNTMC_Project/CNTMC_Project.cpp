@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
 		uint32_t numChiralities; //Number of different chiralities included in the simulation
 		uint32_t r_size;  //number of r's the rates have been calculated for
 		uint32_t theta_size; //number of theta's the rates have been calculated for
-		vector<Chirality> ahChirList = vector<Chirality>(0);
+		vector<Chirality> ahChirList = vector<Chirality>(0); //chiralities coming from amirhossein's tables
 
 		//READ TABLE DETAILS FILE
 
@@ -466,8 +466,9 @@ int main(int argc, char *argv[])
 		string tableDetailFilePath;
 
 		unique_ptr<list<string>>  tableFileList(new list<string>(0));
-		regex chirrgx("\\d+,\\d+_\\d+,\\d+\\.bin"); //files we want to look through
+		regex chirrgx("(\\d+),(\\d+)_(\\d+),(\\d+)\\.bin"); //files we want to look through
 		regex detailrgx("details\\.csv");
+		regex numrgx(""); //matching numbers in file name
 		//Check if folder can be opened - should work due to above checks
 		if ((resDir = opendir(tableFolderPath.c_str())) != nullptr)
 		{
@@ -478,9 +479,31 @@ int main(int argc, char *argv[])
 			{
 				smatch matches; //match_results for string objects
 				regex_search(string(ent->d_name), matches, chirrgx);
+				//check if we matched the file name needed for data files
 				if (!matches.empty())
 				{
 					tableFileList->push_back(ent->d_name);
+
+					// ADD CHIRALITIES FROM FILENAME TO CHIRALITY LIST //
+
+					vector<int> intMatch = vector<int>(4);
+					char *next_token = nullptr;
+					char* grabToken = strtok_s(ent->d_name, ",_.", &next_token);
+					for (int i = 0; i < 4; i++)
+					{
+						intMatch[i] = atoi(grabToken);
+						grabToken = strtok_s(nullptr, ",_.", &next_token);
+					}
+					Chirality c1(intMatch[0], intMatch[1]);
+					Chirality c2(intMatch[2], intMatch[3]);
+					if (find(ahChirList.begin(), ahChirList.end(), c1) == ahChirList.end())
+					{
+						ahChirList.push_back(c1);
+					}
+					if (find(ahChirList.begin(), ahChirList.end(), c2) == ahChirList.end())
+					{
+						ahChirList.push_back(c2);
+					}
 				}
 				else
 				{
@@ -494,6 +517,7 @@ int main(int argc, char *argv[])
 				}
 			}
 			closedir(resDir); //deletes pointer
+			sortChiralities(ahChirList);
 		}
 		else
 		{
@@ -533,6 +557,7 @@ int main(int argc, char *argv[])
 		getline(detFile, temp, ',');
 		theta_size = atoi(temp.c_str());
 
+		//Check that all three ways of specifying number of chiralities are matching up.
 		if (tableFileList->size() != numChiralities*numChiralities)
 		{
 			ClearScreen();
@@ -541,6 +566,37 @@ int main(int argc, char *argv[])
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
+		else if (numChiralities != meshChirList.size())
+		{
+			ClearScreen();
+			printf("Error: Number of chiralities specified does not match the number of chiralities in mesh simulation.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		else if (ahChirList.size() > meshChirList.size())
+		{
+			ClearScreen();
+			printf("Error: More chiralities in binary files than used in mesh generation.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		else if (ahChirList.size() < meshChirList.size())
+		{
+			ClearScreen();
+			printf("Error: Fewer chiralities in binary files than used in mesh generation.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+		//Compare the chirality vectors to ensure that they are the same
+		{
+			bool compareChirVec = true; //sum of abs() of return values for chiralities
+			for (int i = 0; i < meshChirList.size(); i++)
+			{
+				compareChirVec = compareChirVec && (ahChirList[i] == meshChirList[i]);
+			}
+		}
+
 
 		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
 		/*

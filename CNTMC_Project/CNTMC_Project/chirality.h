@@ -17,10 +17,11 @@ public:
 	Chirality();
 	Chirality(int n_new, int m_new) : n(n_new), m(m_new) {};
 	~Chirality();
-	int getn();
-	int getm();
+	int getn() const;
+	int getm() const;
 	void setn(int n_new);
 	void setm(int m_new);
 	int compare(Chirality &obj);
+	bool operator==(const Chirality val);
 };
 
