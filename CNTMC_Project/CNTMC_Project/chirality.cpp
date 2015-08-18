@@ -71,3 +71,14 @@ void Chirality::setm(int m_new)
 {
 	m = m_new;
 }
+
+/**
+Compares this object to the passed object. 
+
+@param obj The chirality to be compared to.
+@return -# if this is less than obj, 0 if equal, +# if this is greater than obj
+*/
+int Chirality::compare(Chirality &obj)
+{
+	return n * 100 + m - (obj.getn() * 100 + obj.getm());
+}

@@ -1,7 +1,7 @@
 close all;
 
 i=1;
-for n=1:15
+for n=1:100
     for m=0:n
         out(i) = n*100+m;
         i = i + 1;

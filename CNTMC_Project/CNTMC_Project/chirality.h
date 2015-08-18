@@ -21,5 +21,6 @@ public:
 	int getm();
 	void setn(int n_new);
 	void setm(int m_new);
+	int compare(Chirality &obj);
 };
 

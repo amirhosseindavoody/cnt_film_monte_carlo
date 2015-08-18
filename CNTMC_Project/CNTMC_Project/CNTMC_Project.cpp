@@ -50,7 +50,7 @@ string getRunTime(double runtime);
 string fixPath(string &path);
 string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
-int getIndex(Chirality &c);
+
 
 double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
 
@@ -65,6 +65,7 @@ void writeExcitonDistSupportingInfo(bool tableFromFile, string outputPath, int n
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
 void addDataToTableCalc(tableUpdater &t);
 void addDataToTableRead(tableUpdater &t);
+void sortChiralities(vector<Chirality> &list);
 
 
 //Global variables
@@ -225,6 +226,8 @@ int main(int argc, char *argv[])
 					atoi(chirNode->first_node()->next_sibling()->value())));
 				chirNode = chirNode->next_sibling();
 			}
+			sortChiralities(meshChirList);
+			// END READ CHIRALITIES //
 
 			// USE PREBUILT TABLE NODE //
 			currNode = currNode->next_sibling()->next_sibling(); //to prebuilt node
@@ -454,6 +457,7 @@ int main(int argc, char *argv[])
 		uint32_t numChiralities; //Number of different chiralities included in the simulation
 		uint32_t r_size;  //number of r's the rates have been calculated for
 		uint32_t theta_size; //number of theta's the rates have been calculated for
+		vector<Chirality> ahChirList = vector<Chirality>(0);
 
 		//READ TABLE DETAILS FILE
 
@@ -1584,4 +1588,30 @@ void addDataToTableRead(tableUpdater &t)
 {
 
 }
+
+/**
+Uses selection sort algorithm to sort chiralities into an ordered list
+
+@param list The list to sort
+*/
+void sortChiralities(vector<Chirality> &list)
+{
+	for (int i = 0; i < list.size()-1; i++)
+	{
+		int minIdx = i;
+		Chirality minChir = list[minIdx];
+		for (int j = i+1; j < list.size(); j++)
+		{
+			if (minChir.compare(list[j]) > 0)
+			{
+				minIdx = j;
+				minChir = list[j];
+			}
+		}
+		Chirality temp = list[i];
+		list[i] = minChir;
+		list[minIdx] = temp;
+	}
+}
+
 
