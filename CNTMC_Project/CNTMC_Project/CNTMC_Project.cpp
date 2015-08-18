@@ -595,8 +595,14 @@ int main(int argc, char *argv[])
 			{
 				compareChirVec = compareChirVec && (ahChirList[i] == meshChirList[i]);
 			}
+			if (!compareChirVec)
+			{
+				ClearScreen();
+				printf("Error: Mesh chiralities and table chiralities do not match.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
 		}
-
 
 		//Below is the structure of the c2c object to show from what chir to what chir the transition occurs at
 		/*

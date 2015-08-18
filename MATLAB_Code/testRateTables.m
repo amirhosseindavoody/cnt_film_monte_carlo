@@ -43,14 +43,15 @@ for i=1:length(chirList)
        filename = ['output\' num2str(chirList(i).n) ',' num2str(chirList(i).m) '_' ...
            num2str(chirList(j).n) ',' num2str(chirList(j).m) '.bin'];
        file = fopen(filename,'w');
-       fwrite(file,rtTable(:,:,chirCount));
+       fwrite(file,rtTable(:,:,chirCount),'double');
        fclose(file);
        chirCount = chirCount + 1;
    end
 end
 
 
-
+file = fopen('output\7,5_7,5.bin');
+x = fread(file,[size,4*size],'double');
 
 
 
