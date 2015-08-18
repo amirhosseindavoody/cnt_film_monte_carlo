@@ -451,7 +451,7 @@ int main(int argc, char *argv[])
 		string tableDetailFilePath;
 
 		unique_ptr<list<string>>  tableFileList(new list<string>(0));
-		regex chirrgx("\\d+,\\d+_\\d+,\\d+\\.dat"); //files we want to look through
+		regex chirrgx("\\d+,\\d+_\\d+,\\d+\\.bin"); //files we want to look through
 		regex detailrgx("details\\.csv");
 		//Check if folder can be opened - should work due to above checks
 		if ((resDir = opendir(tableFolderPath.c_str())) != nullptr)
