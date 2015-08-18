@@ -25,5 +25,6 @@ public:
 	typeTransition();
 	typeTransition(Chirality &src, Chirality &dest, uint32_t r_length, uint32_t theta_length);
 	~typeTransition();
+	shared_ptr<vector<energyTransition>> getETransList();
 };
 

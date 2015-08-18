@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
 	double tfac = log(.3);
 	dat2tab addDataToTable; //function pointer for updating table
 	bool tableFromFile = false; //tells simulation to either read table from file or create new table
+	vector<Chirality> meshChirList = vector<Chirality>(0);
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -214,6 +215,16 @@ int main(int argc, char *argv[])
 			// to top other corner is included in r range. ymax is not defined so this is intermediate
 			// value. It is changed after CNT initialization.
 			rmax = sqrt(pow(xdim,2)+pow(zdim,2));
+
+			// READ CHIRALITIES //
+			rapidxml::xml_node<>* chirNode = currNode->next_sibling(); //get to chirality
+			chirNode = chirNode->first_node();
+			while (chirNode)
+			{
+				meshChirList.push_back(Chirality(atoi(chirNode->first_node()->value()), 
+					atoi(chirNode->first_node()->next_sibling()->value())));
+				chirNode = chirNode->next_sibling();
+			}
 
 			// USE PREBUILT TABLE NODE //
 			currNode = currNode->next_sibling()->next_sibling(); //to prebuilt node
@@ -546,6 +557,11 @@ int main(int argc, char *argv[])
 		tableParams.r_vec = make_shared<vector<double>>(vector<double>(r_size));
 		tableParams.t_vec = make_shared<vector<double>>(vector<double>(theta_size));
 		
+		//Parse data from file names.
+
+
+
+
 		addDataToTable = addDataToTableRead;
 
 		/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////

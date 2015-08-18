@@ -37,3 +37,13 @@ typeTransition::typeTransition(Chirality &src, Chirality &dest, uint32_t r_lengt
 typeTransition::~typeTransition()
 {
 }
+
+/**
+Gets the list of energies with rtTables to be initialized
+
+@return The energyTransition object list
+*/
+shared_ptr<vector<energyTransition>> typeTransition::getETransList()
+{
+	return ETransList;
+}
