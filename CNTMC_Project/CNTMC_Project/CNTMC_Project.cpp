@@ -615,10 +615,13 @@ int main(int argc, char *argv[])
 		//main list to store input table information
 		tableParams.c2c = make_shared<vector<vector<typeTransition>>>(vector<vector<typeTransition>>(numChiralities));
 		//initialize the rest c2c object
-		for (auto it = tableParams.c2c->begin(); it != tableParams.c2c->end(); ++it)
+		auto chirItr = ahChirList.begin();
+		for (auto it = tableParams.c2c->begin(); it != tableParams.c2c->end(); ++it, ++chirItr)
 		{
-			//resize empty should be as fast as construction at size 
-			it->resize(numChiralities);
+			for (auto chirItr2 = ahChirList.begin(); chirItr2 != ahChirList.end(); ++chirItr2)
+			{
+				it->push_back(typeTransition(*chirItr, *chirItr2, r_size, theta_size));
+			}
 		}
 		tableParams.r_vec = make_shared<vector<double>>(vector<double>(r_size));
 		tableParams.t_vec = make_shared<vector<double>>(vector<double>(theta_size));
