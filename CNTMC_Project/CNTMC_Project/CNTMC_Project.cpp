@@ -626,9 +626,17 @@ int main(int argc, char *argv[])
 		tableParams.t_vec = linspace(t_low, t_high, theta_size);
 
 		// Parse files
+		int src_idx;
+		int dest_idx;
 		for (auto itr = tableFileList->begin(); itr != tableFileList->end(); ++itr)
 		{
-			
+			//prep text for parse
+			char* filename = " ";
+			strcpy_s(filename, sizeof(itr->c_str()), itr->c_str()); 
+			//get pair information
+			chirPair pair = getChiralityFromFilename(filename);
+			src_idx = getIndex(ahChirList, pair.c1);
+
 		}
 
 
