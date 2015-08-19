@@ -51,6 +51,8 @@ string fixPath(string &path);
 string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
 int getIndex(vector<Chirality> &vec, Chirality &val);
+void addChiralitiesToList(vector<Chirality> &vec, char* filename);
+chirPair getChiralityFromFilename(char* filename);
 
 
 double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
@@ -456,6 +458,10 @@ int main(int argc, char *argv[])
 		////////////////// TRANSITION TABLE PARAMETERS ////////////////////////////////////
 
 		uint32_t numChiralities; //Number of different chiralities included in the simulation
+		double r_low;
+		double r_high;
+		double t_low;
+		double t_high;
 		uint32_t r_size;  //number of r's the rates have been calculated for
 		uint32_t theta_size; //number of theta's the rates have been calculated for
 		vector<Chirality> ahChirList = vector<Chirality>(0); //chiralities coming from amirhossein's tables
@@ -487,24 +493,8 @@ int main(int argc, char *argv[])
 
 					// ADD CHIRALITIES FROM FILENAME TO CHIRALITY LIST //
 
-					vector<int> intMatch = vector<int>(4);
-					char *next_token = nullptr;
-					char* grabToken = strtok_s(ent->d_name, ",_.", &next_token);
-					for (int i = 0; i < 4; i++)
-					{
-						intMatch[i] = atoi(grabToken);
-						grabToken = strtok_s(nullptr, ",_.", &next_token);
-					}
-					Chirality c1(intMatch[0], intMatch[1]);
-					Chirality c2(intMatch[2], intMatch[3]);
-					if (find(ahChirList.begin(), ahChirList.end(), c1) == ahChirList.end())
-					{
-						ahChirList.push_back(c1);
-					}
-					if (find(ahChirList.begin(), ahChirList.end(), c2) == ahChirList.end())
-					{
-						ahChirList.push_back(c2);
-					}
+					addChiralitiesToList(ahChirList, ent->d_name);
+
 				}
 				else
 				{
@@ -554,7 +544,15 @@ int main(int argc, char *argv[])
 		getline(detFile, temp, ',');
 		numChiralities = atoi(temp.c_str());
 		getline(detFile, temp, ',');
+		r_low = atoi(temp.c_str());
+		getline(detFile, temp, ',');
+		r_high = atoi(temp.c_str());
+		getline(detFile, temp, ',');
 		r_size = atoi(temp.c_str());
+		getline(detFile, temp, ',');
+		t_low = atoi(temp.c_str());
+		getline(detFile, temp, ',');
+		t_high = atoi(temp.c_str());
 		getline(detFile, temp, ',');
 		theta_size = atoi(temp.c_str());
 
@@ -624,8 +622,15 @@ int main(int argc, char *argv[])
 				it->push_back(typeTransition(*chirItr, *chirItr2, r_size, theta_size));
 			}
 		}
-		tableParams.r_vec = make_shared<vector<double>>(vector<double>(r_size));
-		tableParams.t_vec = make_shared<vector<double>>(vector<double>(theta_size));
+		tableParams.r_vec = linspace(r_low,r_high,r_size);
+		tableParams.t_vec = linspace(t_low, t_high, theta_size);
+
+		// Parse files
+		for (auto itr = tableFileList->begin(); itr != tableFileList->end(); ++itr)
+		{
+			
+		}
+
 
 		addDataToTable = addDataToTableRead;
 
@@ -1702,4 +1707,44 @@ int getIndex(vector<Chirality> &vec, Chirality &val)
 		else { left = center + 1; }
 	}
 	return -1;
+}
+
+/**
+Adds chiralities to list from file name
+
+@param vec The vector to add the chiralities to
+@param filename The filename to parse chiralities from
+*/
+void addChiralitiesToList(vector<Chirality> &vec, char* filename)
+{
+	chirPair pair = getChiralityFromFilename(filename);
+	if (find(vec.begin(), vec.end(), pair.c1) == vec.end())
+	{
+		vec.push_back(pair.c1);
+	}
+	if (find(vec.begin(), vec.end(), pair.c2) == vec.end())
+	{
+		vec.push_back(pair.c2);
+	}
+}
+
+
+/**
+Gets chirality information from the binary file names
+*/
+chirPair getChiralityFromFilename(char* filename)
+{
+	chirPair ret_pair;
+	vector<int> intMatch = vector<int>(4);
+	char *next_token = nullptr;
+	char* grabToken = strtok_s(filename, ",_.", &next_token);
+	for (int i = 0; i < 4; i++)
+	{
+		intMatch[i] = atoi(grabToken);
+		grabToken = strtok_s(nullptr, ",_.", &next_token);
+	}
+	ret_pair.c1 = Chirality(intMatch[0], intMatch[1]);
+	ret_pair.c2 = Chirality(intMatch[2], intMatch[3]);
+
+	return ret_pair;
 }

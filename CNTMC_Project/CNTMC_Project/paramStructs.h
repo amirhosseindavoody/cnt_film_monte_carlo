@@ -35,3 +35,9 @@ struct heatMapInfo
 	shared_ptr<vector<double>> rs;
 	shared_ptr<vector<double>> thetas;
 };
+
+struct chirPair
+{
+	Chirality c1;
+	Chirality c2;
+};

@@ -9,6 +9,7 @@ preparing tables based on exciton transition rate data.
 */
 #include "stdafx.h"
 #include "chirality.h"
+#include <exception>
 
 
 /**
@@ -69,6 +70,12 @@ Sets the m parameter of the chirality object
 */
 void Chirality::setm(int m_new)
 {
+	if (m_new > n)
+	{
+		printf("Chirality Error: m must be less than or equal to n.\n");
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 	m = m_new;
 }
 
@@ -84,7 +91,7 @@ int Chirality::compare(Chirality &obj)
 }
 
 /**
-
+Compares Chiralities
 */
 bool Chirality::operator==(const Chirality val)
 {
