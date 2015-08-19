@@ -50,6 +50,7 @@ string getRunTime(double runtime);
 string fixPath(string &path);
 string GetLastErrorAsString();
 int getIndex(shared_ptr<vector<double>> vec, double val);
+int getIndex(vector<Chirality> &vec, Chirality &val);
 
 
 double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
@@ -625,11 +626,6 @@ int main(int argc, char *argv[])
 		}
 		tableParams.r_vec = make_shared<vector<double>>(vector<double>(r_size));
 		tableParams.t_vec = make_shared<vector<double>>(vector<double>(theta_size));
-		
-		//Parse data from file names.
-
-
-
 
 		addDataToTable = addDataToTableRead;
 
@@ -1657,7 +1653,7 @@ void addDataToTableRead(tableUpdater &t)
 /**
 Uses selection sort algorithm to sort chiralities into an ordered list
 
-@param list The list to sort
+@param list The list of Chiralities to sort
 */
 void sortChiralities(vector<Chirality> &list)
 {
@@ -1679,4 +1675,31 @@ void sortChiralities(vector<Chirality> &list)
 	}
 }
 
+/**
+Given the chirality, finds the index at which that chirality belongs
 
+@param vec The vector of chiralities to search through
+@param val The chirality which index we wish to find
+@return Index that the chirality belongs to. -1 if fail or error.
+*/
+int getIndex(vector<Chirality> &vec, Chirality &val)
+{
+	int left = 0;
+	int right = static_cast<int>(vec.size() - 1);
+	int center;
+
+	while (left <= right)
+	{
+		if (right == left)
+		{
+			if (vec[right] == val){ return right; }
+			return -1;
+		}
+		center = (right + left) / 2;
+		if (vec[center] == val){ return center; }
+
+		if (vec[center].compare(val) > 0){ right = center - 1; }
+		else { left = center + 1; }
+	}
+	return -1;
+}
