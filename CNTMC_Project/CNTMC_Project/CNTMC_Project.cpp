@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 	unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
+	double minSpacing = 0;
 	double segLenMin = 100.0; //[Angstroms]
 	double regLenMin = segLenMin;
 	double runtime;
@@ -187,11 +188,25 @@ int main(int argc, char *argv[])
 			rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
 			currNode = currNode->first_node(); //Output folder
 			//Speed up to device dimensions
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < 4; i++)
 			{
 				currNode = currNode->next_sibling();
 			}
+
+			// MINIMUM SPACING //
+			minSpacing = convertUnits(string(currNode->first_node()->value()), 
+				atof(currNode->first_node()->next_sibling()->value()));
+			if (minSpacing < 0)
+			{
+				printf("Configuration Error: Must enter positive spacing parameter.\n");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			// END MINIMUM SPACING //
+
+
 			// DEVICE DIMENSIONS NODE //
+			currNode = currNode->next_sibling()->next_sibling();
 			xdim = convertUnits(string(currNode->first_node()->value()),
 				atof(currNode->first_node()->next_sibling()->value()));
 			auto ydim = convertUnits(string(currNode->first_node()->value()),
@@ -556,6 +571,35 @@ int main(int argc, char *argv[])
 		getline(detFile, temp, ',');
 		theta_size = atoi(temp.c_str());
 
+		if (r_low < 0 || r_high < 0 || t_low < 0 || t_high < 0 || numChiralities < 0 || r_size < 0 || theta_size < 0)
+		{
+			printf("Configuration Error: Details file in transfer_rate_tables folder must have all positive numbers.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+		if (t_low > M_PI / 2.0 || t_high > M_PI / 2.0)
+		{
+			printf("Configuration Error: Details file in transfer_rate_tables folder must have angles between 0 and pi/2.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+		if (r_low > r_high || t_low > t_high)
+		{
+			printf("Configuration Error: Details file in transfer_rate_tables folder must have low < high.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
+		if (r_low > minSpacing)
+		{
+			printf("Configuration Error: Tables do not provide distance values that are sufficiently small. Distances must cover" 
+				" from minSpacing (as specified in xml file) to the maximum distance of the mesh.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+
 		//Check that all three ways of specifying number of chiralities are matching up.
 		if (tableFileList->size() != numChiralities*numChiralities)
 		{
@@ -701,6 +745,13 @@ int main(int argc, char *argv[])
 	//Set final rmax value
 	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
 	
+	if (rmax > (*tableParams.r_vec)[tableParams.r_vec->size() - 1])
+	{
+		printf("Configuration Error: Tables do not provide distance values that are sufficiently small. Distances must cover"
+			" from minSpacing (as specified in xml file) to the maximum distance of the mesh.\n");
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	end = clock();
