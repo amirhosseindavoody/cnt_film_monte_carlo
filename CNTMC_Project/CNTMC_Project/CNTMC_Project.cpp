@@ -1706,13 +1706,7 @@ string GetLastErrorAsString()
 /**
 Function to add rates to table based on previous calculation
 
-@param seg The segment the table element is being added to
-@param r The separation between two segs
-@param theta Angle between two segs
-@param i CNT index
-@param j segment index
-@param rate_tot The running sum of the rates for the segment
-@param c2c Unused. Only to fit function pointer requirements
+@param t The parameters relevant to the method.
 */
 void addDataToTableCalc(tableUpdater &t)
 {
@@ -1723,17 +1717,17 @@ void addDataToTableCalc(tableUpdater &t)
 /**
 Function to add rates to table based on values read from a table
 
-@param seg The segment the table element is being added to
-@param r The separation between two segs
-@param theta Angle between two segs
-@param i CNT index
-@param j segment index
-@param rate_tot The running sum of the rates for the segment
-@param c2c Amirhossein's tables used to extract rates
+@param t The parameters relevant to the method.
 */
 void addDataToTableRead(tableUpdater &t)
 {
-
+	if (t.theta < (*t.t_vec)[0] || t.theta < (*t.t_vec)[t.t_vec->size() - 1])
+	{
+		ClearScreen();
+		printf("Error: Range of thetas provided in transfer rate tables does not cover the range of thetas in mesh.\n");
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /**
