@@ -631,12 +631,34 @@ int main(int argc, char *argv[])
 		for (auto itr = tableFileList->begin(); itr != tableFileList->end(); ++itr)
 		{
 			//prep text for parse
-			char* filename = " ";
-			strcpy_s(filename, sizeof(itr->c_str()), itr->c_str()); 
+			char filename[13];
+			strcpy_s(filename, _countof(filename), itr->c_str()); 
 			//get pair information
 			chirPair pair = getChiralityFromFilename(filename);
+			//get index of table to edit
 			src_idx = getIndex(ahChirList, pair.c1);
+			dest_idx = getIndex(ahChirList, pair.c2);
 
+			//get the energyTransition vector
+			auto Elist = (*tableParams.c2c)[src_idx][dest_idx].getETransList();
+
+			double readRate;
+			ifstream infile;
+			infile.open(tableFolderPath + *itr, ios::binary | ios::in);
+
+
+			for (int r_idx = 0; r_idx < r_size; r_idx++)
+			{
+				for (int t_idx = 0; t_idx < theta_size; t_idx++)
+				{
+					for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
+					{
+						infile.read(reinterpret_cast<char *>(&readRate), sizeof(double));
+						e_itr->setTableValue(r_idx, t_idx, readRate);
+					}
+				}
+			}
+			infile.close();
 		}
 
 

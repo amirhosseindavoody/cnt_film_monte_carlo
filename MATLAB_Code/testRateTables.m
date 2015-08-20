@@ -43,11 +43,14 @@ for i=1:length(chirList)
        filename = ['output\' num2str(chirList(i).n) ',' num2str(chirList(i).m) '_' ...
            num2str(chirList(j).n) ',' num2str(chirList(j).m) '.bin'];
        file = fopen(filename,'w');
-       fwrite(file,rtTable(:,:,chirCount),'double');
+       fwrite(file,rtTable(:,:,chirCount)','double');
        fclose(file);
        chirCount = chirCount + 1;
    end
 end
+%fwrite writes in column order, but I would like to write in row order so I
+%will simply transpose the matrix. Keep this in mind later.
+
 
 
 file = fopen('output\7,5_7,5.bin');
