@@ -31,16 +31,16 @@ using namespace std;
 //function pointer for a function that takes current data and translates it into a value for the rate table
 //Typedef so that when passing as a parameter, the entire declaration doesn't need to be typed in.
 typedef void(*dat2tab) (tableUpdater&);
-typedef void(*nextState) (shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma,tableElem &t);
-typedef void(*selfScat) (vector<shared_ptr<segment>>::iterator segit, double maxGam);
+typedef void(*nextState) (shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t);
+typedef void(*selfScat) (vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
 
 //Implementations of function pointers
 void addDataToTableCalc(tableUpdater &t);
 void addDataToTableRead(tableUpdater &t);
-void getNextStateCalc(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t);
-void getNextStateRead(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t);
-void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam);
-void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam);
+void getNextStateCalc(shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t);
+void getNextStateRead(shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t);
+void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
+void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -894,7 +894,7 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
 
-	addSelfScattering(CNT_List, gamma);
+	addSelfScattering(CNT_List, gamma, setSelfScattering);
 
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
@@ -1003,7 +1003,7 @@ int main(int argc, char *argv[])
 					while (tr_tot <= deltaT)
 					{
 						//choose new state
-						assignNextState(CNT_List, currEx, gamma, regionBdr);
+						assignNextState(CNT_List, currEx, gamma, regionBdr, getNextState);
 						tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
 					}
 					//Recording distribution
@@ -1216,14 +1216,15 @@ Assigns the specified exciton to the next state in the simulation.
 @param inContact The list of segments for the injection contact
 @param regionBdr The array that will help decide whether or not the exciton is in the out contact
 */
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr)
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, 
+	shared_ptr<vector<double>> regionBdr, nextState getNextState)
 {
 	//Segment the current exciton is located on
 	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
-	//Get the table index for the
-	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
 	//stores information about the excitons destination
-	tableElem tbl = (*seg->tbl)[tblIdx];
+	tableElem tbl;
+	//Get table element storing next state information
+	getNextState(seg, e, gamma, tbl);
 	/*
 	It was decided that there are no limits on the number of excitons that
 	can be on a segment. 7/20/15
@@ -1240,26 +1241,21 @@ Adds to each segments' rate vector the self scattering component of the simulati
 @param CNT_List The list of carbon nanotubes
 @param maxGam For all segments, the maximum of the sum of rates
 */
-void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
+void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam, selfScat setSelfScattering)
 {
 	//CNT index
-	int i = 0;
+	int cnt_idx = 0;
 	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
 		//segment index
-		int j = 0; 
+		int seg_idx = 0; 
 		//loop over segments in each CNTs
 		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
-			double currGam = (*segit)->rateVec->back();
-			if (maxGam > currGam)
-			{
-				(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				(*segit)->rateVec->push_back(maxGam);
-			}
-			j++;
+			setSelfScattering(segit, maxGam, cnt_idx, seg_idx);
+			seg_idx++;
 		}
-		i++;
+		cnt_idx++;
 	}
 }
 
@@ -1892,9 +1888,12 @@ Gets the next state of the exciton using the calculation method
 @param gamma The constant gamma used in the simulation
 @param t The table element to create
 */
-void getNextStateCalc(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t)
+void getNextStateCalc(shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t)
 {
-	
+	//Get the table index for the
+	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
+	//stores information about the excitons destination
+	t = (*seg->tbl)[tblIdx];
 }
 
 
@@ -1906,9 +1905,25 @@ Gets the next state of the exciton using the read table method
 @param gamma The constant gamma used in the simulation
 @param t The table element to create
 */
-void getNextStateRead(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t)
+void getNextStateRead(shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t)
 {
+	shared_ptr<vector<double>> rateVec;
+	int eRateIdx = 0;
+	switch (e->getEnergy())
+	{
+		case E11:
+			eRateIdx = E11;
+			break;
 
+		case E22:
+			eRateIdx = E22;
+			break;
+	}
+	rateVec = (*seg->eRate)[eRateIdx].rateVec;
+	int tblIdx = getIndex(rateVec, getRand(false)*gamma);
+	//stores information about the exciton's destination
+	t = (*(*seg->eRate)[eRateIdx].tbl)[tblIdx];
+	e->setEnergy(t.getEnergy());
 }
 
 
@@ -1918,9 +1933,14 @@ sets the self scattering part of the rate table for the calculation method
 @param segit The iterator for the segment of interest
 @param maxGam The constant gamma used in the simulation
 */
-void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam)
+void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx)
 {
-	
+	double currGam = (*segit)->rateVec->back();
+	if (maxGam > currGam)
+	{
+		(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, cnt_idx, seg_idx));
+		(*segit)->rateVec->push_back(maxGam);
+	}
 }
 
 /**
@@ -1929,7 +1949,18 @@ sets the self scattering part of the rate table for the calculation method
 @param segit The iterator for the segment of interest
 @param maxGam The constant gamma used in the simulation
 */
-void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam)
+void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx)
 {
-
+	double currGam_E11 = (*(*segit)->eRate)[0].rateVec->back();
+	double currGam_E22 = (*(*segit)->eRate)[1].rateVec->back();
+	if (maxGam > currGam_E11)
+	{
+		(*(*segit)->eRate)[0].tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam_E11, cnt_idx, seg_idx));
+		(*(*segit)->eRate)[0].rateVec->push_back(maxGam);
+	}
+	if (maxGam > currGam_E22)
+	{
+		(*(*segit)->eRate)[1].tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam_E22, cnt_idx, seg_idx));
+		(*(*segit)->eRate)[1].rateVec->push_back(maxGam);
+	}
 }
