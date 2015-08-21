@@ -67,8 +67,8 @@ chirPair getChiralityFromFilename(char* filename);
 
 void updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
 
-void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
+void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam, selfScat setSelfScattering);
+void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr, nextState getNextState);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
 void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<double>> regionBdr);
@@ -1881,4 +1881,55 @@ chirPair getChiralityFromFilename(char* filename)
 	ret_pair.c2 = Chirality(intMatch[2], intMatch[3]);
 
 	return ret_pair;
+}
+
+
+/**
+Gets the next state of the exciton using the calculation method
+
+@param CNT_List The list of CNTs
+@param e The exciton of focus
+@param gamma The constant gamma used in the simulation
+@param t The table element to create
+*/
+void getNextStateCalc(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t)
+{
+	
+}
+
+
+/**
+Gets the next state of the exciton using the read table method
+
+@param CNT_List The list of CNTs
+@param e The exciton of focus
+@param gamma The constant gamma used in the simulation
+@param t The table element to create
+*/
+void getNextStateRead(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t)
+{
+
+}
+
+
+/**
+sets the self scattering part of the rate table for the calculation method
+
+@param segit The iterator for the segment of interest
+@param maxGam The constant gamma used in the simulation
+*/
+void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam)
+{
+	
+}
+
+/**
+sets the self scattering part of the rate table for the calculation method
+
+@param segit The iterator for the segment of interest
+@param maxGam The constant gamma used in the simulation
+*/
+void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam)
+{
+
 }
