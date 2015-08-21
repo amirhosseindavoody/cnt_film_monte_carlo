@@ -12,39 +12,26 @@ both the calculating and table reading methods
 #include <memory>
 #include "typeTransition.h"
 #include "segment.h"
+#include <array>
 
 using namespace std;
 
-/*
-seg The segment the table element is being added to
-r The separation between two segs
-theta Angle between two segs
-src_cnt CNT index
-dest_cnt segment index
-dest_cnt CNT index
-dest_seg segment index
-rate_tot The running sum of the rates for the segment
-c2c Amirhossein's tables used to extract rates
-r_vec The vector of r's used to calculate Amirhossein's table index
-t_vec The vector of thetas used to caluclate Amirhossein's table index
-CNT_List The list of CNTs that stores all segments and rate tables
-*/
 
 struct tableUpdater
 {
-	vector<shared_ptr<segment>>::iterator seg;
-	double r;
-	double theta;
-	int src_cnt;
-	int src_seg;
-	int dest_cnt;
-	int dest_seg;
-	double rate_tot;
-	shared_ptr<vector<vector<typeTransition>>> c2c;
-	shared_ptr<vector<double>> r_vec;
-	shared_ptr<vector<double>> t_vec;
-	shared_ptr<vector<CNT>> CNT_List;
-	shared_ptr<vector<Chirality>> chirList;
+	vector<shared_ptr<segment>>::iterator seg; //The segment the table is being added to
+	double r; // The separation between the two segs
+	double theta; //Angle between two segs
+	int src_cnt; //source CNT Index
+	int src_seg; //source segment index
+	int dest_cnt;// destination CNT index
+	int dest_seg; //destionation segment index
+	array<double, 2> rate_tot; //running sum of the rates for both source energies
+	shared_ptr<vector<vector<typeTransition>>> c2c; //AH tables used to extract rates
+	shared_ptr<vector<double>> r_vec; //The vector of r's used to calculate Amirhossein's table index
+	shared_ptr<vector<double>> t_vec; //The vector of thetas used to caluclate Amirhossein's table index
+	shared_ptr<vector<CNT>> CNT_List; //The list of CNTs that stores all segments and rate tables
+	shared_ptr<vector<Chirality>> chirList; //List of chiralities in simulation
 };
 
 struct heatMapInfo

@@ -11,6 +11,7 @@ Purpose: Header for segment.cpp
 #include "exciton.h"
 #include <Eigen>
 #include <memory>
+#include "energyRates.h"
 
 using namespace std;
 using namespace Eigen;
@@ -25,6 +26,10 @@ struct segment
 	Vector3d p1; //first point in segment
 	Vector3d p2; //second point in segment
 	Vector3d mid; //middle point in segment
+
+	shared_ptr<vector<energyRates>> eRate; //rates based on initial energy
+
+	// FOR CALCULATION TABLE ONLY //
 	shared_ptr<vector<tableElem>> tbl; //Stores destination segments
 	shared_ptr<vector<double>> rateVec; // Vector to store all rates
 	

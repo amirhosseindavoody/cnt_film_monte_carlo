@@ -55,7 +55,7 @@ void addChiralitiesToList(vector<Chirality> &vec, char* filename);
 chirPair getChiralityFromFilename(char* filename);
 
 
-double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
+void updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h);
 
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
@@ -823,7 +823,8 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(maxDist, addDataToTable, tableParams, heatMap);
+			updateSegTable(maxDist, addDataToTable, tableParams, heatMap);
+			newGamma = max(tableParams.rate_tot[0], tableParams.rate_tot[1]);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 			tableParams.src_seg++;
@@ -1310,11 +1311,11 @@ from the segment.
 @param rs The r values that are needed to place values in the heat map
 @param thetas The angles that are needed to place values in the heat map
 @param addDataToTable Lambda to change how data is added to table based on build or read table.
-@return The sum of all the rates calculated for the segment. For transition purposes
 */
-double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h)
+void updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, heatMapInfo &h)
 {
-	t.rate_tot = 0;
+	t.rate_tot[0] = 0;
+	t.rate_tot[1] = 0;
 	//iterate over CNTs
 	int dest_cnt = 0; //CNT index counter
 	//originally structured without i and j
@@ -1343,7 +1344,6 @@ double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, h
 		}
 		dest_cnt++;
 	}
-	return t.rate_tot;
 }
 
 /**
@@ -1762,8 +1762,13 @@ void addDataToTableRead(tableUpdater &t)
 
 	for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
 	{
+		//interpolate rate from tables
 		e_itr->interpolateRate(p00, p01, p10, p11, p_real);
-		(*t.seg)->tbl->push_back(tableElem(t.r,t.theta,t.dest_cnt,t.dest_seg,))
+		//set table element for selection
+		(*(*t.seg)->eRate)[e_itr->getSrcEnergy()].tbl->push_back(
+			tableElem(t.r, t.theta, t.dest_cnt, t.dest_seg, e_itr->getDestEnergy(), p_real.val));
+		//add to the rate table
+		(*(*t.seg)->eRate)[e_itr->getSrcEnergy()].rateVec->push_back
 	}
 }
 

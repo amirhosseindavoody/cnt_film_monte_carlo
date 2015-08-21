@@ -153,6 +153,7 @@
     <ClInclude Include="chirality.h" />
     <ClInclude Include="CNT.h" />
     <ClInclude Include="dirent.h" />
+    <ClInclude Include="energyRates.h" />
     <ClInclude Include="energyTransition.h" />
     <ClInclude Include="exciton.h" />
     <ClInclude Include="point.h" />
