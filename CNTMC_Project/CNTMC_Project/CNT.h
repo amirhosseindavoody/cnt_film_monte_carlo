@@ -60,6 +60,7 @@ public:
 	double getMinSpacing();
 	int getCNTNum();
 	bool isInitialized();
+	Chirality getChirality();
 	shared_ptr<vector<shared_ptr<segment>>> segs; //The sections of the CNT used to create the MC tables
 };
 

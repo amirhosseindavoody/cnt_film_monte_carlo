@@ -19,8 +19,10 @@ using namespace std;
 seg The segment the table element is being added to
 r The separation between two segs
 theta Angle between two segs
-i CNT index
-j segment index
+src_cnt CNT index
+dest_cnt segment index
+dest_cnt CNT index
+dest_seg segment index
 rate_tot The running sum of the rates for the segment
 c2c Amirhossein's tables used to extract rates
 r_vec The vector of r's used to calculate Amirhossein's table index
@@ -33,13 +35,16 @@ struct tableUpdater
 	vector<shared_ptr<segment>>::iterator seg;
 	double r;
 	double theta;
-	int i;
-	int j;
+	int src_cnt;
+	int src_seg;
+	int dest_cnt;
+	int dest_seg;
 	double rate_tot;
 	shared_ptr<vector<vector<typeTransition>>> c2c;
 	shared_ptr<vector<double>> r_vec;
 	shared_ptr<vector<double>> t_vec;
 	shared_ptr<vector<CNT>> CNT_List;
+	shared_ptr<vector<Chirality>> chirList;
 };
 
 struct heatMapInfo

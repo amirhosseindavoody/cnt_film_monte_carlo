@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 	double tfac = log(.3);
 	dat2tab addDataToTable; //function pointer for updating table
 	bool tableFromFile = false; //tells simulation to either read table from file or create new table
-	vector<Chirality> meshChirList = vector<Chirality>(0);
+	shared_ptr<vector<Chirality>> meshChirList = make_shared<vector<Chirality>>(vector<Chirality>(0));
 
 	bool done = false; //Reused boolean variable for looping
 	string resultFolderPath = " ";
@@ -240,11 +240,11 @@ int main(int argc, char *argv[])
 			chirNode = chirNode->first_node();
 			while (chirNode)
 			{
-				meshChirList.push_back(Chirality(atoi(chirNode->first_node()->value()), 
+				meshChirList->push_back(Chirality(atoi(chirNode->first_node()->value()), 
 					atoi(chirNode->first_node()->next_sibling()->value())));
 				chirNode = chirNode->next_sibling();
 			}
-			sortChiralities(meshChirList);
+			sortChiralities(*meshChirList);
 			// END READ CHIRALITIES //
 
 			// USE PREBUILT TABLE NODE //
@@ -609,21 +609,21 @@ int main(int argc, char *argv[])
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
-		else if (numChiralities != meshChirList.size())
+		else if (numChiralities != meshChirList->size())
 		{
 			ClearScreen();
 			printf("Error: Number of chiralities specified does not match the number of chiralities in mesh simulation.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
-		else if (ahChirList.size() > meshChirList.size())
+		else if (ahChirList.size() > meshChirList->size())
 		{
 			ClearScreen();
 			printf("Error: More chiralities in binary files than used in mesh generation.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
-		else if (ahChirList.size() < meshChirList.size())
+		else if (ahChirList.size() < meshChirList->size())
 		{
 			ClearScreen();
 			printf("Error: Fewer chiralities in binary files than used in mesh generation.\n");
@@ -634,9 +634,9 @@ int main(int argc, char *argv[])
 		//Compare the chirality vectors to ensure that they are the same
 		{
 			bool compareChirVec = true; //sum of abs() of return values for chiralities
-			for (int i = 0; i < meshChirList.size(); i++)
+			for (int i = 0; i < meshChirList->size(); i++)
 			{
-				compareChirVec = compareChirVec && (ahChirList[i] == meshChirList[i]);
+				compareChirVec = compareChirVec && (ahChirList[i] == (*meshChirList)[i]);
 			}
 			if (!compareChirVec)
 			{
@@ -691,9 +691,9 @@ int main(int argc, char *argv[])
 			infile.open(tableFolderPath + *itr, ios::binary | ios::in);
 
 
-			for (int r_idx = 0; r_idx < r_size; r_idx++)
+			for (auto r_idx = 0; r_idx < r_size; r_idx++)
 			{
-				for (int t_idx = 0; t_idx < theta_size; t_idx++)
+				for (auto t_idx = 0; t_idx < theta_size; t_idx++)
 				{
 					for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
 					{
@@ -704,8 +704,7 @@ int main(int argc, char *argv[])
 			}
 			infile.close();
 		}
-
-
+		tableParams.chirList = meshChirList;
 		addDataToTable = addDataToTableRead;
 
 		/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
@@ -811,8 +810,10 @@ int main(int argc, char *argv[])
 	int buildTblDecPerc = static_cast<int>(CNT_List->size() / 10.0); //ten percent of total number of tubes
 	int buildTblCntr = 0;
 	//loop over CNTs
+	tableParams.src_cnt = 0;
 	for (auto cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
 	{
+		tableParams.src_seg = 0;
 		double newGamma;
 		//loop over segments in each CNTs
 		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
@@ -825,6 +826,7 @@ int main(int argc, char *argv[])
 			newGamma = updateSegTable(maxDist, addDataToTable, tableParams, heatMap);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
+			tableParams.src_seg++;
 		}
 		buildTblCntr++;
 		if (buildTblCntr == buildTblDecPerc)
@@ -838,7 +840,7 @@ int main(int argc, char *argv[])
 			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 			buildTblCntr = 0;
 		}
-		
+		tableParams.src_cnt++;
 	}
 
 
@@ -1314,11 +1316,11 @@ double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, h
 {
 	t.rate_tot = 0;
 	//iterate over CNTs
-	int i = 0; //CNT index counter
+	int dest_cnt = 0; //CNT index counter
 	//originally structured without i and j
 	for (auto cntit = t.CNT_List->begin(); cntit != t.CNT_List->end(); ++cntit)
 	{
-		int j = 0; //segment index counter
+		int dest_seg = 0; //segment index counter
 		//iterate over all segments considered for seg
 		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
@@ -1332,14 +1334,14 @@ double updateSegTable(double maxDist, dat2tab addDataToTable, tableUpdater &t, h
 				//Check if within range
 				if (t.r <= maxDist) /////// Building TABLE /////
 				{
-					t.i = i;
-					t.j = j;
+					t.dest_cnt = dest_cnt;
+					t.dest_seg = dest_seg;
 					addDataToTable(t);
 				}
 			}	
-			j++;
+			dest_seg++;
 		}
-		i++;
+		dest_cnt++;
 	}
 	return t.rate_tot;
 }
@@ -1710,7 +1712,7 @@ Function to add rates to table based on previous calculation
 */
 void addDataToTableCalc(tableUpdater &t)
 {
-	(*t.seg)->tbl->push_back(tableElem(t.r, t.theta, 6.4000e+19, t.i, t.j)); //tbl initialized in CNT::calculateSegments
+	(*t.seg)->tbl->push_back(tableElem(t.r, t.theta, 6.4000e+19, t.dest_cnt, t.dest_seg)); //tbl initialized in CNT::calculateSegments
 	(*t.seg)->rateVec->push_back(t.rate_tot += ((*t.seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
 }
 
@@ -1727,6 +1729,41 @@ void addDataToTableRead(tableUpdater &t)
 		printf("Error: Range of thetas provided in transfer rate tables does not cover the range of thetas in mesh.\n");
 		system("pause");
 		exit(EXIT_FAILURE);
+	}
+	// SET UP INDEX POINTS FOR INTERPOLATING TRANSFER RATE TABLES
+	//with r_low guaranteed less than minSpacing and r guaranteed larger than minSpacing, we can use the original getIndex()
+	point p00;
+	p00.r_idx = getIndex(t.r_vec, t.r);
+	p00.t_idx = getIndex(t.t_vec, t.theta);
+	
+	point p01;
+	p01.r_idx = p00.r_idx - 1;
+	p01.t_idx = p00.t_idx;
+
+	point p10;
+	p01.r_idx = p00.r_idx;
+	p01.t_idx = p00.t_idx - 1;
+
+	point p11;
+	p01.r_idx = p00.r_idx - 1;
+	p01.t_idx = p00.t_idx - 1;
+
+	point p_real;
+	p_real.r_val = t.r;
+	p_real.t_val = t.theta;
+
+	Chirality src_chir = (*t.CNT_List)[t.src_cnt].getChirality();
+	Chirality dest_chir = (*t.CNT_List)[t.dest_cnt].getChirality();
+
+	int src_chir_idx = getIndex(*(t.chirList), src_chir);
+	int dest_chir_idx = getIndex(*(t.chirList), dest_chir);
+
+	auto Elist = (*t.c2c)[src_chir_idx][dest_chir_idx].getETransList();
+
+	for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
+	{
+		e_itr->interpolateRate(p00, p01, p10, p11, p_real);
+		(*t.seg)->tbl->push_back(tableElem(t.r,t.theta,t.dest_cnt,t.dest_seg,))
 	}
 }
 

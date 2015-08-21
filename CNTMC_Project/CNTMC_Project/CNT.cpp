@@ -348,6 +348,16 @@ double CNT::getMinSpacing()
 	return minSpacing;
 }
 
+/**
+Gets chirality of cnt
+
+@return The chirality of the cnt
+*/
+Chirality CNT::getChirality()
+{
+	return chir;
+}
+
 
 /**
 Gets the tube number
