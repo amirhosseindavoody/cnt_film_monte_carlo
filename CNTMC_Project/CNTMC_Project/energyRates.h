@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 
+class tableElem;
+
 using namespace std;
 
 struct energyRates

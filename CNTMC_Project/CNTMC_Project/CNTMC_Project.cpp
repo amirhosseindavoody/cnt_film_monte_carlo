@@ -974,7 +974,7 @@ int main(int argc, char *argv[])
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
-		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
+		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT,getNextState)
 		{
 			#pragma omp for
 			for (int exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
