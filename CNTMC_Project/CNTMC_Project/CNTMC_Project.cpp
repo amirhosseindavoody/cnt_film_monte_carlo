@@ -31,6 +31,16 @@ using namespace std;
 //function pointer for a function that takes current data and translates it into a value for the rate table
 //Typedef so that when passing as a parameter, the entire declaration doesn't need to be typed in.
 typedef void(*dat2tab) (tableUpdater&);
+typedef void(*nextState) (shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma,tableElem &t);
+typedef void(*selfScat) (vector<shared_ptr<segment>>::iterator segit, double maxGam);
+
+//Implementations of function pointers
+void addDataToTableCalc(tableUpdater &t);
+void addDataToTableRead(tableUpdater &t);
+void getNextStateCalc(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t);
+void getNextStateRead(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, tableElem &t);
+void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam);
+void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam);
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -66,9 +76,9 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 void writeExcitonDistSupportingInfo(bool tableFromFile, string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
-void addDataToTableCalc(tableUpdater &t);
-void addDataToTableRead(tableUpdater &t);
 void sortChiralities(vector<Chirality> &list);
+
+
 
 
 //Global variables
@@ -102,6 +112,8 @@ int main(int argc, char *argv[])
 	int numToCheck = 1000; //number of time steps to check finish completion
 	double tfac = log(.3);
 	dat2tab addDataToTable; //function pointer for updating table
+	nextState getNextState; //function pointer for getting next exciton state
+	selfScat setSelfScattering; //function pointer for adding self scattering for both types of simulations
 	bool tableFromFile = false; //tells simulation to either read table from file or create new table
 	shared_ptr<vector<Chirality>> meshChirList = make_shared<vector<Chirality>>(vector<Chirality>(0));
 
@@ -706,12 +718,16 @@ int main(int argc, char *argv[])
 		}
 		tableParams.chirList = meshChirList;
 		addDataToTable = addDataToTableRead;
+		getNextState = getNextStateRead;
+		setSelfScattering = setSelfScatteringRead;
 
 		/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
 	}
 	else
 	{
 		addDataToTable = addDataToTableCalc;
+		getNextState = getNextStateCalc;
+		setSelfScattering = setSelfScatteringCalc;
 	}
 
 	/*
@@ -1233,7 +1249,7 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 		//segment index
 		int j = 0; 
 		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (auto segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
 		{
 			double currGam = (*segit)->rateVec->back();
 			if (maxGam > currGam)
@@ -1713,7 +1729,7 @@ Function to add rates to table based on previous calculation
 void addDataToTableCalc(tableUpdater &t)
 {
 	(*t.seg)->tbl->push_back(tableElem(t.r, t.theta, 6.4000e+19, t.dest_cnt, t.dest_seg)); //tbl initialized in CNT::calculateSegments
-	(*t.seg)->rateVec->push_back(t.rate_tot += ((*t.seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
+	(*t.seg)->rateVec->push_back(t.rate_tot[0] += ((*t.seg)->tbl->back()).getRate()); //tbl initialized in CNT::calculateSegments
 }
 
 /**
@@ -1768,7 +1784,8 @@ void addDataToTableRead(tableUpdater &t)
 		(*(*t.seg)->eRate)[e_itr->getSrcEnergy()].tbl->push_back(
 			tableElem(t.r, t.theta, t.dest_cnt, t.dest_seg, e_itr->getDestEnergy(), p_real.val));
 		//add to the rate table
-		(*(*t.seg)->eRate)[e_itr->getSrcEnergy()].rateVec->push_back
+		(*(*t.seg)->eRate)[e_itr->getSrcEnergy()].rateVec->push_back(
+			t.rate_tot[e_itr->getSrcEnergy()] += p_real.val);
 	}
 }
 
