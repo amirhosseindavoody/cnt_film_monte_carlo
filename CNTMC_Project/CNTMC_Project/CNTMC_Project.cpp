@@ -703,9 +703,9 @@ int main(int argc, char *argv[])
 			infile.open(tableFolderPath + *itr, ios::binary | ios::in);
 
 
-			for (auto r_idx = 0; r_idx < r_size; r_idx++)
+			for (auto r_idx = 0; r_idx < static_cast<int>(r_size); r_idx++)
 			{
-				for (auto t_idx = 0; t_idx < theta_size; t_idx++)
+				for (auto t_idx = 0; t_idx < static_cast<int>(theta_size); t_idx++)
 				{
 					for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
 					{
