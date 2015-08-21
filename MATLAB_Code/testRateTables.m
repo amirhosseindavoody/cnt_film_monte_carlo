@@ -21,15 +21,16 @@ chirList(4).m = 7;
 chirList(5).n = 9;
 chirList(5).m = 7;
 
-size = 10;
+size = 200;
+size2 = 20;
 
-rtTable = zeros(size,4*size,length(chirList)^2); 
+rtTable = zeros(size,4*size2,length(chirList)^2); 
 
 chirCount = 1;
 for i=1:length(chirList)
     for j=1:length(chirList)
        for k=1:size
-        for l=1:4*size
+        for l=1:4*size2
             rtTable(k,l,chirCount) = k*chirList(i).n*3+l*chirList(i).m^(3/2) + chirList(j).m;
         end
        end

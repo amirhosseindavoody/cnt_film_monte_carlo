@@ -585,6 +585,7 @@ int main(int argc, char *argv[])
 
 		if (r_low < 0 || r_high < 0 || t_low < 0 || t_high < 0 || numChiralities < 0 || r_size < 0 || theta_size < 0)
 		{
+			ClearScreen();
 			printf("Configuration Error: Details file in transfer_rate_tables folder must have all positive numbers.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -592,6 +593,7 @@ int main(int argc, char *argv[])
 
 		if (t_low > M_PI / 2.0 || t_high > M_PI / 2.0)
 		{
+			ClearScreen();
 			printf("Configuration Error: Details file in transfer_rate_tables folder must have angles between 0 and pi/2.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -599,6 +601,7 @@ int main(int argc, char *argv[])
 
 		if (r_low > r_high || t_low > t_high)
 		{
+			ClearScreen();
 			printf("Configuration Error: Details file in transfer_rate_tables folder must have low < high.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -606,7 +609,16 @@ int main(int argc, char *argv[])
 
 		if (r_low > minSpacing)
 		{
+			ClearScreen();
 			printf("Configuration Error: Tables do not provide distance values that are sufficiently small. Distances must cover" 
+				" from minSpacing (as specified in xml file) to the maximum distance of the mesh.\n");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		if (maxDist > r_high)
+		{
+			ClearScreen();
+			printf("Configuration Error: Tables do not provide distance values that are sufficiently small. Distances must cover"
 				" from minSpacing (as specified in xml file) to the maximum distance of the mesh.\n");
 			system("pause");
 			exit(EXIT_FAILURE);
@@ -698,23 +710,45 @@ int main(int argc, char *argv[])
 			//get the energyTransition vector
 			auto Elist = (*tableParams.c2c)[src_idx][dest_idx].getETransList();
 
-			double readRate;
+			//double readRate;
+			//Read entire file
 			ifstream infile;
 			infile.open(tableFolderPath + *itr, ios::binary | ios::in);
+			infile.seekg(0, infile.end);
+			auto length = infile.tellg();
+			infile.seekg(0, infile.beg);
+			if ((length % (sizeof(double))) != 0)
+			{
+				ClearScreen();
+				cout << "Error: Incorrect number of bytes in " + string(*itr) + ".\n";
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			else if (length / sizeof(double) != r_size*theta_size*4)
+			{
+				ClearScreen();
+				cout << "Error: Details file specifies more data points than actual binary file for " + string(*itr) + ". Please resolve size mismatch.\n";
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			double* buffer = new double[length / sizeof(double)];
+			infile.read(reinterpret_cast<char *>(buffer), length);
+			infile.close();
 
-
+			int rate_idx = 0;
 			for (auto r_idx = 0; r_idx < static_cast<int>(r_size); r_idx++)
 			{
 				for (auto t_idx = 0; t_idx < static_cast<int>(theta_size); t_idx++)
 				{
 					for (auto e_itr = Elist->begin(); e_itr != Elist->end(); ++e_itr)
 					{
-						infile.read(reinterpret_cast<char *>(&readRate), sizeof(double));
-						e_itr->setTableValue(r_idx, t_idx, readRate);
+						//infile.read(reinterpret_cast<char *>(&readRate), sizeof(double));
+						e_itr->setTableValue(r_idx, t_idx, buffer[rate_idx]);
+						rate_idx++;
 					}
 				}
 			}
-			infile.close();
+			delete[] buffer;
 		}
 		tableParams.chirList = meshChirList;
 		addDataToTable = addDataToTableRead;
@@ -760,13 +794,6 @@ int main(int argc, char *argv[])
 	//Set final rmax value
 	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
 	
-	if (rmax > (*tableParams.r_vec)[tableParams.r_vec->size() - 1])
-	{
-		printf("Configuration Error: Tables do not provide distance values that are sufficiently small. Distances must cover"
-			" from minSpacing (as specified in xml file) to the maximum distance of the mesh.\n");
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
 
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	end = clock();
