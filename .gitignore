@@ -22,6 +22,7 @@ CNTMC_Project/bld/
 CNTMC_Project/[Bb]in/
 CNTMC_Project/[Oo]bj/
 MATLAB_Code/output/*.bin
+*.diagsession
 
 # Roslyn cache directories
 *.ide/

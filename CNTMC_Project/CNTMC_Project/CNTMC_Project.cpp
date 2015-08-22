@@ -33,6 +33,7 @@ using namespace std;
 typedef void(*dat2tab) (tableUpdater&);
 typedef void(*nextState) (shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t);
 typedef void(*selfScat) (vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
+typedef void(*setExLoc)(shared_ptr<segment> injectedSeg, shared_ptr<exciton> exciton);
 
 //Implementations of function pointers
 void addDataToTableCalc(tableUpdater &t);
@@ -41,6 +42,8 @@ void getNextStateCalc(shared_ptr<segment> seg, shared_ptr<exciton> e, double gam
 void getNextStateRead(shared_ptr<segment> seg, shared_ptr<exciton> e, double gamma, tableElem &t);
 void setSelfScatteringCalc(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
 void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double maxGam, int cnt_idx, int seg_idx);
+void setExcitonLocationCalc(shared_ptr<segment> injectedSeg, shared_ptr<exciton> exciton);
+void setExcitonLocationRead(shared_ptr<segment> injectedSeg, shared_ptr<exciton> exciton);
 
 //method declarations
 string folderPathPrompt(bool incorrect);
@@ -51,7 +54,7 @@ double getRand(bool excludeZero);
 double convertUnits(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
 void initRandomNumGen();
-void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
+void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact, setExLoc setExcitonLocation);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
 double diffclock(clock_t end, clock_t start);
 string getRunStatus(double T, double Tmax, double runtime, boolean runtimeKnown);
@@ -73,7 +76,7 @@ bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>
 void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<double>> regionBdr);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
-	shared_ptr<vector<shared_ptr<segment>>> inContact);
+	shared_ptr<vector<shared_ptr<segment>>> inContact, setExLoc  setExcitonLocation);
 void writeExcitonDistSupportingInfo(bool tableFromFile, string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
 void sortChiralities(vector<Chirality> &list);
@@ -114,6 +117,7 @@ int main(int argc, char *argv[])
 	dat2tab addDataToTable; //function pointer for updating table
 	nextState getNextState; //function pointer for getting next exciton state
 	selfScat setSelfScattering; //function pointer for adding self scattering for both types of simulations
+	setExLoc setExcitonLocation; //function pointer for when excitons are added to the mesh
 	bool tableFromFile = false; //tells simulation to either read table from file or create new table
 	shared_ptr<vector<Chirality>> meshChirList = make_shared<vector<Chirality>>(vector<Chirality>(0));
 
@@ -754,6 +758,7 @@ int main(int argc, char *argv[])
 		addDataToTable = addDataToTableRead;
 		getNextState = getNextStateRead;
 		setSelfScattering = setSelfScatteringRead;
+		setExcitonLocation = setExcitonLocationRead;
 
 		/////////////////// END OF TRANSITION TABLE PARAMETERS ///////////////////////////
 	}
@@ -762,6 +767,7 @@ int main(int argc, char *argv[])
 		addDataToTable = addDataToTableCalc;
 		getNextState = getNextStateCalc;
 		setSelfScattering = setSelfScatteringCalc;
+		setExcitonLocation = setExcitonLocationCalc;
 	}
 
 	/*
@@ -939,7 +945,7 @@ int main(int argc, char *argv[])
 	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
 	{
 		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
-		injectExciton((*excitons)[exNum], inContact);
+		injectExciton((*excitons)[exNum], inContact,setExcitonLocation);
 	}
 
 
@@ -1064,7 +1070,7 @@ int main(int argc, char *argv[])
 		writeStateToFile(excitonDistFile, currCount, T);
 
 		//Update Exciton List for injection and exit contact
-		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
+		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact, setExcitonLocation);
 		//update time
 		end = clock();
 		runtime = diffclock(end, start);
@@ -1101,7 +1107,7 @@ not enough excitons
 @param inContact The list of segments in the injection contact
 */
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, 
-	shared_ptr<vector<int>> currCount, shared_ptr<vector<shared_ptr<segment>>> inContact)
+	shared_ptr<vector<int>> currCount, shared_ptr<vector<shared_ptr<segment>>> inContact, setExLoc  setExcitonLocation)
 {
 	// Adding excitons to the injection contact
 	int numExAdd = 0; //The number of excitons to be added to the injection contact
@@ -1110,7 +1116,7 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 		for (int i = 0; i < numExAdd; i++)
 		{
 			excitons->push_back(make_shared<exciton>(exciton())); //initialize exciton at end of exciton list
-			injectExciton((*excitons)[excitons->size()-1], inContact); //last element is the exciton to inject
+			injectExciton((*excitons)[excitons->size()-1], inContact, setExcitonLocation); //last element is the exciton to inject
 		}
 	}
 
@@ -1217,7 +1223,7 @@ Places the specified exciton into the input contact
 @param exciton The exciton to add to the contact
 @param inContact The list of segments for the injection contact
 */
-void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact)
+void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact, setExLoc setExcitonLocation)
 {
 	energy E;
 	if (static_cast<int>(round(getRand(false)))){ E = E11; }
@@ -1225,11 +1231,7 @@ void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<seg
 	exciton->setEnergy(E); //randomly set the energy of the exciton
 	//choose a destination segment
 	shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(rand() % inContact->size())];
-	//The self scattering table will have the correct indices for the current segment
-	shared_ptr<vector<tableElem>> tbl = injectedSeg->tbl;
-	//Set the exciton indices to the current segment
-	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
-	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
+	setExcitonLocation(injectedSeg, exciton);
 	exciton->setAtOutContact(false); //initialized out contact boolean
 
 }
@@ -1998,4 +2000,37 @@ void setSelfScatteringRead(vector<shared_ptr<segment>>::iterator segit, double m
 		(*(*segit)->eRate)[1].tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam_E22, cnt_idx, seg_idx));
 		(*(*segit)->eRate)[1].rateVec->push_back(maxGam);
 	}
+}
+
+/**
+Takes the segment that the exciton is to be injected at and assigns the exciton the
+correct cnt and segment indexing.
+
+@param injectedSeg The segment the exciton is being injected in to
+@param exciton The exciton of focus
+*/
+void setExcitonLocationCalc(shared_ptr<segment> injectedSeg, shared_ptr<exciton> exciton)
+{
+	//The self scattering table will have the correct indices for the current segment
+	shared_ptr<vector<tableElem>> tbl = injectedSeg->tbl;
+	//Set the exciton indices to the current segment
+	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
+	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
+}
+
+
+/**
+Takes the segment that the exciton is to be injected at and assigns the exciton the
+correct cnt and segment indexing.
+
+@param injectedSeg The segment the exciton is being injected in to
+@param exciton The exciton of focus
+*/
+void setExcitonLocationRead(shared_ptr<segment> injectedSeg, shared_ptr<exciton> exciton)
+{
+	//select table vector based on the new enery that is set
+	shared_ptr<vector<tableElem>> tbl = (*injectedSeg->eRate)[exciton->getEnergy()].tbl;
+	//Set the exciton indices to the current segment
+	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
+	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
 }
