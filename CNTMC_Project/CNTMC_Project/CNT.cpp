@@ -433,13 +433,13 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 		((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
 		//initialize
 		((*retVec)[currSeg])->eRate = make_shared<vector<energyRates>>(vector<energyRates>(2));
-		auto eRate = *((*retVec)[currSeg])->eRate;
-		(eRate)[0].src_energy = E11;
-		(eRate)[0].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		(eRate)[0].rateVec = make_shared<vector<double>>(vector<double>(0));
-		(eRate)[1].src_energy = E22;
-		(eRate)[1].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		(eRate)[1].rateVec = make_shared<vector<double>>(vector<double>(0));
+		auto eRate = ((*retVec)[currSeg])->eRate;
+		(*eRate)[0].src_energy = E11;
+		(*eRate)[0].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
+		(*eRate)[0].rateVec = make_shared<vector<double>>(vector<double>(0));
+		(*eRate)[1].src_energy = E22;
+		(*eRate)[1].tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
+		(*eRate)[1].rateVec = make_shared<vector<double>>(vector<double>(0));
 		((*retVec)[currSeg])->segNum = currSeg;
 		
 		((*retVec)[currSeg])->p1 = firstPos;

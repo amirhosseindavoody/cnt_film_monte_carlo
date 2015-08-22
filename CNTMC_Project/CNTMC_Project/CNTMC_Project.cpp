@@ -571,15 +571,15 @@ int main(int argc, char *argv[])
 		getline(detFile, temp, ',');
 		numChiralities = atoi(temp.c_str());
 		getline(detFile, temp, ',');
-		r_low = atoi(temp.c_str());
+		r_low = atof(temp.c_str());
 		getline(detFile, temp, ',');
-		r_high = atoi(temp.c_str());
+		r_high = atof(temp.c_str());
 		getline(detFile, temp, ',');
 		r_size = atoi(temp.c_str());
 		getline(detFile, temp, ',');
-		t_low = atoi(temp.c_str());
+		t_low = atof(temp.c_str());
 		getline(detFile, temp, ',');
-		t_high = atoi(temp.c_str());
+		t_high = atof(temp.c_str());
 		getline(detFile, temp, ',');
 		theta_size = atoi(temp.c_str());
 
@@ -1762,7 +1762,7 @@ Function to add rates to table based on values read from a table
 */
 void addDataToTableRead(tableUpdater &t)
 {
-	if (t.theta < (*t.t_vec)[0] || t.theta < (*t.t_vec)[t.t_vec->size() - 1])
+	if (t.theta < (*t.t_vec)[0] || t.theta > (*t.t_vec)[t.t_vec->size() - 1])
 	{
 		ClearScreen();
 		printf("Error: Range of thetas provided in transfer rate tables does not cover the range of thetas in mesh.\n");
@@ -1771,21 +1771,29 @@ void addDataToTableRead(tableUpdater &t)
 	}
 	// SET UP INDEX POINTS FOR INTERPOLATING TRANSFER RATE TABLES
 	//with r_low guaranteed less than minSpacing and r guaranteed larger than minSpacing, we can use the original getIndex()
-	point p00;
-	p00.r_idx = getIndex(t.r_vec, t.r);
-	p00.t_idx = getIndex(t.t_vec, t.theta);
-	
+	point p11;
+	p11.r_idx = getIndex(t.r_vec, t.r);
+	p11.r_val = (*t.r_vec)[p11.r_idx];
+	p11.t_idx = getIndex(t.t_vec, t.theta);
+	p11.t_val = (*t.t_vec)[p11.t_idx];
+
 	point p01;
-	p01.r_idx = p00.r_idx - 1;
-	p01.t_idx = p00.t_idx;
+	p01.r_idx = p11.r_idx - 1;
+	p01.r_val = (*t.r_vec)[p01.r_idx];
+	p01.t_idx = p11.t_idx;
+	p01.t_val = (*t.t_vec)[p01.t_idx];
 
 	point p10;
-	p01.r_idx = p00.r_idx;
-	p01.t_idx = p00.t_idx - 1;
+	p10.r_idx = p11.r_idx;
+	p10.r_val = (*t.r_vec)[p10.r_idx];
+	p10.t_idx = p11.t_idx - 1;
+	p10.t_val = (*t.t_vec)[p10.t_idx];
 
-	point p11;
-	p01.r_idx = p00.r_idx - 1;
-	p01.t_idx = p00.t_idx - 1;
+	point p00;
+	p00.r_idx = p11.r_idx - 1;
+	p00.r_val = (*t.r_vec)[p00.r_idx];
+	p00.t_idx = p11.t_idx - 1;
+	p00.t_val = (*t.t_vec)[p00.t_idx];
 
 	point p_real;
 	p_real.r_val = t.r;
