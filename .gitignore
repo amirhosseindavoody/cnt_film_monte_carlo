@@ -10,6 +10,7 @@
 *.mat
 *.csv
 *.idb
+*.exe
 
 # Build results
 CNTMC_Project/CNTMC_Project/Debug/

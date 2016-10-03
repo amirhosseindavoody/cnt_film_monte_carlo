@@ -16,9 +16,10 @@
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
 #include <regex>
-#include <Windows.h>
+// #include <Windows.h>
 #include <omp.h>
-#include <conio.h>
+// #include <conio.h>
+#include <stdint.h>
 
 
 using namespace std;
@@ -45,15 +46,15 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 	shared_ptr<vector<double>> regionBdr);
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime);
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, uint64_t numTSteps, double regLenMin, string runtime);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
 double diffclock(clock_t end, clock_t start);
-string getRunStatus(double T, double Tmax, double runtime, boolean runtimeKnown);
-void ClearScreen();
+string getRunStatus(double T, double Tmax, double runtime, bool runtimeKnown);
+// void ClearScreen();
 string getRunTime(double runtime);
 string fixPath(string &path);
-string GetLastErrorAsString();
+// string GetLastErrorAsString();
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -62,7 +63,7 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 int main(int argc, char *argv[])
 {
 
-	unsigned int NUM_THREADS = omp_get_max_threads();
+	// unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
 	double segLenMin = 100.0; //[Angstroms]
@@ -133,7 +134,9 @@ int main(int argc, char *argv[])
 		while ((ent = readdir(resDir)) != nullptr)
 		{
 			smatch matches; //match_results for string objects
-			regex_search(string(ent->d_name), matches, rgx);
+			string tmps =  string(ent->d_name);
+			// regex_search(string(ent->d_name), matches, rgx);
+			regex_search(tmps, matches, rgx);
 			if (!matches.empty())
 			{
 				fileList->push_back(ent->d_name);
@@ -399,7 +402,7 @@ int main(int argc, char *argv[])
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	clock_t end = clock();
 	runtime = diffclock(end, start);
-	ClearScreen();
+	// ClearScreen();
 	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
@@ -437,7 +440,7 @@ int main(int argc, char *argv[])
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	end = clock();
 	runtime = diffclock(end, start);
-	ClearScreen();
+	// ClearScreen();
 	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
@@ -513,7 +516,7 @@ int main(int argc, char *argv[])
 			//@@@@@@@@ TIME UPDATE @@@@@@@@//
 			end = clock();
 			runtime = diffclock(end, start);
-			ClearScreen();
+			// ClearScreen();
 			status = getRunStatus(0, 0, runtime, !autoComplete);
 			cout << status << endl;
 			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
@@ -530,7 +533,7 @@ int main(int argc, char *argv[])
 	segmentCountFile.open(segmentCountFileName);
 	segmentCountFile << (*segCountPerReg)[0];
 	//iterate through all of the rs and then thetas while printing to file
-	for (UINT32 i = 1; i < segCountPerReg->size(); i++)
+	for (uint32_t i = 1; i < segCountPerReg->size(); i++)
 	{
 		segmentCountFile << "," << (*segCountPerReg)[i];
 	}
@@ -542,9 +545,9 @@ int main(int argc, char *argv[])
 	ofstream heatMapFile;
 	heatMapFile.open(heatMapFileName);
 	//iterate through all of the rs and then thetas while printing to file
-	for (UINT32 i = 0; i < rs->size(); i++)
+	for (uint32_t i = 0; i < rs->size(); i++)
 	{
-		for (UINT32 j = 0; j < thetas->size(); j++)
+		for (uint32_t j = 0; j < thetas->size(); j++)
 		{
 			heatMapFile << (*heatMap)[i][j] << ",";
 		}
@@ -612,18 +615,21 @@ int main(int argc, char *argv[])
 	This section will consist of iterating until the maximum time has been reached. Each iteration
 	for T will contain a single/multiple step for each exciton. 
 	*/
-	omp_set_num_threads(NUM_THREADS);
+	// omp_set_num_threads(NUM_THREADS);
 	while (T <= Tmax && !simDone) //iterates over time
 	{
+
+		// break the simulation if the input key is "Q"
 		//input loop
-		while (_kbhit()) 
-		{
-			switch (_getch())
-			{
-				case 'Q':
-					simDone = true;
-			}
-		}
+		// while (_kbhit()) 
+		// {
+		// 	switch (_getch())
+		// 	{
+		// 		case 'Q':
+		// 			simDone = true;
+		// 	}
+		// }
+
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
 		T += deltaT; //set new time checkpoint
@@ -697,7 +703,7 @@ int main(int argc, char *argv[])
 		printCnt++;
 		if (printCnt == onePercent)
 		{
-			ClearScreen();
+			// ClearScreen();
 			status = getRunStatus(T, Tmax, runtime, !autoComplete);
 			cout << status << endl;
 			printCnt = 0;
@@ -708,7 +714,7 @@ int main(int argc, char *argv[])
 	//Close files finish program
 	excitonDistFile->close();
 
-	UINT64 numTSteps = static_cast<UINT64>(T / deltaT);
+	uint64_t numTSteps = static_cast<uint64_t>(T / deltaT);
 
 	//Write helper information
 	writeExcitonDistSupportingInfo(outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
@@ -764,7 +770,7 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
 */
 void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, UINT64 numTSteps, double regLenMin, string runtime)
+	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, uint64_t numTSteps, double regLenMin, string runtime)
 {
 	string detailsFileName = outputPath + "details.csv";
 	shared_ptr<ofstream> detailsFile(new ofstream);
@@ -785,7 +791,7 @@ Writes the pertinent information of the current state of simulation to file
 void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T)
 {
 	*file << T << "," << (*currCount)[0]; //Time followed by the counts
-	for (UINT32 i = 1; i < currCount->size(); i++)
+	for (uint32_t i = 1; i < currCount->size(); i++)
 	{
 		*file << "," << (*currCount)[i];
 	}
@@ -1240,7 +1246,7 @@ Prints the status of the simulation
 @param runtime The amount of time the simulation has been running
 @return The status of the simulation
 */
-string getRunStatus(double T,double Tmax, double runtime, boolean runtimeKnown)
+string getRunStatus(double T,double Tmax, double runtime, bool runtimeKnown)
 {
 	string ret;
 	if (runtimeKnown)
@@ -1295,42 +1301,42 @@ string getRunTime(double runtime)
 /**
 Clears the console
 */
-void ClearScreen()
-{
-	HANDLE                     hStdOut;
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-	DWORD                      count;
-	DWORD                      cellCount;
-	COORD                      homeCoords = { 0, 0 };
+// void ClearScreen()
+// {
+// 	HANDLE                     hStdOut;
+// 	CONSOLE_SCREEN_BUFFER_INFO csbi;
+// 	DWORD                      count;
+// 	DWORD                      cellCount;
+// 	COORD                      homeCoords = { 0, 0 };
 
-	hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	if (hStdOut == INVALID_HANDLE_VALUE) return;
+// 	hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+// 	if (hStdOut == INVALID_HANDLE_VALUE) return;
 
-	/* Get the number of cells in the current buffer */
-	if (!GetConsoleScreenBufferInfo(hStdOut, &csbi)) return;
-	cellCount = csbi.dwSize.X *csbi.dwSize.Y;
+// 	/* Get the number of cells in the current buffer */
+// 	if (!GetConsoleScreenBufferInfo(hStdOut, &csbi)) return;
+// 	cellCount = csbi.dwSize.X *csbi.dwSize.Y;
 
-	/* Fill the entire buffer with spaces */
-	if (!FillConsoleOutputCharacter(
-		hStdOut,
-		static_cast<TCHAR>(' '),
-		cellCount,
-		homeCoords,
-		&count
-		)) return;
+// 	/* Fill the entire buffer with spaces */
+// 	if (!FillConsoleOutputCharacter(
+// 		hStdOut,
+// 		static_cast<TCHAR>(' '),
+// 		cellCount,
+// 		homeCoords,
+// 		&count
+// 		)) return;
 
-	/* Fill the entire buffer with the current colors and attributes */
-	if (!FillConsoleOutputAttribute(
-		hStdOut,
-		csbi.wAttributes,
-		cellCount,
-		homeCoords,
-		&count
-		)) return;
+// 	/* Fill the entire buffer with the current colors and attributes */
+// 	if (!FillConsoleOutputAttribute(
+// 		hStdOut,
+// 		csbi.wAttributes,
+// 		cellCount,
+// 		homeCoords,
+// 		&count
+// 		)) return;
 
-	/* Move the cursor home */
-	SetConsoleCursorPosition(hStdOut, homeCoords);
-}
+// 	/* Move the cursor home */
+// 	SetConsoleCursorPosition(hStdOut, homeCoords);
+// }
 
 /**
 Changes \ to / in strings. This is to fix file paths
@@ -1343,22 +1349,22 @@ string fixPath(string &path)
 	return regex_replace(path, rgx, "/");
 }
 
-//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
-string GetLastErrorAsString()
-{
-	//Get the error message, if any.
-	DWORD errorMessageID = GetLastError();
-	if (errorMessageID == 0)
-		return string(); //No error message has been recorded
+// //Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+// string GetLastErrorAsString()
+// {
+// 	//Get the error message, if any.
+// 	DWORD errorMessageID = GetLastError();
+// 	if (errorMessageID == 0)
+// 		return string(); //No error message has been recorded
 
-	LPSTR messageBuffer = nullptr;
-	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&messageBuffer), 0, nullptr);
+// 	LPSTR messageBuffer = nullptr;
+// 	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+// 		nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&messageBuffer), 0, nullptr);
 
-	string message(messageBuffer, size);
+// 	string message(messageBuffer, size);
 
-	//Free the buffer.
-	LocalFree(messageBuffer);
+// 	//Free the buffer.
+// 	LocalFree(messageBuffer);
 
-	return message;
-}
+// 	return message;
+// }

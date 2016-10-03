@@ -46,9 +46,9 @@ class CNT
 private:
 	void setDiameter(int n, int m);
 	shared_ptr<vector<shared_ptr<segment>>> calculateSegments(double segLen);
-	Vector3d CNT::getPoint(int idx);
-	Vector3d CNT::calcEndPt(int idx, double extra);
-	Vector3d CNT::calcFinalEndPt(int idx);
+	Vector3d getPoint(int idx);
+	Vector3d calcEndPt(int idx, double extra);
+	Vector3d calcFinalEndPt(int idx);
 
 public:
 	CNT();
