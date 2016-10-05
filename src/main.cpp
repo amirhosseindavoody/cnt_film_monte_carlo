@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	int numSteps = 10000; //number of deltaT's the simulation runs if the user specifies
 	double maxDist = 300; //[Angstroms] The maximum segment separation to be considered for exciton transfer
 	//The number of excitons to be in injection contact at start
-	int numExcitonsAtCont = 100000;
+	int numExcitonsAtCont = 0;
 	bool autoComplete = false;
 	double threshold = .01; //The value that the difference/maxDiff must be below to finish
 	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
 	file_manager.resultFolderPath = file_manager.checkPath(file_manager.resultFolderPath, true); //check result folder path
 
 
+
+
 	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
 	//Outputfolder should be the same as the result folder for the mesh
@@ -96,17 +98,19 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
 	regex rgx("CNT_Num_\\d+\\.csv"); //files we want to look through
+
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(file_manager.resultFolderPath.c_str())) != nullptr)
 	{
 		//throw away first two results as they are . and ..
-		readdir(resDir); readdir(resDir);
+		readdir(resDir);
+		readdir(resDir);
+
 		//iterate over all of the real files
 		while ((ent = readdir(resDir)) != nullptr)
 		{
 			smatch matches; //match_results for string objects
 			string tmps =  string(ent->d_name);
-			// regex_search(string(ent->d_name), matches, rgx);
 			regex_search(tmps, matches, rgx);
 			if (!matches.empty())
 			{
@@ -114,6 +118,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		closedir(resDir); //deletes pointer
+
 	}
 	else
 	{
@@ -126,11 +131,17 @@ int main(int argc, char *argv[])
 	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
 	
 	//First need to get correct xml file name
-	auto xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
+	// auto xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
+	size_t xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
+
+	// return 0;
+
 	string inputXMLPath = file_manager.outputPath + file_manager.resultFolderPath.substr(xmlNamePos, file_manager.outputPath.size() - xmlNamePos) + ".xml";
 	
 	double rmax = 0; //maximum possible differences between sections of CNTs
 	double xdim = 0; //Dimension in which exciton populations will be monitored
+	double ydim = 0;
+	double zdim = 0;
 	while (!done)
 	{
 		try
@@ -139,34 +150,30 @@ int main(int argc, char *argv[])
 			rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
 			doc.parse<0>(xmlFile.data()); //parse contents of file
 			rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
-			currNode = currNode->first_node(); //Output folder
-			//Speed up to device dimensions
-			for (int i = 0; i < 6; i++)
-			{
-				currNode = currNode->next_sibling();
-			}
+
+
 			// DEVICE DIMENSIONS NODE //
-			xdim = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->value()));
-			auto ydim = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->next_sibling()->value()));
-			auto zdim = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->next_sibling()->next_sibling()->value()));
+			currNode = currNode->first_node("DeviceDimensions"); //Output folder
+
+			xdim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("xdim")->value()));
+			ydim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("ydim")->value()));
+			zdim = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("zdim")->value()));
 			//incorrect units
 			if (xdim == INT_MIN || ydim == INT_MIN || zdim == INT_MIN)
 			{
-				printf("Configuration Error: Incorrect units for device dimensions.\nRefer to manual"
-					" for valid unit entries.\n");
-				system("pause");
+				cout << "Error: Incorrect units for device dimensions!!!" << endl;
 				exit(EXIT_FAILURE);
 			}
 			//incorrect range
 			else if (xdim <= 0 || ydim <= 0 || zdim <= 0)
 			{
-				printf("Configuration Error: Must enter positive device dimensions.\n");
-				system("pause");
+				cout << "Error: Must enter positive device dimensions!!!" << endl;
 				exit(EXIT_FAILURE);
 			}
+
+			cout << "xdim = " << xdim << endl;
+			cout << "ydim = " << ydim << endl;
+			cout << "zdim = " << zdim << endl;
 			// END DEVICE DIMENSIONS NODE //
 
 			//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
@@ -175,33 +182,23 @@ int main(int argc, char *argv[])
 			rmax = sqrt(pow(xdim,2)+pow(zdim,2));
 
 			// NUMBER OF EXCITONS NODE //
-			currNode = currNode->next_sibling()->next_sibling(); //to number of excitons
-			int exNumTemp = atoi(currNode->value());
-			//accept only positive number of excitons otherwise have default value
-			if (exNumTemp > 0)
+			currNode = currNode->next_sibling("numberExcitons"); //to number of excitons
+			numExcitonsAtCont = atoi(currNode->value());
+			if (numExcitonsAtCont <= 0)
 			{
-				numExcitonsAtCont = exNumTemp;
-			}
-			else
-			{
-				printf("Configuration Error: Must have positive number of excitons.\n");
-				system("pause");
+				cout << "Error: Must have positive number of excitons." << endl;
 				exit(EXIT_FAILURE);
 			}
+			cout << "numExcitonsAtCont = " << numExcitonsAtCont << endl;
 			// END NUMBER OF EXCITONS NODE //
 
+
 			// REGION LENGTH NODE //
-			currNode = currNode->next_sibling();
-			double regLenTemp = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->value()));
-			if (regLenTemp >= 0 && regLenTemp < xdim)
+			currNode = currNode->next_sibling("regionLength");
+			regLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
+			if (regLenMin <= 0 || regLenMin > xdim)
 			{
-				regLenMin = regLenTemp;
-			}
-			else
-			{
-				printf("Configuration Error: Region length must be positive number.\n");
-				system("pause");
+				cout << "Error: Region length must be positive number!!!" << endl;
 				exit(EXIT_FAILURE);
 			}
 			// END REGION LENGTH NODE //
@@ -350,11 +347,11 @@ int main(int argc, char *argv[])
 		}
 		catch (runtime_error err)
 		{
-			string temp;
 			int xmlArrayLength = 260; //Maximum path length for Windows
 			cout << err.what();
 			cout << "\n";
 			cout << "Continue? [y/n]: ";
+			string temp;
 			cin >> temp;
 			if (temp.compare("y") != 0)
 			{

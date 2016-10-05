@@ -6,7 +6,6 @@ SRCDIR = ./src
 OBJDIR = ./obj
 
 main: 
-	@reset
 	$(CC) $(CCFLAGS) -o $@.exe $(SRCDIR)/*.cpp
 
 # Utility targets
