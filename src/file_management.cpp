@@ -55,27 +55,35 @@ string file_management::checkPath(string path, bool folder)
 
 		if (stat(path.c_str(), &info) != 0)
 		{
-			printf("Cannot access %s\n", path.c_str());
+			cout << "Cannot access: " << path.c_str() << endl;
 			//get new path for next itr or quit
-			if (folder){ path = folderPathPrompt(true); }
-			else { path = xmlFilePathPrompt(true);}
+			if (folder)
+			{
+				path = folderPathPrompt(true);
+			}
+			else
+			{
+				path = xmlFilePathPrompt(true);
+			}
 		}
 		//path is accessable
 		else
 		{
 			//Check to see if correctly dir or file
-			if ((folder && (info.st_mode & S_IFDIR)) || 
-				(!folder && (info.st_mode & S_IFREG))) { return path; }
+			if ((folder && (info.st_mode & S_IFDIR)) || (!folder && (info.st_mode & S_IFREG)))
+			{
+				return path;
+			}
 			
 			//Incorrect type for the path. Reprompt or quit
 			if (folder)
 			{
-				printf("%s is not a directory\n", path.c_str());
+				cout << path.c_str() << " is not a directory!!!" << endl;
 				path = folderPathPrompt(true);
 			} 
 			else
 			{
-				printf("%s is not a file\n", path.c_str());
+				cout << path.c_str() <<" is not a file!!!" << endl;
 				path = xmlFilePathPrompt(true);
 			}
 		}

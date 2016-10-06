@@ -56,47 +56,38 @@ int main(int argc, char *argv[])
 	//Initialize random number generator before anything to ensure that getRand() always works
 	initRandomNumGen();
 
-	bool done = false; //Reused boolean variable for looping
-
 	file_management file_manager;
 
-	if (argc == 1)
-	{
-		file_manager.resultFolderPath = file_manager.folderPathPrompt(false);
-	}
-	else if (argc > 2)
-	{
-		cout << "Incorrect parameters. Only enter file path of results folder to be processed.\n";
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
-	else
+	if (argc == 2)
 	{
 		file_manager.resultFolderPath = argv[1];
 	}
+	else
+	{
+		cout << "Error: Path of results folder must be entered!!!" << endl;;
+		exit(EXIT_FAILURE);
+	}
 
-	file_manager.resultFolderPath = file_manager.checkPath(file_manager.resultFolderPath, true); //check result folder path
-
-
-
+	// file_manager.resultFolderPath = file_manager.checkPath(file_manager.resultFolderPath, true); //check result folder path
 
 	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
-	//Outputfolder should be the same as the result folder for the mesh
-	// All checks are already completed
+	struct stat buf;
+	if (stat(file_manager.resultFolderPath.c_str(),&buf) != 0)
+	{
+		cout << "Error: incorrect result directory path!!!" << endl;;
+		exit(EXIT_FAILURE);
+	}
+
 	file_manager.outputPath = file_manager.resultFolderPath + "/"; 
 
-	//Results folder exists and can be accessed
-	//grab file list
+	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
+	// This next block creates a list of files in the directory chosen to be looked at.
+
 	DIR *resDir;
 	struct dirent *ent = nullptr;
 	unique_ptr<list<string>>  fileList(new list<string>(0));
 
-	/*
-	The next block creates a list of files in the directory chosen to be looked at.
-	*/
-
-	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
 	regex rgx("CNT_Num_\\d+\\.csv"); //files we want to look through
 
 	//Check if folder can be opened - should work due to above checks
@@ -122,255 +113,168 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		cout << "Could not open directory. Please try program again.\n";
-		system("pause");
+		cout << "Could not open results directory!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 	delete ent;
+	ent = nullptr;
 
 	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
-	
-	//First need to get correct xml file name
-	// auto xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
-	size_t xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
-
-	// return 0;
-
-	string inputXMLPath = file_manager.outputPath + file_manager.resultFolderPath.substr(xmlNamePos, file_manager.outputPath.size() - xmlNamePos) + ".xml";
 	
 	double rmax = 0; //maximum possible differences between sections of CNTs
 	double xdim = 0; //Dimension in which exciton populations will be monitored
 	double ydim = 0;
 	double zdim = 0;
-	while (!done)
+
 	{
-		try
+
+		//First need to get correct xml file name
+		// auto xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
+		size_t xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
+
+		string inputXMLPath = file_manager.outputPath + file_manager.resultFolderPath.substr(xmlNamePos, file_manager.outputPath.size() - xmlNamePos) + ".xml";
+
+		rapidxml::xml_document<> doc; //create xml object
+		rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
+		doc.parse<0>(xmlFile.data()); //parse contents of file
+		rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
+
+
+		// DEVICE DIMENSIONS NODE //
+		currNode = currNode->first_node("DeviceDimensions"); //Output folder
+
+		xdim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("xdim")->value()));
+		ydim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("ydim")->value()));
+		zdim = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("zdim")->value()));
+		//incorrect units
+		if (xdim == INT_MIN || ydim == INT_MIN || zdim == INT_MIN)
 		{
-			rapidxml::xml_document<> doc; //create xml object
-			rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
-			doc.parse<0>(xmlFile.data()); //parse contents of file
-			rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
-
-
-			// DEVICE DIMENSIONS NODE //
-			currNode = currNode->first_node("DeviceDimensions"); //Output folder
-
-			xdim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("xdim")->value()));
-			ydim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("ydim")->value()));
-			zdim = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("zdim")->value()));
-			//incorrect units
-			if (xdim == INT_MIN || ydim == INT_MIN || zdim == INT_MIN)
-			{
-				cout << "Error: Incorrect units for device dimensions!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-			//incorrect range
-			else if (xdim <= 0 || ydim <= 0 || zdim <= 0)
-			{
-				cout << "Error: Must enter positive device dimensions!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-
-			cout << "xdim = " << xdim << endl;
-			cout << "ydim = " << ydim << endl;
-			cout << "zdim = " << zdim << endl;
-			// END DEVICE DIMENSIONS NODE //
-
-			//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
-			// to top other corner is included in r range. ymax is not defined so this is intermediate
-			// value. It is changed after CNT initialization.
-			rmax = sqrt(pow(xdim,2)+pow(zdim,2));
-
-			// NUMBER OF EXCITONS NODE //
-			currNode = currNode->next_sibling("numberExcitons"); //to number of excitons
-			numExcitonsAtCont = atoi(currNode->value());
-			if (numExcitonsAtCont <= 0)
-			{
-				cout << "Error: Must have positive number of excitons." << endl;
-				exit(EXIT_FAILURE);
-			}
-			cout << "numExcitonsAtCont = " << numExcitonsAtCont << endl;
-			// END NUMBER OF EXCITONS NODE //
-
-
-			// REGION LENGTH NODE //
-			currNode = currNode->next_sibling("regionLength");
-			regLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
-			if (regLenMin <= 0 || regLenMin > xdim)
-			{
-				cout << "Error: Region length must be positive number!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-			// END REGION LENGTH NODE //
-
-			// SEGMENT LENGTH NODE //
-			currNode = currNode->next_sibling();
-			double segLenTemp = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->value()));
-			if (segLenTemp >= 0)
-			{
-				segLenMin = segLenTemp;
-			}
-			else
-			{
-				printf("Configuration Error: Segment length must be positive number.\n");
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-			// END SEGMENT LENGTH NODE //
-
-			//I want it to be the case that if either segLenMin or regLenMin = 0, then they assume
-			// the value of the other
-			if (segLenMin == 0 && regLenMin != 0)
-			{
-				segLenMin = regLenMin;
-			}
-			else if (segLenMin != 0 && regLenMin == 0)
-			{
-				regLenMin = segLenMin;
-			} 
-			else if (segLenMin == 0 && regLenMin == 0)
-			{
-				regLenMin = segLenMin = 100.0;
-			}
-
-			// SEGMENT SEPARATION //
-			currNode = currNode->next_sibling();
-			double segSepTemp = convertUnits(string(currNode->first_node()->value()),
-				atof(currNode->first_node()->next_sibling()->value()));
-			if (segSepTemp > 0)
-			{
-				maxDist = segSepTemp;
-			}
-			else
-			{
-				printf("Configuration Error: Segment separation must be a positive number.\n");
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-			// END SEGMENT SEPARATION //
-
-			// NUMBER OF TIME STEPS //
-			currNode = currNode->next_sibling();
-			int numTStepsTemp = atoi(currNode->value());
-			if (numTStepsTemp > 0)
-			{
-				numSteps = numTStepsTemp;
-			}
-			else if (numTStepsTemp == 0)
-			{
-				autoComplete = true;
-				numSteps = MAX_T_STEPS;
-			}
-			else
-			{
-				printf("Configuration Error: Must have positive number time steps. 0 steps if auto complete is desired.\n");
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-			// END NUMBER OF TIME STEPS //
-
-
-			// PERCENT FREE FLIGHT TIMES ABOVE DELTA T //
-			currNode = currNode->next_sibling();
-			double perc_tfacTemp = atoi(currNode->value()) / 100.0;
-			if (perc_tfacTemp <= 100 && perc_tfacTemp > 0)
-			{
-				tfac = abs(log(perc_tfacTemp));
-			}
-			else
-			{
-				printf("Configuration Error: Percent of free flight times above delta T must be greater than 0 and less than or equal to 100.\n");
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-			// END PERCENT FREE FLIGHT TIMES ABOVE DELTA T  //
-
-			// AUTO COMPLETE //
-			currNode = currNode->next_sibling()->first_node(); //enabled?
-			//if auto-complete enabled
-			if (!string(currNode->value()).compare("true"))
-			{
-				autoComplete |= true;
-				numSteps = MAX_T_STEPS;
-
-				//to threshold node
-				currNode = currNode->next_sibling();
-				double thresholdTemp = atof(currNode->value());
-				//check for range issues
-				if (threshold > 0.0 && threshold < 1.0)
-				{
-					threshold = thresholdTemp;
-				}
-				else
-				{
-					printf("Configuration Error: Threshold must be value greater than 0 and less than 1.\n");
-					system("pause");
-					exit(EXIT_FAILURE);
-				}
-
-				//to numBelowThresholdNode
-				currNode = currNode->next_sibling();
-				int numToFinishTemp = atoi(currNode->value());
-				if (numToFinishTemp > 0) //input validation
-				{
-					numToFinish = numToFinishTemp;
-				}
-				else
-				{
-					printf("Configuration Error: Number below threshold must be greater than 0.\n");
-					system("pause");
-					exit(EXIT_FAILURE);
-				}
-
-				//to numToAverage
-				currNode = currNode->next_sibling();
-				int numToCheckTemp = atoi(currNode->value());
-				if (numToCheckTemp > 0)
-				{
-					numToCheck = numToCheckTemp;
-				}
-				else
-				{
-					printf("Configuration Error: Number to average must be greater than 0.\n");
-					system("pause");
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			// END AUTO COMPLETE // 
-
-
-			// Will not let me delete, says it is null pointer even though I can get values from it. 
-			//delete currNode; 
-			done = true;
+			cout << "Error: Incorrect units for device dimensions!!!" << endl;
+			exit(EXIT_FAILURE);
 		}
-		catch (runtime_error err)
+		//incorrect range
+		else if (xdim <= 0 || ydim <= 0 || zdim <= 0)
 		{
-			int xmlArrayLength = 260; //Maximum path length for Windows
-			cout << err.what();
-			cout << "\n";
-			cout << "Continue? [y/n]: ";
-			string temp;
-			cin >> temp;
-			if (temp.compare("y") != 0)
+			cout << "Error: Must enter positive device dimensions!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		cout << "xdim = " << xdim << endl;
+		cout << "ydim = " << ydim << endl;
+		cout << "zdim = " << zdim << endl;
+		// END DEVICE DIMENSIONS NODE //
+
+		//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
+		// to top other corner is included in r range. ymax is not defined so this is intermediate
+		// value. It is changed after CNT initialization.
+		rmax = sqrt(pow(xdim,2)+pow(zdim,2));
+
+		// NUMBER OF EXCITONS NODE //
+		currNode = currNode->next_sibling("numberExcitons"); //to number of excitons
+		numExcitonsAtCont = atoi(currNode->value());
+		if (numExcitonsAtCont <= 0)
+		{
+			cout << "Error: Must have positive number of excitons." << endl;
+			exit(EXIT_FAILURE);
+		}
+		cout << "numExcitonsAtCont = " << numExcitonsAtCont << endl;
+		// END NUMBER OF EXCITONS NODE //
+
+
+		// REGION LENGTH NODE //
+		currNode = currNode->next_sibling("regionLength");
+		regLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
+		if (regLenMin <= 0 || regLenMin > xdim)
+		{
+			cout << "Error: Region length must be positive number!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+		// END REGION LENGTH NODE //
+
+		// SEGMENT LENGTH NODE //
+		currNode = currNode->next_sibling("segmentLength");
+		segLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
+		if (segLenMin <= 0)
+		{
+			cout << "Error: Segment length must be positive number!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		cout << "segLenMin = " << segLenMin << endl;
+		// END SEGMENT LENGTH NODE //
+
+		// SEGMENT SEPARATION //
+		currNode = currNode->next_sibling("segmentSeparation");
+		maxDist = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
+		if (maxDist <= 0)
+		{
+			cout << "Error: Segment separation must be a positive number!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+		// END SEGMENT SEPARATION //
+
+		// NUMBER OF TIME STEPS //
+		currNode = currNode->next_sibling("numberTimeSteps");
+		numSteps = atoi(currNode->value());
+		if (numSteps <= 0)
+		{
+			cout << "Error: Must have positive number time steps.!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+		// END NUMBER OF TIME STEPS //
+
+
+		// PERCENT FREE FLIGHT TIMES ABOVE DELTA T //
+		currNode = currNode->next_sibling("percentFreeFlightTimesAboveDeltaT");
+		tfac = atoi(currNode->value()) / 100.0;
+		if (tfac <= 1 && tfac > 0)
+		{
+			tfac = abs(log(tfac));
+		}
+		else
+		{
+			cout << "Error: Percent of free flight times above delta T must be greater than 0 and less than or equal to 100!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+		// END PERCENT FREE FLIGHT TIMES ABOVE DELTA T  //
+
+		// AUTO COMPLETE //
+		currNode = currNode->next_sibling("autoComplete")->first_node("enabled");
+
+		if (string(currNode->value()).compare("true") == 0)
+		{
+			autoComplete = true;
+			numSteps = MAX_T_STEPS;
+
+			currNode = currNode->next_sibling("threshold");
+			threshold = atof(currNode->value());
+			if (threshold < 0.0 || threshold > 1.0)
 			{
-				system("pause");
+				cout << "Configuration Error: Threshold must be value greater than 0 and less than 1!!!" << endl;
 				exit(EXIT_FAILURE);
 			}
-			char *inputXMLPathArray = new char[xmlArrayLength];
-			system("cls");
-			cout << "Enter config xml path (Example in program files directory):\n";
-			cin.ignore();
-			cin.getline(inputXMLPathArray, xmlArrayLength);
-			inputXMLPath = inputXMLPathArray;
-			delete inputXMLPathArray;
+
+			currNode = currNode->next_sibling("numBelowThreshold");
+			numToFinish = atoi(currNode->value());
+			if (numToFinish <= 0) //input validation
+			{
+				cout << "Configuration Error: Number below threshold must be greater than 0!!!" << endl;
+				exit(EXIT_FAILURE);
+			}
+
+			int numToCheck = atoi(currNode->value());
+			if (numToCheck <= 0)
+			{
+				cout << "Configuration Error: Number to average must be greater than 0!!!" << endl;
+				exit(EXIT_FAILURE);
+			}
 		}
+		// END AUTO COMPLETE // 
 	}
+
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	clock_t end = clock();
 	runtime = diffclock(end, start);
-	// ClearScreen();
 	status = getRunStatus(0, 0, runtime, !autoComplete);
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
