@@ -437,8 +437,7 @@ string getRunStatus(double T,double Tmax, double runtime, bool runtimeKnown)
 	{
 		if (T != 0 && Tmax != 0)
 		{
-			ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100))
-				+ "%\n";
+			ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100)) + "%\n";
 		}
 		else
 		{

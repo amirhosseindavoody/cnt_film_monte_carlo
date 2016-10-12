@@ -68,10 +68,10 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// file_manager.resultFolderPath = file_manager.checkPath(file_manager.resultFolderPath, true); //check result folder path
+	////////////////////////////////// INPUT FOLDER ///////////////////////////////
 
-	////////////////////////////////// OUTPUT FOLDERS ///////////////////////////////
 
+	// check if folder or file exists.
 	struct stat buf;
 	if (stat(file_manager.resultFolderPath.c_str(),&buf) != 0)
 	{
@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
 
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
+
 		CNT_List->push_back(CNT(*(it), file_manager.resultFolderPath, segLenMin));
 	}
 
@@ -299,15 +300,16 @@ int main(int argc, char *argv[])
 	{
 		if (!(*it).isInitialized())
 		{
-			cout << "CNT initialization failure.\n";
-			system("pause");
+			cout << "CNT initialization failure!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
 	}
 
+	cout << "the cnts are read correctly!!!" << endl;
+
 	//Set final rmax value
 	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
-	
+
 
 	//@@@@@@@@ TIME UPDATE @@@@@@@@//
 	end = clock();
@@ -317,13 +319,14 @@ int main(int argc, char *argv[])
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
+	// return 0;
+
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
 
-	shared_ptr<vector<double>> rs; //Vector containing range of r's
 	rmax = 100 * ceil(rmax / 100.0);
 	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
 	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
+	shared_ptr<vector<double>> rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
 
 	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
 	// do not forget to use radians

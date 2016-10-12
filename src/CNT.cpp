@@ -49,6 +49,7 @@ in that file.
 CNT::CNT(const string fileName, const string folderPath, double segLen)
 {
 	string filePath = folderPath + "/" + fileName;
+
 	regex rgx("\\d+"); //basic_regex instantiation of type char
 	{
 		//Extract the tube number from the file path
@@ -64,9 +65,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		//Cannot extract CNT number from file name.
 		else
 		{
-			cout << "Error: Incorrect file names. File names should look like \"CNT_Num_x.csv\""
-				" where\n \'x\' is a decimal number.\n";
-			system("pause");
+			cout << "Error: Incorrect file names. File names should look like \"CNT_Num_x.csv\"" << " where\n \'x\' is a decimal number.\n";
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -77,8 +76,7 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	//Checks if file is open and readable
 	if (!file.good())
 	{
-		cout << "Cannot read " + fileName + "\n";
-		system("pause");
+		cout << "Cannot read " << fileName << endl;
 		exit(EXIT_FAILURE);
 	}
 	//Can now read the file
@@ -87,32 +85,26 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	//Chirality, first line//
 	getline(file, temp, '\n');
 	{
-		istringstream ss(temp);
-		string chir = " ";
-		getline(ss, chir, ',');
-		getline(ss, chir, ',');
+		std::string::size_type n = temp.find(",");
+		if (n == std::string::npos)
+		{
+			cout << "Error in reading CNT chirality!!!" << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		temp = temp.substr(n+1);
+		temp.erase(temp.size()-1);
 		rgx.assign("(\\d+)(\\s+)(\\d+)");
 		smatch matches; //match_results for string objects
-		regex_match(chir, matches, rgx);
+		regex_match(temp, matches, rgx);
 		if (!matches.empty())
 		{
-			try{
-				n = stoi(matches[1]);
-				m = stoi(matches[3]);
-			} 
-			catch (runtime_error err)
-			{
-				cout << err.what();
-				cout << "\n";
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
+			n = stoi(matches[1]);
+			m = stoi(matches[3]);
 		}
-		//cannot extract chirality 
 		else
 		{
-			cout << "Error: Cannot extract chirality.\n";
-			system("pause");
+			cout << "Error: Cannot extract chirality!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -120,81 +112,59 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	//CNT Length, second line
 	getline(file, temp, '\n');
 	{
-		istringstream ss(temp);
-		string len_string = " ";
-		getline(ss, len_string, ',');
-		getline(ss, len_string, ',');
-		try
+		std::string::size_type n = temp.find(",");
+		if (n == std::string::npos)
 		{
-			length = stod(len_string);
-		}
-		catch (runtime_error err)
-		{
-			cout << err.what();
-			cout << "\n";
-			system("pause");
+			cout << "Error in reading CNT chirality!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
+		temp = temp.substr(n+1);
+		
+		length = stod(temp);
 	}
 
 	//Cylinder height, third line
 	getline(file, temp, '\n');
 	{
-		istringstream ss(temp);
-		string cyl_string = " ";
-		getline(ss, cyl_string, ',');
-		getline(ss, cyl_string, ',');
-		try
+		std::string::size_type n = temp.find(",");
+		if (n == std::string::npos)
 		{
-			cylinderHeight = stod(cyl_string);
-		}
-		catch (runtime_error err)
-		{
-			cout << err.what();
-			cout << "\n";
-			system("pause");
+			cout << "Error in reading CNT chirality!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
+		temp = temp.substr(n+1);
+
+		cylinderHeight = stod(temp);
 	}
 
 	//Intertube spacing, fourth line
 	getline(file, temp, '\n');
 	{
-		istringstream ss(temp);
-		string tube_space_string = " ";
-		getline(ss, tube_space_string, ',');
-		getline(ss, tube_space_string, ',');
-		try
+		std::string::size_type n = temp.find(",");
+		if (n == std::string::npos)
 		{
-			minSpacing = stod(tube_space_string);
-		}
-		catch (runtime_error err)
-		{
-			cout << err.what();
-			cout << "\n";
-			system("pause");
+			cout << "Error in reading CNT chirality!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
+		temp = temp.substr(n+1);
+
+		minSpacing = stod(temp);
+
 	}
 	
 	//intercylinder spacing, fifth line
 	getline(file, temp, '\n');
 	{
-		istringstream ss(temp);
-		string cyl_space_string = " ";
-		getline(ss, cyl_space_string, ',');
-		getline(ss, cyl_space_string, ',');
-		try
+		std::string::size_type n = temp.find(",");
+		if (n == std::string::npos)
 		{
-			tubeSeparation = stod(cyl_space_string);
-		}
-		catch (runtime_error err)
-		{
-			cout << err.what();
-			cout << "\n";
-			system("pause");
+			cout << "Error in reading CNT chirality!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
+		temp = temp.substr(n+1);
+
+		tubeSeparation = stod(temp);
+
 	}
 	
 	//Now that all parameters are extracted, calculate diameter
@@ -240,27 +210,17 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		}
 		
 		//Grab all of the position data
-		try
-		{
-			istringstream ss(temp);
-			getline(ss, currPos, ',');
-			positions[0][i] = stod(currPos);
-			getline(ss, currPos, ',');
-			double y = stod(currPos);
-			if (y > ymax){ ymax = y; }
-			positions[1][i] = y;
-			getline(ss, currPos, ',');
-			positions[2][i] = stod(currPos);
-		} 
-		catch (runtime_error err)
-		{
-			cout << err.what();
-			cout << "\n";
-			system("pause");
-			exit(EXIT_FAILURE);
-		}
-
+		istringstream ss(temp);
+		getline(ss, currPos, ',');
+		positions[0][i] = stod(currPos);
+		getline(ss, currPos, ',');
+		double y = stod(currPos);
+		if (y > ymax){ ymax = y; }
+		positions[1][i] = y;
+		getline(ss, currPos, ',');
+		positions[2][i] = stod(currPos);
 	}
+	
 	//Calculate the segments needed for table generation
 	segs = calculateSegments(segLen);
 
@@ -270,7 +230,6 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		cout << "Error: No segments calculated for tube number: ";
 		cout << cntNum;
 		cout << "\n";
-		system("pause");
 		exit(EXIT_FAILURE);
 	}
 
@@ -401,21 +360,21 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 	//parameter check
 	if (length < segLenMin)
 	{
-		cout << "Error: Tube length is smaller than minimum segment length.\n";
-		system("pause");
+		cout << "Error: Tube length is smaller than minimum segment length!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 	else if (segLenMin <= 0)
 	{
-		cout << "Error: Minimum segment length must be positive.\n";
-		system("pause");
+		cout << "Error: Minimum segment length must be positive!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
+
 	//number of segments to use
 	int numSegs = static_cast<int>( length / segLenMin); 
 	//extra length past numSegs*segLenMin, important for expanding segLen
 	double extra = length - segLenMin*numSegs;
-	//The equally lengthed segment lengths, half the length of total segment
+	//The equally lengthed segment lengths
+	// half the length of total segment
 	double segLen = (segLenMin + extra / numSegs) / 2.0;
 
 	//return value for the function
@@ -463,8 +422,7 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 		extra = segLen - currLen;
 		if (extra < 0)
 		{
-			cout << "Calculation of segments failed due to negative extra parameter.\n";
-			system("pause");
+			cout << "Calculation of segments failed due to negative extra parameter!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
 		currPos = calcEndPt(i, extra);
@@ -496,7 +454,6 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 			if (extra < 0)
 			{
 				cout << "Calculation of segments failed due to negative extra parameter.\n";
-				system("pause");
 				exit(EXIT_FAILURE);
 			}
 			firstPos = calcEndPt(i, extra);
@@ -514,7 +471,6 @@ shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
 	if (!(currSeg == numSegs))
 	{
 		cout << "Error: Number of calculated segments not as expected.\n";
-		system("pause");
 		exit(EXIT_FAILURE);
 	}
 
@@ -526,8 +482,7 @@ Vector3d CNT::getPoint(int idx)
 	Vector3d retVec;
 	if (idx < 0 || idx > numPt - 1)
 	{
-		cout << "Invalid index used to access CNT position data.\n";
-		system("pause");
+		cout << "Invalid index used to access CNT position data!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 	
@@ -543,8 +498,7 @@ Vector3d CNT::calcEndPt(int idx, double extra)
 	Vector3d retVec;
 	if (idx < 0 || idx > numPt - 1)
 	{
-		cout << "Invalid index used to access CNT position data.\n";
-		system("pause");
+		cout << "Invalid index used to access CNT position data!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -560,8 +514,7 @@ Vector3d CNT::calcFinalEndPt(int idx)
 	Vector3d retVec;
 	if (idx < 0 || idx > numPt)
 	{
-		cout << "Invalid index used to access CNT position data.\n";
-		system("pause");
+		cout << "Invalid index used to access CNT position data!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 
