@@ -16,6 +16,10 @@ Stores all relevant information for a carbon nanotube
 #include <fstream>
 #include <sstream>
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_vector.h>
+
 //Global variable
 extern double ymax;
 
@@ -35,7 +39,7 @@ CNT::CNT()
 	minSpacing = 0;
 	diameter = 0;
 	cntNum = 0;
-	numPt = 0;
+	number_of_points = 0;
 	positions = vector<vector<double>>(3);
 
 }
@@ -46,7 +50,7 @@ in that file.
 @param filePath The path of the file containing the CNT info
 @return CNT Object
 */
-CNT::CNT(const string fileName, const string folderPath, double segLen)
+CNT::CNT(const string fileName, const string folderPath, double segment_length)
 {
 	string filePath = folderPath + "/" + fileName;
 
@@ -174,22 +178,20 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 	getline(file, temp, '\n');
 
 	//Counting line loop
-	int posNum = -1; //count of positions, negative b/c while loop exits
+	number_of_points = -1; //count of positions, negative b/c while loop exits
 						//after going an extra line
 	while (!file.eof())
 	{
 		getline(file, temp,'\n');
-		posNum++;
+		number_of_points++;
 	} 
-	numPt = posNum; //assign count to instance variable
-	//With posNum defined, can initialize the positions array
+
 	positions = vector<vector<double>>(3);
 	for (int i = 0; i < 3; i++)
 	{
-		positions[i].resize(posNum);
+		positions[i].resize(number_of_points);
 	}
 
-	//Position arrays have been defined. Restart file and go to positions again
 	file.clear(); //reset state flags
 	file.seekg(0); //move to beginning of file
 	//move to correct line to start position parsing
@@ -198,12 +200,14 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		getline(file, temp, '\n');
 	}
 
-	string currPos = " ";
-	for (int i = 0; i < posNum && file.good(); i++)
+	
+	for (int i = 0; i < number_of_points && file.good(); i++)
 	{
-		//get next line
+
+		string tmp_string = " ";
+
 		getline(file, temp, '\n');
-		//check if we're done
+		
 		if (file.eof())
 		{
 			break;
@@ -211,21 +215,21 @@ CNT::CNT(const string fileName, const string folderPath, double segLen)
 		
 		//Grab all of the position data
 		istringstream ss(temp);
-		getline(ss, currPos, ',');
-		positions[0][i] = stod(currPos);
-		getline(ss, currPos, ',');
-		double y = stod(currPos);
+		getline(ss, tmp_string, ',');
+		positions[0][i] = stod(tmp_string);
+		getline(ss, tmp_string, ',');
+		double y = stod(tmp_string);
 		if (y > ymax){ ymax = y; }
 		positions[1][i] = y;
-		getline(ss, currPos, ',');
-		positions[2][i] = stod(currPos);
+		getline(ss, tmp_string, ',');
+		positions[2][i] = stod(tmp_string);
 	}
 	
 	//Calculate the segments needed for table generation
-	segs = calculateSegments(segLen);
+	calculate_segments(segment_length);
 
 	//Checks to see if some segments were calculated
-	if (segs->empty())
+	if (segments->empty())
 	{
 		cout << "Error: No segments calculated for tube number: ";
 		cout << cntNum;
@@ -349,178 +353,278 @@ bool CNT::isInitialized()
 	return initialized;
 }
  
+// /**
+// Calculates the segments used for the MC simulations
+
+// @param segment_length The desired length of the segments
+// @return Vector of the segments
+// */
+// shared_ptr<vector<shared_ptr<segment>>> CNT::calculate_segments(double segLenMin)
+// {
+// 	//parameter check
+// 	if (length < segLenMin)
+// 	{
+// 		cout << "Error: Tube length is smaller than minimum segment length!!!" << endl;
+// 		exit(EXIT_FAILURE);
+// 	}
+// 	else if (segLenMin <= 0)
+// 	{
+// 		cout << "Error: Minimum segment length must be positive!!!" << endl;
+// 		exit(EXIT_FAILURE);
+// 	}
+
+// 	//number of segments to use
+// 	int numSegs = static_cast<int>( length / segLenMin); 
+// 	//extra length past numSegs*segLenMin, important for expanding segment_length
+// 	double extra = length - segLenMin*numSegs;
+// 	//The equally lengthed segment lengths
+// 	// half the length of total segment
+// 	double segment_length = (segLenMin + extra / numSegs) / 2.0;
+
+// 	//return value for the function
+// 	shared_ptr<vector<shared_ptr<segment>>> retVec(new vector<shared_ptr<segment>>(numSegs));
+// 	//Must initialize the shared_ptrs in the return vector
+// 	for (int i = 0; i < numSegs; i++)
+// 	{
+// 		segment initSeg;
+// 		(*retVec)[i] = make_shared<segment>(initSeg);
+// 	}
+
+// 	//create a starting position for the segments and set it to first point
+// 	Vector3d firstPos = calcEndPt(0, -cylinderHeight/2.0);
+
+// 	//Length that has been covered since the end of the previous section
+// 	double currLen = 0;
+// 	int currSeg = 0;
+// 	bool finalSeg = false;
+// 	//double segLenDeb = 0; //Debug parameter for total segment length checking
+// 	//calculate the rest of the points for the remaining segments
+// 	for (int i = 0; i < number_of_points && currSeg < numSegs; i++)
+// 	{
+// 		//need to initialize the tbl vector otherwise nothing can be assigned to it
+// 		((*retVec)[currSeg])->tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
+// 		((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
+// 		((*retVec)[currSeg])->segNum = currSeg;
+		
+// 		((*retVec)[currSeg])->p1 = firstPos;
+// 		Vector3d currPos = firstPos; //curr point being analyzed
+// 		Vector3d nextPos; //next curr point to be analyzed
+// 		double currSecLen = 0; //amount of space between currPos and nextPos
+// 		//segLenDeb = 0;
+// 		while (currLen < segment_length)
+// 		{
+// 			nextPos = getPoint(i); //get next point
+// 			currSecLen = (currPos - nextPos).norm();
+// 			currLen += currSecLen;//add length due to point to curLen
+// 			//segLenDeb += currSecLen;
+// 			currPos = getPoint(i); //set up for next iteration
+// 			i++; //move to next point
+// 		}
+// 		i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
+// 		currLen -= currSecLen; //take off last addition
+// 		//segLenDeb -= currSecLen;
+// 		extra = segment_length - currLen;
+// 		if (extra < 0)
+// 		{
+// 			cout << "Calculation of segments failed due to negative extra parameter!!!" << endl;
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		currPos = calcEndPt(i, extra);
+// 		//segLenDeb += (currPos - getPoint(i)).norm();
+// 		((*retVec)[currSeg])->mid = currPos;
+// 		i++;
+
+// 		currLen = 0; //reset the current seg length
+// 		while (currLen < segment_length)
+// 		{
+// 			nextPos = getPoint(i); //get next point
+// 			currSecLen = (currPos - nextPos).norm();
+// 			currLen += currSecLen;//add length due to point to curLen
+// 			//segLenDeb += currSecLen;
+// 			currPos = getPoint(i); //set up for next iteration
+// 			i++; //move to next point
+// 			if (i == number_of_points) //checking for final point, ==number_of_points because of i++
+// 			{
+// 				finalSeg = true;
+// 				break;
+// 			}
+// 		}
+// 		//proceed as usual if not the final segment
+// 		if (!finalSeg){
+// 			i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
+// 			currLen -= currSecLen; //take off last addition
+// 			//segLenDeb -= currSecLen;
+// 			extra = segment_length - currLen;
+// 			if (extra < 0)
+// 			{
+// 				cout << "Calculation of segments failed due to negative extra parameter.\n";
+// 				exit(EXIT_FAILURE);
+// 			}
+// 			firstPos = calcEndPt(i, extra);
+// 			//segLenDeb += (firstPos - getPoint(i)).norm();
+// 			((*retVec)[currSeg])->p2 = firstPos;
+// 			currLen = 0;
+// 		} 
+// 		else //final segment needs to 
+// 		{
+// 			((*retVec)[currSeg])->p2 = calcFinalEndPt(i);
+// 		}
+// 		currSeg++;
+// 	}
+
+// 	if (!(currSeg == numSegs))
+// 	{
+// 		cout << "Error: Number of calculated segments not as expected.\n";
+// 		exit(EXIT_FAILURE);
+// 	}
+
+// 	return retVec;
+// }
+
+// Vector3d CNT::getPoint(int idx)
+// {
+// 	Vector3d retVec;
+// 	if (idx < 0 || idx > number_of_points - 1)
+// 	{
+// 		cout << "Invalid index used to access CNT position data!!!" << endl;
+// 		exit(EXIT_FAILURE);
+// 	}
+	
+// 	retVec(0, 0) = positions[0][idx];
+// 	retVec(1, 0) = positions[1][idx];
+// 	retVec(2, 0) = positions[2][idx];
+
+// 	return retVec;
+// }
+
+// Vector3d CNT::calcEndPt(int idx, double extra)
+// {
+// 	Vector3d retVec;
+// 	if (idx < 0 || idx > number_of_points - 1)
+// 	{
+// 		cout << "Invalid index used to access CNT position data!!!" << endl;
+// 		exit(EXIT_FAILURE);
+// 	}
+
+// 	Vector3d r1 = getPoint(idx);
+// 	Vector3d slope = getPoint(idx+1) - r1;
+// 	//calculations checked and are correct
+// 	retVec = r1 + slope*(2*extra / (cylinderHeight + tubeSeparation));
+// 	return retVec;
+// }
+
+// Vector3d CNT::calcFinalEndPt(int idx)
+// {
+// 	Vector3d retVec;
+// 	if (idx < 0 || idx > number_of_points)
+// 	{
+// 		cout << "Invalid index used to access CNT position data!!!" << endl;
+// 		exit(EXIT_FAILURE);
+// 	}
+
+// 	Vector3d r1 = getPoint(idx-1);
+// 	Vector3d slope = r1 - getPoint(idx - 2);
+// 	//calculations checked and are correct
+// 	retVec = r1 + slope*(cylinderHeight / (cylinderHeight + tubeSeparation));
+// 	return retVec;
+// }
+
 /**
 Calculates the segments used for the MC simulations
 
-@param segLen The desired length of the segments
+@param segment_length The desired length of the segments
 @return Vector of the segments
 */
-shared_ptr<vector<shared_ptr<segment>>> CNT::calculateSegments(double segLenMin)
+void CNT::calculate_segments(double segment_length)
 {
 	//parameter check
-	if (length < segLenMin)
+	if (length < segment_length)
 	{
 		cout << "Error: Tube length is smaller than minimum segment length!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
-	else if (segLenMin <= 0)
+	else if (segment_length <= 0)
 	{
 		cout << "Error: Minimum segment length must be positive!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	//number of segments to use
-	int numSegs = static_cast<int>( length / segLenMin); 
-	//extra length past numSegs*segLenMin, important for expanding segLen
-	double extra = length - segLenMin*numSegs;
-	//The equally lengthed segment lengths
-	// half the length of total segment
-	double segLen = (segLenMin + extra / numSegs) / 2.0;
+	segments = make_shared<vector<shared_ptr<segment>>>();
 
-	//return value for the function
-	shared_ptr<vector<shared_ptr<segment>>> retVec(new vector<shared_ptr<segment>>(numSegs));
-	//Must initialize the shared_ptrs in the return vector
-	for (int i = 0; i < numSegs; i++)
+	double chisq;
+	gsl_matrix *X, *cov;
+	gsl_vector *y, *c;
+	gsl_multifit_linear_workspace *work;
+
+	gsl_vector *first_point;
+	gsl_vector *second_point;
+
+
+	double current_length = 0.;
+
+	int first_idx, second_idx;
+
+	first_idx = 0;
+
+	for (int i = 0; i<number_of_points-1; i++)
 	{
-		segment initSeg;
-		(*retVec)[i] = make_shared<segment>(initSeg);
-	}
 
-	//create a starting position for the segments and set it to first point
-	Vector3d firstPos = calcEndPt(0, -cylinderHeight/2.0);
+		gsl_vector *my_vector = gsl_vector_alloc(3);
 
-	//Length that has been covered since the end of the previous section
-	double currLen = 0;
-	int currSeg = 0;
-	bool finalSeg = false;
-	//double segLenDeb = 0; //Debug parameter for total segment length checking
-	//calculate the rest of the points for the remaining segments
-	for (int i = 0; i < numPt && currSeg < numSegs; i++)
-	{
-		//need to initialize the tbl vector otherwise nothing can be assigned to it
-		((*retVec)[currSeg])->tbl = make_shared<vector<tableElem>>(vector<tableElem>(0));
-		((*retVec)[currSeg])->rateVec = make_shared<vector<double>>(vector<double>(0));
-		((*retVec)[currSeg])->segNum = currSeg;
-		
-		((*retVec)[currSeg])->p1 = firstPos;
-		Vector3d currPos = firstPos; //curr point being analyzed
-		Vector3d nextPos; //next curr point to be analyzed
-		double currSecLen = 0; //amount of space between currPos and nextPos
-		//segLenDeb = 0;
-		while (currLen < segLen)
+		for (int dim = 0; dim < 3; dim++)
 		{
-			nextPos = getPoint(i); //get next point
-			currSecLen = (currPos - nextPos).norm();
-			currLen += currSecLen;//add length due to point to curLen
-			//segLenDeb += currSecLen;
-			currPos = getPoint(i); //set up for next iteration
-			i++; //move to next point
+			gsl_vector_set(my_vector, dim, positions[dim][i]-positions[dim][i+1]);
 		}
-		i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
-		currLen -= currSecLen; //take off last addition
-		//segLenDeb -= currSecLen;
-		extra = segLen - currLen;
-		if (extra < 0)
+
+
+		double tmp_double = gsl_blas_dnrm2(my_vector);
+		if (tmp_double > segment_length)
 		{
-			cout << "Calculation of segments failed due to negative extra parameter!!!" << endl;
+			cout << "segment_length is too small for current CNT spine mesh!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
-		currPos = calcEndPt(i, extra);
-		//segLenDeb += (currPos - getPoint(i)).norm();
-		((*retVec)[currSeg])->mid = currPos;
-		i++;
+		current_length += tmp_double;
 
-		currLen = 0; //reset the current seg length
-		while (currLen < segLen)
+
+		if (current_length > segment_length)
 		{
-			nextPos = getPoint(i); //get next point
-			currSecLen = (currPos - nextPos).norm();
-			currLen += currSecLen;//add length due to point to curLen
-			//segLenDeb += currSecLen;
-			currPos = getPoint(i); //set up for next iteration
-			i++; //move to next point
-			if (i == numPt) //checking for final point, ==numPt because of i++
+			second_idx = i+1;
+			int n = second_idx-first_idx;
+
+			X = gsl_matrix_alloc (n, 3);
+			y = gsl_vector_alloc (n);
+			c = gsl_vector_alloc (3);
+			cov = gsl_matrix_alloc (3, 3);
+			work = gsl_multifit_linear_alloc (n, 3);
+
+			for (int j = 0; j<n; j++)
 			{
-				finalSeg = true;
-				break;
+				gsl_matrix_set(X, j, 0, 1.0);
+				gsl_matrix_set(X, j, 1, positions[0][j+first_idx]);
+				gsl_matrix_set(X, j, 2, positions[1][j+first_idx]);
+				gsl_vector_set(y, j, positions[2][j+first_idx]);
 			}
+			gsl_multifit_linear(X, y, c, cov, &chisq, work);
 		}
-		//proceed as usual if not the final segment
-		if (!finalSeg){
-			i -= 2; //i incremented at end of while and prev inc was too much, so move back 2
-			currLen -= currSecLen; //take off last addition
-			//segLenDeb -= currSecLen;
-			extra = segLen - currLen;
-			if (extra < 0)
-			{
-				cout << "Calculation of segments failed due to negative extra parameter.\n";
-				exit(EXIT_FAILURE);
-			}
-			firstPos = calcEndPt(i, extra);
-			//segLenDeb += (firstPos - getPoint(i)).norm();
-			((*retVec)[currSeg])->p2 = firstPos;
-			currLen = 0;
-		} 
-		else //final segment needs to 
-		{
-			((*retVec)[currSeg])->p2 = calcFinalEndPt(i);
-		}
-		currSeg++;
+
+		gsl_vector_free (my_vector);
 	}
 
-	if (!(currSeg == numSegs))
-	{
-		cout << "Error: Number of calculated segments not as expected.\n";
-		exit(EXIT_FAILURE);
-	}
+	cout << "current_length = " << current_length << "    length = " << length << endl;
 
-	return retVec;
+	exit(EXIT_SUCCESS);
+
 }
 
-Vector3d CNT::getPoint(int idx)
+gsl_vector* CNT::get_position(int n)
 {
-	Vector3d retVec;
-	if (idx < 0 || idx > numPt - 1)
-	{
-		cout << "Invalid index used to access CNT position data!!!" << endl;
-		exit(EXIT_FAILURE);
-	}
-	
-	retVec(0, 0) = positions[0][idx];
-	retVec(1, 0) = positions[1][idx];
-	retVec(2, 0) = positions[2][idx];
+	gsl_vector* position_vector = gsl_vector_alloc(3);
 
-	return retVec;
-}
-
-Vector3d CNT::calcEndPt(int idx, double extra)
-{
-	Vector3d retVec;
-	if (idx < 0 || idx > numPt - 1)
+	for (int dim = 0; dim < 3; dim++)
 	{
-		cout << "Invalid index used to access CNT position data!!!" << endl;
-		exit(EXIT_FAILURE);
+		gsl_vector_set(position_vector, dim, positions[dim][n]);
 	}
 
-	Vector3d r1 = getPoint(idx);
-	Vector3d slope = getPoint(idx+1) - r1;
-	//calculations checked and are correct
-	retVec = r1 + slope*(2*extra / (cylinderHeight + tubeSeparation));
-	return retVec;
-}
+	return position_vector;
 
-Vector3d CNT::calcFinalEndPt(int idx)
-{
-	Vector3d retVec;
-	if (idx < 0 || idx > numPt)
-	{
-		cout << "Invalid index used to access CNT position data!!!" << endl;
-		exit(EXIT_FAILURE);
-	}
-
-	Vector3d r1 = getPoint(idx-1);
-	Vector3d slope = r1 - getPoint(idx - 2);
-	//calculations checked and are correct
-	retVec = r1 + slope*(cylinderHeight / (cylinderHeight + tubeSeparation));
-	return retVec;
 }

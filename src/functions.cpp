@@ -111,7 +111,7 @@ void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exc
 	//   region location
 	#pragma omp critical
 	(*currCount)[getIndex(regionBdr,
-		((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)))]++;
+		((*(*CNT_List)[exciton->getCNTidx()].segments)[exciton->getSegidx()]->mid(0)))]++;
 }
 
 /**
@@ -126,7 +126,7 @@ bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>
 	shared_ptr<vector<CNT>> CNT_List)
 {
 	//If x component is creater than the second to last index of regionBdr, then it is in the output
-	return (((*(*CNT_List)[exciton->getCNTidx()].segs)[exciton->getSegidx()]->mid(0)) 
+	return (((*(*CNT_List)[exciton->getCNTidx()].segments)[exciton->getSegidx()]->mid(0)) 
 					>= ((*regionBdr)[regionBdr->size() - 2]));
 }
 
@@ -163,7 +163,7 @@ Assigns the specified exciton to the next state in the simulation.
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr)
 {
 	//Segment the current exciton is located on
-	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segs))[e->getSegidx()];
+	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segments))[e->getSegidx()];
 	//Get the table index for the
 	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
 	//stores information about the excitons destination
@@ -193,7 +193,7 @@ void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
 		//segment index
 		int j = 0; 
 		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
 		{
 			double currGam = (*segit)->rateVec->back();
 			if (maxGam > currGam)
@@ -281,7 +281,7 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 	{
 		int j = 0; //segment index counter
 		//iterate over all segments considered for seg
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
 		{
 			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
 			auto theta = tableElem::calcThet(seg, segit);

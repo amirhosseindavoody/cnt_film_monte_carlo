@@ -11,14 +11,12 @@ class file_management
 	public:
 		file_management();
 		~file_management();
-		
-		string folderPathPrompt(bool incorrect);
-		string checkPath(string path, bool folder);
-		string xmlFilePathPrompt(bool incorrect);
 
+		// string resultFolderPath;
+		// string outputPath;
 
-		string resultFolderPath;
-		string outputPath;
+		string input_directory;
+		string output_directory;
 		
 };
 

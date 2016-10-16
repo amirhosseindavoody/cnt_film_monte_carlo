@@ -20,6 +20,10 @@ Purpose: Header for CNT.cpp
 #include "tableElem.h"
 #include "segment.h"
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_vector.h>
+
 
 using namespace std;
 using namespace Eigen;
@@ -41,14 +45,16 @@ class CNT
 	int cntNum; //The number associated with the cnt
 	vector<vector<double>> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
-	int numPt; // the number of points in the csv file
+	int number_of_points; // the number of points in the csv file
 
 private:
 	void setDiameter(int n, int m);
-	shared_ptr<vector<shared_ptr<segment>>> calculateSegments(double segLen);
+	void calculate_segments(double segLen);
 	Vector3d getPoint(int idx);
 	Vector3d calcEndPt(int idx, double extra);
 	Vector3d calcFinalEndPt(int idx);
+
+	gsl_vector* get_position(int n);
 
 public:
 	CNT();
@@ -62,7 +68,7 @@ public:
 	int getn();
 	int getCNTNum();
 	bool isInitialized();
-	shared_ptr<vector<shared_ptr<segment>>> segs; //The sections of the CNT used to create the MC tables
+	shared_ptr<vector<shared_ptr<segment>>> segments; //The sections of the CNT used to create the MC tables
 };
 
 #endif

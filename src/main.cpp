@@ -18,9 +18,11 @@
 #include <regex>
 #include <omp.h>
 #include <stdint.h>
+#include <unistd.h> // used for changing the working directory in the program: chdir
 
 #include "file_management.h"
 #include "functions.h"
+#include "write_log.h"
 
 
 using namespace std;
@@ -37,8 +39,8 @@ int main(int argc, char *argv[])
 	// unsigned int NUM_THREADS = omp_get_max_threads();
 	string status;
 	//Varible initialization
-	double segLenMin = 100.0; //[Angstroms]
-	double regLenMin = segLenMin;
+	double segment_length = 100.0; //[Angstroms]
+	double regLenMin = segment_length;
 	double runtime;
 	int numSteps = 10000; //number of deltaT's the simulation runs if the user specifies
 	double maxDist = 300; //[Angstroms] The maximum segment separation to be considered for exciton transfer
@@ -60,26 +62,46 @@ int main(int argc, char *argv[])
 
 	if (argc == 2)
 	{
-		file_manager.resultFolderPath = argv[1];
+		file_manager.input_directory = argv[1];
+		// int rc = chdir(file_manager.input_directory.c_str());
+		// if (rc < 0)
+		// {
+		// 	cout << "unable to change the output directory!!!" << endl;
+		// 	exit(EXIT_FAILURE);
+		// }
 	}
 	else
 	{
-		cout << "Error: Path of results folder must be entered!!!" << endl;;
+		cout << "input directory must be entered as an argument!!!" << endl;;
 		exit(EXIT_FAILURE);
 	}
+
+
+	// string log_input = "test!!!!";
+	// cout << log_input << endl;
+	// write_log(2);
+
+	// return 0;
 
 	////////////////////////////////// INPUT FOLDER ///////////////////////////////
 
 
 	// check if folder or file exists.
 	struct stat buf;
-	if (stat(file_manager.resultFolderPath.c_str(),&buf) != 0)
+	if (stat(file_manager.input_directory.c_str(),&buf) != 0)
 	{
 		cout << "Error: incorrect result directory path!!!" << endl;;
 		exit(EXIT_FAILURE);
 	}
 
-	file_manager.outputPath = file_manager.resultFolderPath + "/"; 
+	{
+		char last_char = file_manager.input_directory.at(file_manager.input_directory.size()-1);
+		if (last_char != '/')
+		{
+			file_manager.input_directory.push_back('/');
+		}
+		cout << file_manager.input_directory << endl;
+	}
 
 	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
 	// This next block creates a list of files in the directory chosen to be looked at.
@@ -91,7 +113,7 @@ int main(int argc, char *argv[])
 	regex rgx("CNT_Num_\\d+\\.csv"); //files we want to look through
 
 	//Check if folder can be opened - should work due to above checks
-	if ((resDir = opendir(file_manager.resultFolderPath.c_str())) != nullptr)
+	if ((resDir = opendir(file_manager.input_directory.c_str())) != nullptr)
 	{
 		//throw away first two results as they are . and ..
 		readdir(resDir);
@@ -128,11 +150,7 @@ int main(int argc, char *argv[])
 
 	{
 
-		//First need to get correct xml file name
-		// auto xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
-		size_t xmlNamePos = file_manager.resultFolderPath.rfind('/', file_manager.resultFolderPath.size() - 1) + 1;
-
-		string inputXMLPath = file_manager.outputPath + file_manager.resultFolderPath.substr(xmlNamePos, file_manager.outputPath.size() - xmlNamePos) + ".xml";
+		string inputXMLPath = file_manager.input_directory + "input.xml";
 
 		rapidxml::xml_document<> doc; //create xml object
 		rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
@@ -140,8 +158,13 @@ int main(int argc, char *argv[])
 		rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
 
 
+		currNode = currNode->first_node("outputDirectory");
+		file_manager.output_directory = currNode->value();
+
+		cout << "output_directory = " << file_manager.output_directory << endl;
+
 		// DEVICE DIMENSIONS NODE //
-		currNode = currNode->first_node("DeviceDimensions"); //Output folder
+		currNode = currNode->next_sibling("DeviceDimensions"); //Output folder
 
 		xdim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("xdim")->value()));
 		ydim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("ydim")->value()));
@@ -193,14 +216,14 @@ int main(int argc, char *argv[])
 
 		// SEGMENT LENGTH NODE //
 		currNode = currNode->next_sibling("segmentLength");
-		segLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
-		if (segLenMin <= 0)
+		segment_length = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
+		if (segment_length <= 0)
 		{
 			cout << "Error: Segment length must be positive number!!!" << endl;
 			exit(EXIT_FAILURE);
 		}
 
-		cout << "segLenMin = " << segLenMin << endl;
+		cout << "segment_length = " << segment_length << endl;
 		// END SEGMENT LENGTH NODE //
 
 		// SEGMENT SEPARATION //
@@ -279,12 +302,14 @@ int main(int argc, char *argv[])
 	cout << status << endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
+	return 0;
+
 	/*
 	This section creates the list of CNTs with all of the relevant information provided in their
 	respective files getting processed.
 	*/
 
-	//////////////////////////// BUILD CNT AND SEGS //////////////////////////////////////////
+	//////////////////////////// BUILD CNT AND SEGMENTS //////////////////////////////////////////
 
 	//Iterate through the files and extract
 	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
@@ -292,7 +317,7 @@ int main(int argc, char *argv[])
 	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
 	{
 
-		CNT_List->push_back(CNT(*(it), file_manager.resultFolderPath, segLenMin));
+		CNT_List->push_back(CNT(*(it), file_manager.input_directory, segment_length));
 	}
 
 	//Extra check to ensure that all initilizations were successful
@@ -375,7 +400,7 @@ int main(int argc, char *argv[])
 	{
 		double newGamma;
 		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segs->begin(); segit != cntit->segs->end(); ++segit)
+		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
 		{
 			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
@@ -403,7 +428,7 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// OUTPUT SEG COUNT PER REGION //////////////////////////////////////
 
-	string segmentCountFileName = file_manager.outputPath + "segmentCountPerRegion.csv";
+	string segmentCountFileName = file_manager.output_directory + "segmentCountPerRegion.csv";
 	ofstream segmentCountFile;
 	segmentCountFile.open(segmentCountFileName);
 	segmentCountFile << (*segCountPerReg)[0];
@@ -416,7 +441,7 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
 
-	string heatMapFileName = file_manager.outputPath + "heatMap.csv";
+	string heatMapFileName = file_manager.output_directory + "heatMap.csv";
 	ofstream heatMapFile;
 	heatMapFile.open(heatMapFileName);
 	//iterate through all of the rs and then thetas while printing to file
@@ -464,7 +489,7 @@ int main(int argc, char *argv[])
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
 
 	//File output initializations
-	string excitonDistFileName = file_manager.outputPath + "excitonDist.csv";
+	string excitonDistFileName = file_manager.output_directory + "excitonDist.csv";
 	shared_ptr<ofstream> excitonDistFile(new ofstream);
 	excitonDistFile->open(excitonDistFileName);
 
@@ -592,7 +617,7 @@ int main(int argc, char *argv[])
 	uint64_t numTSteps = static_cast<uint64_t>(T / deltaT);
 
 	//Write helper information
-	writeExcitonDistSupportingInfo(file_manager.outputPath, numExcitonsAtCont, Tmax, deltaT, segLenMin, numRegions, xdim,
+	writeExcitonDistSupportingInfo(file_manager.output_directory, numExcitonsAtCont, Tmax, deltaT, segment_length, numRegions, xdim,
 		minBin, rmax, numBins, lowAng, highAng, numAng, numTSteps, regLenMin, getRunTime(runtime));
 
 	return 0;
