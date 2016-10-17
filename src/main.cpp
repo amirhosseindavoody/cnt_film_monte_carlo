@@ -1,28 +1,28 @@
 // CNTMC_Project.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+#include <stdio.h>
 #include <iostream>
 #include <string>
 #include <sys/stat.h>
-#include "dirent.h"
+#include <dirent.h>
 #include <list>
-#include "CNT.h"
 #include <vector>
 #include <memory>
-#include "tableElem.h"
 #include <locale>
 #include <math.h>
-#include "rapidxml.hpp"
-#include "rapidxml_utils.hpp"
 #include <regex>
 #include <omp.h>
 #include <stdint.h>
 #include <unistd.h> // used for changing the working directory in the program: chdir
 
+#include "rapidxml.hpp"
+#include "rapidxml_utils.hpp"
 #include "file_management.h"
 #include "functions.h"
 #include "write_log.h"
+#include "CNT.h"
+#include "tableElem.h"
 
 
 using namespace std;
@@ -58,88 +58,27 @@ int main(int argc, char *argv[])
 	//Initialize random number generator before anything to ensure that getRand() always works
 	initRandomNumGen();
 
-	file_management file_manager;
-
-	if (argc == 2)
-	{
-		file_manager.input_directory = argv[1];
-		// int rc = chdir(file_manager.input_directory.c_str());
-		// if (rc < 0)
-		// {
-		// 	cout << "unable to change the output directory!!!" << endl;
-		// 	exit(EXIT_FAILURE);
-		// }
-	}
-	else
+	if (argc != 2)
 	{
 		cout << "input directory must be entered as an argument!!!" << endl;;
 		exit(EXIT_FAILURE);
 	}
 
+	file_management file_manager;
+
+	file_manager.set_input_directory(argv[1]);
+	file_manager.build_cnt_file_list();
+		
+	// int rc = chdir(file_manager.input_directory.c_str());
+	// if (rc < 0)
+	// {
+	// 	cout << "unable to change the output directory!!!" << endl;
+	// 	exit(EXIT_FAILURE);
+	// }
 
 	// string log_input = "test!!!!";
 	// cout << log_input << endl;
 	// write_log(2);
-
-	// return 0;
-
-	////////////////////////////////// INPUT FOLDER ///////////////////////////////
-
-
-	// check if folder or file exists.
-	struct stat buf;
-	if (stat(file_manager.input_directory.c_str(),&buf) != 0)
-	{
-		cout << "Error: incorrect result directory path!!!" << endl;;
-		exit(EXIT_FAILURE);
-	}
-
-	{
-		char last_char = file_manager.input_directory.at(file_manager.input_directory.size()-1);
-		if (last_char != '/')
-		{
-			file_manager.input_directory.push_back('/');
-		}
-		cout << file_manager.input_directory << endl;
-	}
-
-	//////////////////////////// BUILD FILE LIST ///////////////////////////////////////////
-	// This next block creates a list of files in the directory chosen to be looked at.
-
-	DIR *resDir;
-	struct dirent *ent = nullptr;
-	unique_ptr<list<string>>  fileList(new list<string>(0));
-
-	regex rgx("CNT_Num_\\d+\\.csv"); //files we want to look through
-
-	//Check if folder can be opened - should work due to above checks
-	if ((resDir = opendir(file_manager.input_directory.c_str())) != nullptr)
-	{
-		//throw away first two results as they are . and ..
-		readdir(resDir);
-		readdir(resDir);
-
-		//iterate over all of the real files
-		while ((ent = readdir(resDir)) != nullptr)
-		{
-			smatch matches; //match_results for string objects
-			string tmps =  string(ent->d_name);
-			regex_search(tmps, matches, rgx);
-			if (!matches.empty())
-			{
-				fileList->push_back(ent->d_name);
-			}
-		}
-		closedir(resDir); //deletes pointer
-
-	}
-	else
-	{
-		cout << "Could not open results directory!!!" << endl;
-		exit(EXIT_FAILURE);
-	}
-	delete ent;
-	ent = nullptr;
 
 	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
 	
@@ -150,7 +89,7 @@ int main(int argc, char *argv[])
 
 	{
 
-		string inputXMLPath = file_manager.input_directory + "input.xml";
+		string inputXMLPath = file_manager.get_input_directory() + "input.xml";
 
 		rapidxml::xml_document<> doc; //create xml object
 		rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
@@ -314,10 +253,11 @@ int main(int argc, char *argv[])
 	//Iterate through the files and extract
 	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
 
-	for (list<string>::iterator it = fileList->begin(); it != fileList->end(); ++it)
+	for (list<string>::iterator it = file_manager.file_list->begin(); it != file_manager.file_list->end(); ++it)
 	{
 
-		CNT_List->push_back(CNT(*(it), file_manager.input_directory, segment_length));
+		// CNT_List->push_back(CNT(*(it), file_manager.input_directory, segment_length));
+		CNT_List->push_back(CNT(*(it), file_manager.get_input_directory(), segment_length));
 	}
 
 	//Extra check to ensure that all initilizations were successful

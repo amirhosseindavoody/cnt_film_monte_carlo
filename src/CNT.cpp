@@ -6,8 +6,7 @@ Stores all relevant information for a carbon nanotube
 @version 1.00
 */
 
-#include "stdafx.h"
-#include "CNT.h"
+#include <stdio.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <regex>
@@ -15,10 +14,11 @@ Stores all relevant information for a carbon nanotube
 #include <string>
 #include <fstream>
 #include <sstream>
-
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_vector.h>
+
+#include "CNT.h"
 
 //Global variable
 extern double ymax;

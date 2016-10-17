@@ -1,6 +1,7 @@
-#include "stdafx.h"
-#include "tableElem.h"
+#include <stdio.h>
 #include <iostream>
+
+#include "tableElem.h"
 
 /**
 Creates table element object

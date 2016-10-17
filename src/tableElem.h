@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen>
+
 #include "CNT.h"
 #include "segment.h"
 

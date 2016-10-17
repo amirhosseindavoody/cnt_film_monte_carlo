@@ -6,7 +6,8 @@ Purpose: Stores relevant exciton information
 @version 1.00
 */
 
-#include "stdafx.h"
+#include <stdio.h>
+
 #include "exciton.h"
 
 /**

@@ -7,10 +7,11 @@ Purpose: Header for segment.cpp
 */
 #pragma once
 
-#include "tableElem.h"
-#include "exciton.h"
 #include <Eigen>
 #include <memory>
+
+#include "tableElem.h"
+#include "exciton.h"
 
 using namespace std;
 using namespace Eigen;

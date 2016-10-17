@@ -5,10 +5,10 @@ Purpose: Segment struct used in each CNT object
 @author Alex Gabourie
 @version 1.00
 */
-#include "stdafx.h"
-#include "segment.h"
+#include <stdio.h>
 #include <iostream>
 
+#include "segment.h"
 
 /**
 Determines if the segment has an exciton of the same type

@@ -12,18 +12,18 @@ Purpose: Header for CNT.cpp
 //a = 1.42*sqrt(3) //Amirhossein said ok
 #define A_CC 2.459512146747806 //lattice constant CNTs
 
-#include "stdafx.h"
+#include <stdio.h>
 #include <string>
 #include <vector>
 #include <Eigen>
 #include <memory>
-#include "tableElem.h"
-#include "segment.h"
 
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_vector.h>
 
+#include "tableElem.h"
+#include "segment.h"
 
 using namespace std;
 using namespace Eigen;
