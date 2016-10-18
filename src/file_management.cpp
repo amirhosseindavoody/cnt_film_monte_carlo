@@ -255,5 +255,5 @@ void file_management::change_working_directory(const char *path)
 	// char *current_path = getcwd(buffer, max_path_length);
 	// cout << "current working directory: "<< current_path << endl;
 
-	system("rm -r ./*");
+	system("rm -r ./*.*");
 }

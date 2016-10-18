@@ -17,6 +17,7 @@ Stores all relevant information for a carbon nanotube
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_vector.h>
+#include <gsl/gsl_linalg.h>
 
 #include "CNT.h"
 #include "write_log.h"
@@ -569,13 +570,6 @@ void CNT::calculate_segments(double segment_length)
 	gsl_vector *y, *c;
 	gsl_multifit_linear_workspace *work;
 
-	gsl_vector *first_point;
-	gsl_vector *second_point;
-
-
-	print_segment_points(0, number_of_points);
-	exit(EXIT_SUCCESS);
-
 	double current_length = 0.;
 
 	int first_idx, second_idx;
@@ -589,7 +583,6 @@ void CNT::calculate_segments(double segment_length)
 
 		for (int dim = 0; dim < 3; dim++)
 		{
-			// gsl_vector_set(my_vector, dim, positions[dim][i]-positions[dim][i+1]);
 			double delta = gsl_matrix_get(coordinates, i, dim) - gsl_matrix_get(coordinates, i+1, dim);
 			gsl_vector_set(my_vector, dim, delta);
 		}
@@ -609,32 +602,11 @@ void CNT::calculate_segments(double segment_length)
 			second_idx = i+1;
 			int n = second_idx-first_idx;
 
-			X = gsl_matrix_alloc (n, 3);
-			y = gsl_vector_alloc (n);
-			c = gsl_vector_alloc (3);
-			cov = gsl_matrix_alloc (3, 3);
-			work = gsl_multifit_linear_alloc (n, 3);
+			gsl_vector *first_point = gsl_vector_alloc(3);
+			gsl_vector *second_point = gsl_vector_alloc(3);
 
-			for (int j = 0; j<n; j++)
-			{
-
-				gsl_matrix_set(X, j, 0, 1.0);
-				gsl_matrix_set(X, j, 1, gsl_matrix_get(coordinates, j+first_idx, 0));
-				gsl_matrix_set(X, j, 2, gsl_matrix_get(coordinates, j+first_idx, 1));
-
-				gsl_vector_set(y, j, gsl_matrix_get(coordinates, j+first_idx, 2));
-			}
-			gsl_multifit_linear(X, y, c, cov, &chisq, work);
-
+			perform_PCA(first_idx, n, segment_length, first_point, second_point);
 			print_segment_points(first_idx, n);
-
-			exit(EXIT_SUCCESS);
-
-			gsl_matrix_free(X);
-			gsl_vector_free(y);
-			gsl_vector_free(c);
-			gsl_matrix_free(cov);
-			gsl_multifit_linear_free(work);
 
 			first_idx = second_idx;
 			current_length = 0.;
@@ -683,7 +655,7 @@ void CNT::print_segment_points(int first_idx, int n)
 	// write_log(log_input.str());
 
 	ofstream my_file;
-	my_file.open("bullet_physics_points.dat", ios::trunc);
+	my_file.open("bullet_physics_points.dat", ios::app);
 	my_file << log_input.str();
 
 	if (my_file.fail())
@@ -694,3 +666,87 @@ void CNT::print_segment_points(int first_idx, int n)
 
 	my_file.close();
 }
+
+
+void CNT::perform_PCA(int first_idx, int n, double segment_length, gsl_vector *first_point, gsl_vector *second_point)
+{
+	gsl_vector *avg = gsl_vector_alloc(3);
+	gsl_vector_set_zero(avg);
+	for (int j = 0; j<n; j++)
+	{
+		for (int dim=0; dim<3; dim++)
+		{
+			double val = gsl_vector_get(avg, dim) + gsl_matrix_get(coordinates, j+first_idx, dim);
+			gsl_vector_set(avg, dim, val);
+		}
+	}
+	gsl_vector_scale(avg, 1.0/double(n));
+	
+	gsl_matrix *X = gsl_matrix_alloc(n,3);
+	for (int j=0; j<n; j++)
+	{
+		for (int dim=0; dim<3; dim++)
+		{
+			double val = gsl_matrix_get(coordinates, j+first_idx, dim) - gsl_vector_get(avg, dim);
+			gsl_matrix_set(X, j, dim, val);
+
+		}
+	}
+
+	gsl_matrix* XT = gsl_matrix_alloc(3, n);
+	gsl_matrix_transpose_memcpy(XT, X);
+
+	gsl_matrix* cov = gsl_matrix_alloc(3,3);
+	gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1/double(n), XT, X, 0.0, cov);
+
+
+	gsl_vector *work = gsl_vector_alloc(3);
+	gsl_vector *S = gsl_vector_alloc(3);
+	gsl_matrix *V = gsl_matrix_alloc(3,3);
+	gsl_linalg_SV_decomp (cov, V, S, work);
+
+	cout << gsl_matrix_get(cov, 0, 0) << "   "
+		 << gsl_matrix_get(cov, 1, 0) << "   "
+		 << gsl_matrix_get(cov, 2, 0) << endl;
+
+	cout << "norm = " << sqrt(pow(gsl_matrix_get(cov, 0, 0),2) + pow(gsl_matrix_get(cov, 1, 0),2) + pow(gsl_matrix_get(cov, 2, 0),2)) << endl;
+
+	for (int dim=0; dim<3; dim++)
+	{
+		double val1 = +gsl_matrix_get(cov, dim, 0)*segment_length/2.0 + gsl_vector_get(avg, dim);
+		double val2 = -gsl_matrix_get(cov, dim, 0)*segment_length/2.0 + gsl_vector_get(avg, dim);
+		gsl_vector_set(first_point, dim, val1);
+		gsl_vector_set(second_point, dim, val2);
+	}
+
+	stringstream log_input;
+	log_input 	<< std::scientific << gsl_vector_get(first_point, 0) << "    "
+				<< std::scientific << gsl_vector_get(first_point, 1) << "    "
+				<< std::scientific << gsl_vector_get(first_point, 2)
+				<< endl
+			 	<< std::scientific << gsl_vector_get(second_point, 0) << "    "
+				<< std::scientific << gsl_vector_get(second_point, 1) << "    "
+				<< std::scientific << gsl_vector_get(second_point, 2)
+				<< endl;
+
+	ofstream my_file;
+	my_file.open("pca_points.dat", ios::app);
+	my_file << log_input.str();
+
+	if (my_file.fail())
+	{
+		cout << "error in writing to a file!!!" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	my_file.close();
+
+	gsl_vector_free(work);
+	gsl_vector_free(S);
+	gsl_matrix_free(X);
+	gsl_matrix_free(XT);
+	gsl_matrix_free(cov);
+	gsl_matrix_free(V);
+
+}
+

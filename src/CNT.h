@@ -21,6 +21,7 @@ Purpose: Header for CNT.cpp
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_vector.h>
+#include <gsl/gsl_linalg.h>
 
 #include "tableElem.h"
 #include "segment.h"
@@ -56,6 +57,7 @@ private:
 	Vector3d calcFinalEndPt(int idx);
 	gsl_vector* get_position(int n);
 	void print_segment_points(int first_idx, int n);
+	void perform_PCA(int first_idx, int n, double segment_length, gsl_vector *first_point, gsl_vector *second_point);
 
 public:
 	CNT();
