@@ -23,11 +23,10 @@
 #include "write_log.h"
 #include "CNT.h"
 #include "tableElem.h"
+#include "simulation_parameters.h"
 
 
 using namespace std;
-
-#define MAX_T_STEPS 10000000 //maximum number of time steps allowed for the simulation
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -35,28 +34,11 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 //Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
-
-	// unsigned int NUM_THREADS = omp_get_max_threads();
-	string status;
-	//Varible initialization
-	double segment_length = 100.0; //[Angstroms]
-	double regLenMin = segment_length;
 	double runtime;
-	int numSteps = 10000; //number of deltaT's the simulation runs if the user specifies
-	double maxDist = 300; //[Angstroms] The maximum segment separation to be considered for exciton transfer
-	//The number of excitons to be in injection contact at start
-	int numExcitonsAtCont = 0;
-	bool autoComplete = false;
-	double threshold = .01; //The value that the difference/maxDiff must be below to finish
-	int numToFinish = 5;// Number of differences/maxDiff  that must be below thresh in a row to finish
-	int numToCheck = 1000; //number of time steps to check finish completion
-	double tfac = log(.3);
-
-	//timing functions
-	clock_t start = clock();
+	clock_t start = clock(); //timing functions
 
 	//Initialize random number generator before anything to ensure that getRand() always works
-	initRandomNumGen();
+	init_random_number_generator();
 
 	if (argc != 2)
 	{
@@ -68,196 +50,23 @@ int main(int argc, char *argv[])
 
 	file_manager.set_input_directory(argv[1]);
 	file_manager.build_cnt_file_list();
-		
-	// int rc = chdir(file_manager.input_directory.c_str());
-	// if (rc < 0)
-	// {
-	// 	cout << "unable to change the output directory!!!" << endl;
-	// 	exit(EXIT_FAILURE);
-	// }
 
-	// string log_input = "test!!!!";
-	// cout << log_input << endl;
-	// write_log(2);
+	simulation_parameters sim = file_manager.parse_xml();
 
-	/////////////////////////////////// XML FILE PARSE /////////////////////////////////////
-	
-	double rmax = 0; //maximum possible differences between sections of CNTs
-	double xdim = 0; //Dimension in which exciton populations will be monitored
-	double ydim = 0;
-	double zdim = 0;
-
-	{
-
-		string inputXMLPath = file_manager.get_input_directory() + "input.xml";
-
-		rapidxml::xml_document<> doc; //create xml object
-		rapidxml::file<> xmlFile(inputXMLPath.c_str()); //open file
-		doc.parse<0>(xmlFile.data()); //parse contents of file
-		rapidxml::xml_node<>* currNode = doc.first_node(); //gets the node "Document" or the root node
-
-
-		currNode = currNode->first_node("outputDirectory");
-		file_manager.output_directory = currNode->value();
-
-		cout << "output_directory = " << file_manager.output_directory << endl;
-
-		// DEVICE DIMENSIONS NODE //
-		currNode = currNode->next_sibling("DeviceDimensions"); //Output folder
-
-		xdim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("xdim")->value()));
-		ydim = convertUnits(string(currNode->first_node("units")->value()),	atof(currNode->first_node("ydim")->value()));
-		zdim = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("zdim")->value()));
-		//incorrect units
-		if (xdim == INT_MIN || ydim == INT_MIN || zdim == INT_MIN)
-		{
-			cout << "Error: Incorrect units for device dimensions!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-		//incorrect range
-		else if (xdim <= 0 || ydim <= 0 || zdim <= 0)
-		{
-			cout << "Error: Must enter positive device dimensions!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		cout << "xdim = " << xdim << endl;
-		cout << "ydim = " << ydim << endl;
-		cout << "zdim = " << zdim << endl;
-		// END DEVICE DIMENSIONS NODE //
-
-		//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
-		// to top other corner is included in r range. ymax is not defined so this is intermediate
-		// value. It is changed after CNT initialization.
-		rmax = sqrt(pow(xdim,2)+pow(zdim,2));
-
-		// NUMBER OF EXCITONS NODE //
-		currNode = currNode->next_sibling("numberExcitons"); //to number of excitons
-		numExcitonsAtCont = atoi(currNode->value());
-		if (numExcitonsAtCont <= 0)
-		{
-			cout << "Error: Must have positive number of excitons." << endl;
-			exit(EXIT_FAILURE);
-		}
-		cout << "numExcitonsAtCont = " << numExcitonsAtCont << endl;
-		// END NUMBER OF EXCITONS NODE //
-
-
-		// REGION LENGTH NODE //
-		currNode = currNode->next_sibling("regionLength");
-		regLenMin = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
-		if (regLenMin <= 0 || regLenMin > xdim)
-		{
-			cout << "Error: Region length must be positive number!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-		// END REGION LENGTH NODE //
-
-		// SEGMENT LENGTH NODE //
-		currNode = currNode->next_sibling("segmentLength");
-		segment_length = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
-		if (segment_length <= 0)
-		{
-			cout << "Error: Segment length must be positive number!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-
-		cout << "segment_length = " << segment_length << endl;
-		// END SEGMENT LENGTH NODE //
-
-		// SEGMENT SEPARATION //
-		currNode = currNode->next_sibling("segmentSeparation");
-		maxDist = convertUnits(string(currNode->first_node("units")->value()), atof(currNode->first_node("min")->value()));
-		if (maxDist <= 0)
-		{
-			cout << "Error: Segment separation must be a positive number!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-		// END SEGMENT SEPARATION //
-
-		// NUMBER OF TIME STEPS //
-		currNode = currNode->next_sibling("numberTimeSteps");
-		numSteps = atoi(currNode->value());
-		if (numSteps <= 0)
-		{
-			cout << "Error: Must have positive number time steps.!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-		// END NUMBER OF TIME STEPS //
-
-
-		// PERCENT FREE FLIGHT TIMES ABOVE DELTA T //
-		currNode = currNode->next_sibling("percentFreeFlightTimesAboveDeltaT");
-		tfac = atoi(currNode->value()) / 100.0;
-		if (tfac <= 1 && tfac > 0)
-		{
-			tfac = abs(log(tfac));
-		}
-		else
-		{
-			cout << "Error: Percent of free flight times above delta T must be greater than 0 and less than or equal to 100!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-		// END PERCENT FREE FLIGHT TIMES ABOVE DELTA T  //
-
-		// AUTO COMPLETE //
-		currNode = currNode->next_sibling("autoComplete")->first_node("enabled");
-
-		if (string(currNode->value()).compare("true") == 0)
-		{
-			autoComplete = true;
-			numSteps = MAX_T_STEPS;
-
-			currNode = currNode->next_sibling("threshold");
-			threshold = atof(currNode->value());
-			if (threshold < 0.0 || threshold > 1.0)
-			{
-				cout << "Configuration Error: Threshold must be value greater than 0 and less than 1!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-
-			currNode = currNode->next_sibling("numBelowThreshold");
-			numToFinish = atoi(currNode->value());
-			if (numToFinish <= 0) //input validation
-			{
-				cout << "Configuration Error: Number below threshold must be greater than 0!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-
-			int numToCheck = atoi(currNode->value());
-			if (numToCheck <= 0)
-			{
-				cout << "Configuration Error: Number to average must be greater than 0!!!" << endl;
-				exit(EXIT_FAILURE);
-			}
-		}
-		// END AUTO COMPLETE // 
-	}
-
-	//@@@@@@@@ TIME UPDATE @@@@@@@@//
-	clock_t end = clock();
-	runtime = diffclock(end, start);
-	status = getRunStatus(0, 0, runtime, !autoComplete);
-	cout << status << endl;
-	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
-
-	return 0;
-
-	/*
-	This section creates the list of CNTs with all of the relevant information provided in their
-	respective files getting processed.
-	*/
+	file_manager.change_working_directory(file_manager.output_directory.c_str());
 
 	//////////////////////////// BUILD CNT AND SEGMENTS //////////////////////////////////////////
 
 	//Iterate through the files and extract
-	shared_ptr<vector<CNT>> CNT_List(new vector<CNT>(0));
+	shared_ptr<vector<CNT>> CNT_List = make_shared<vector<CNT>>();
 
-	for (list<string>::iterator it = file_manager.file_list->begin(); it != file_manager.file_list->end(); ++it)
+	for (list<string>::iterator curr_file = file_manager.file_list->begin(); curr_file != file_manager.file_list->end(); ++curr_file)
 	{
+		string file_name = *curr_file;
+		string path = file_manager.get_input_directory();
+		double segment_length = sim.segment_length;
 
-		// CNT_List->push_back(CNT(*(it), file_manager.input_directory, segment_length));
-		CNT_List->push_back(CNT(*(it), file_manager.get_input_directory(), segment_length));
+		CNT_List->push_back(CNT(file_name, path, segment_length));
 	}
 
 	//Extra check to ensure that all initilizations were successful
@@ -272,26 +81,17 @@ int main(int argc, char *argv[])
 
 	cout << "the cnts are read correctly!!!" << endl;
 
-	//Set final rmax value
-	rmax = sqrt(pow(rmax, 2) + pow(ymax,2));
-
-
-	//@@@@@@@@ TIME UPDATE @@@@@@@@//
-	end = clock();
-	runtime = diffclock(end, start);
-	// ClearScreen();
-	status = getRunStatus(0, 0, runtime, !autoComplete);
-	cout << status << endl;
-	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
+	//Set final sim.rmax value
+	sim.rmax = sqrt(pow(sim.rmax, 2) + pow(ymax,2));
 
 	// return 0;
 
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
 
-	rmax = 100 * ceil(rmax / 100.0);
-	int numBins = static_cast<int>(rmax / 10.0); //number of bins to place r's into 
-	double minBin = rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	shared_ptr<vector<double>> rs = linspace(minBin, rmax, numBins); //Builds rs vector within valid r range
+	sim.rmax = 100 * ceil(sim.rmax / 100.0);
+	int numBins = static_cast<int>(sim.rmax / 10.0); //number of bins to place r's into 
+	double minBin = sim.rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
+	shared_ptr<vector<double>> rs = linspace(minBin, sim.rmax, numBins); //Builds rs vector within valid r range
 
 	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
 	// do not forget to use radians
@@ -316,12 +116,12 @@ int main(int argc, char *argv[])
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
 	///////////// Variables for placing excitons in the future /////////////
-	int numRegions = static_cast<int>(xdim / regLenMin); //number of regions in the simulation
-	double extra = xdim - numRegions*regLenMin; //extra amount * numRegions that should be added to regLenMin
-	double regLen = regLenMin + extra / numRegions; //The length of each region.
+	int numRegions = static_cast<int>(sim.xdim / sim.region_length_min); //number of regions in the simulation
+	double extra = sim.xdim - numRegions*sim.region_length_min; //extra amount * numRegions that should be added to sim.region_length_min
+	double regLen = sim.region_length_min + extra / numRegions; //The length of each region.
 
 	//The boundary of the rgions in the x direction
-	shared_ptr<vector<double>> regionBdr = linspace(regLen - (xdim / 2), xdim / 2, numRegions);
+	shared_ptr<vector<double>> regionBdr = linspace(regLen - (sim.xdim / 2), sim.xdim / 2, numRegions);
 	shared_ptr<vector<int>> segCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
 	//List of segments in the first region, which is used as a input contact
 	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
@@ -346,20 +146,13 @@ int main(int argc, char *argv[])
 			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
 			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, maxDist, heatMap, rs, thetas);
+			newGamma = updateSegTable(CNT_List, segit, sim.maximum_distance, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
 		buildTblCntr++;
 		if (buildTblCntr == buildTblDecPerc)
 		{
-			//@@@@@@@@ TIME UPDATE @@@@@@@@//
-			end = clock();
-			runtime = diffclock(end, start);
-			// ClearScreen();
-			status = getRunStatus(0, 0, runtime, !autoComplete);
-			cout << status << endl;
-			//@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 			buildTblCntr = 0;
 		}
 		
@@ -413,8 +206,8 @@ int main(int argc, char *argv[])
 
 	
 	//Vector of excitons. Positions and energies must still be assigned
-	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(numExcitonsAtCont));
-	for (int exNum = 0; exNum < numExcitonsAtCont; exNum++)
+	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(sim.number_of_excitons));
+	for (int exNum = 0; exNum < sim.number_of_excitons; exNum++)
 	{
 		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
 		injectExciton((*excitons)[exNum], inContact);
@@ -422,8 +215,8 @@ int main(int argc, char *argv[])
 
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
-	double deltaT = (1 / gamma)*tfac; //time steps at which statistics are calculated
-	double Tmax = deltaT * numSteps; //maximum simulation time
+	double deltaT = (1 / gamma)*sim.tfac; //time steps at which statistics are calculated
+	double Tmax = deltaT * sim.number_of_steps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
 	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
@@ -435,18 +228,18 @@ int main(int argc, char *argv[])
 
 	//Status updates
 	int onePercent;
-	if (autoComplete){ onePercent = 100; }
-	else { onePercent = static_cast<int>(numSteps / 100.0); }
+	if (sim.auto_complete){ onePercent = 100; }
+	else { onePercent = static_cast<int>(sim.number_of_steps / 100.0); }
 	int printCnt = 0;
 
-	//For automatic simulation end there will be a comparison of differences to some threshold
-	// If the differences, divided by the maximum current differences are < threshold for more
-	// the numToFinish then the simulation will end.
-	int numInARow = 0; //number of quotients that are below threshold in a row
-	double difference = 0;//difference between average of numToCheck time step average num exciton points
+	//For automatic simulation end there will be a comparison of differences to some sim.threshold
+	// If the differences, divided by the maximum current differences are < sim.threshold for more
+	// the sim.num_to_finish then the simulation will end.
+	int numInARow = 0; //number of quotients that are below sim.threshold in a row
+	double difference = 0;//difference between average of sim.num_to_check time step average num exciton points
 	double maxDiff = 0; //The maximum difference between points used for difference.
-	double prevAve =  numExcitonsAtCont; //average for last numToCheck time steps. Starts at init num of excitons
-	double currAve = 0; //Average for current numToCheck time steps
+	double prevAve =  sim.number_of_excitons; //average for last sim.num_to_check time steps. Starts at init num of excitons
+	double currAve = 0; //Average for current sim.num_to_check time steps
 	int timeSteps = 0; //current count of number of time steps
 	bool simDone = false; //boolean symbolizing a finished simulation
 
@@ -458,17 +251,6 @@ int main(int argc, char *argv[])
 	// omp_set_num_threads(NUM_THREADS);
 	while (T <= Tmax && !simDone) //iterates over time
 	{
-
-		// break the simulation if the input key is "Q"
-		//input loop
-		// while (_kbhit()) 
-		// {
-		// 	switch (_getch())
-		// 	{
-		// 		case 'Q':
-		// 			simDone = true;
-		// 	}
-		// }
 
 		//reset the exciton count after each time step
 		currCount = make_shared<vector<int>>(vector<int>(numRegions));
@@ -513,18 +295,18 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if (autoComplete)
+		if (sim.auto_complete)
 		{
 			timeSteps++;
 			currAve += excitons->size();
-			if (numToCheck == timeSteps)
+			if (sim.num_to_check == timeSteps)
 			{
-				currAve /= numToCheck; //calculate average
+				currAve /= sim.num_to_check; //calculate average
 				//check for max difference
 				if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
-				if (difference / maxDiff < threshold)
+				if (difference / maxDiff < sim.threshold)
 				{
-					if (++numInARow >= numToFinish){ simDone = true; }
+					if (++numInARow >= sim.num_to_finish){ simDone = true; }
 				}
 				else{ numInARow = 0; }
 				prevAve = currAve;
@@ -536,16 +318,11 @@ int main(int argc, char *argv[])
 		writeStateToFile(excitonDistFile, currCount, T);
 
 		//Update Exciton List for injection and exit contact
-		updateExcitonList(numExcitonsAtCont, excitons, currCount, inContact);
-		//update time
-		end = clock();
-		runtime = diffclock(end, start);
+		updateExcitonList(sim.number_of_excitons, excitons, currCount, inContact);
+
 		printCnt++;
 		if (printCnt == onePercent)
 		{
-			// ClearScreen();
-			status = getRunStatus(T, Tmax, runtime, !autoComplete);
-			cout << status << endl;
 			printCnt = 0;
 		}
 		
@@ -554,11 +331,10 @@ int main(int argc, char *argv[])
 	//Close files finish program
 	excitonDistFile->close();
 
-	uint64_t numTSteps = static_cast<uint64_t>(T / deltaT);
+	// uint64_t numTSteps = static_cast<uint64_t>(T / deltaT);
 
 	//Write helper information
-	writeExcitonDistSupportingInfo(file_manager.output_directory, numExcitonsAtCont, Tmax, deltaT, segment_length, numRegions, xdim,
-		minBin, rmax, numBins, lowAng, highAng, numAng, numTSteps, regLenMin, getRunTime(runtime));
+	// writeExcitonDistSupportingInfo(file_manager.output_directory, sim.number_of_excitons, Tmax, deltaT, sim.segment_length, numRegions, sim.xdim, minBin, sim.rmax, numBins, lowAng, highAng, numAng, numTSteps, sim.region_length_min, getRunTime(runtime));
 
 	return 0;
 }

@@ -29,6 +29,11 @@ class simulation_parameters
 		int num_to_finish;// number of differences/maxDiff  that must be below thresh in a row to finish
 		int num_to_check; //number of time steps to check completion
 		double tfac; //percent free flight times above delta T
+
+		double rmax; //maximum possible differences between sections of CNTs
+		double xdim; //Dimension in which exciton populations will be monitored
+		double ydim;
+		double zdim;
 	private:
 		
 		

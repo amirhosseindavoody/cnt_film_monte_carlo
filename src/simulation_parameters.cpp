@@ -25,4 +25,9 @@ simulation_parameters::simulation_parameters()
 	num_to_finish = 5;
 	num_to_check = 1000;
 	tfac = log(0.3);
+
+	rmax = 0;
+	xdim = 0;
+	ydim = 0;
+	zdim = 0;
 }

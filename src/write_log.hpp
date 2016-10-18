@@ -22,13 +22,4 @@ void write_log(T input)
 	log_file.close();
 
 	cout << input << endl;
-
-	const int max_path_length = 256;
-
-	char buffer[max_path_length];
-
-	char *path = getcwd(buffer, max_path_length);
-	string current_path = path;
-	cout << current_path << endl;
-
 }

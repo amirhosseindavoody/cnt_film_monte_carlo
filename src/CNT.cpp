@@ -19,6 +19,7 @@ Stores all relevant information for a carbon nanotube
 #include <gsl/gsl_vector.h>
 
 #include "CNT.h"
+#include "write_log.h"
 
 //Global variable
 extern double ymax;
@@ -192,6 +193,8 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 		positions[i].resize(number_of_points);
 	}
 
+	coordinates = gsl_matrix_alloc(number_of_points, 3);
+
 	file.clear(); //reset state flags
 	file.seekg(0); //move to beginning of file
 	//move to correct line to start position parsing
@@ -216,13 +219,23 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 		//Grab all of the position data
 		istringstream ss(temp);
 		getline(ss, tmp_string, ',');
-		positions[0][i] = stod(tmp_string);
+		double x = stod(tmp_string);
+		
 		getline(ss, tmp_string, ',');
 		double y = stod(tmp_string);
 		if (y > ymax){ ymax = y; }
-		positions[1][i] = y;
+		
 		getline(ss, tmp_string, ',');
-		positions[2][i] = stod(tmp_string);
+		double z = stod(tmp_string);
+
+		positions[0][i] = x;
+		positions[1][i] = y;
+		positions[2][i] = z;
+
+		gsl_matrix_set(coordinates, i, 0, x);
+		gsl_matrix_set(coordinates, i, 1, y);
+		gsl_matrix_set(coordinates, i, 2, z);
+
 	}
 	
 	//Calculate the segments needed for table generation
@@ -560,6 +573,9 @@ void CNT::calculate_segments(double segment_length)
 	gsl_vector *second_point;
 
 
+	print_segment_points(0, number_of_points);
+	exit(EXIT_SUCCESS);
+
 	double current_length = 0.;
 
 	int first_idx, second_idx;
@@ -573,7 +589,9 @@ void CNT::calculate_segments(double segment_length)
 
 		for (int dim = 0; dim < 3; dim++)
 		{
-			gsl_vector_set(my_vector, dim, positions[dim][i]-positions[dim][i+1]);
+			// gsl_vector_set(my_vector, dim, positions[dim][i]-positions[dim][i+1]);
+			double delta = gsl_matrix_get(coordinates, i, dim) - gsl_matrix_get(coordinates, i+1, dim);
+			gsl_vector_set(my_vector, dim, delta);
 		}
 
 
@@ -599,18 +617,35 @@ void CNT::calculate_segments(double segment_length)
 
 			for (int j = 0; j<n; j++)
 			{
+
 				gsl_matrix_set(X, j, 0, 1.0);
-				gsl_matrix_set(X, j, 1, positions[0][j+first_idx]);
-				gsl_matrix_set(X, j, 2, positions[1][j+first_idx]);
-				gsl_vector_set(y, j, positions[2][j+first_idx]);
+				gsl_matrix_set(X, j, 1, gsl_matrix_get(coordinates, j+first_idx, 0));
+				gsl_matrix_set(X, j, 2, gsl_matrix_get(coordinates, j+first_idx, 1));
+
+				gsl_vector_set(y, j, gsl_matrix_get(coordinates, j+first_idx, 2));
 			}
 			gsl_multifit_linear(X, y, c, cov, &chisq, work);
+
+			print_segment_points(first_idx, n);
+
+			exit(EXIT_SUCCESS);
+
+			gsl_matrix_free(X);
+			gsl_vector_free(y);
+			gsl_vector_free(c);
+			gsl_matrix_free(cov);
+			gsl_multifit_linear_free(work);
+
+			first_idx = second_idx;
+			current_length = 0.;
 		}
 
 		gsl_vector_free (my_vector);
 	}
 
-	cout << "current_length = " << current_length << "    length = " << length << endl;
+	stringstream log_input;
+	log_input << "current_length = " << std::scientific << current_length << "   segment_length = " << std::scientific << segment_length <<"    length = " << std::scientific << length;
+	write_log(log_input.str());
 
 	exit(EXIT_SUCCESS);
 
@@ -627,4 +662,35 @@ gsl_vector* CNT::get_position(int n)
 
 	return position_vector;
 
+}
+
+
+void CNT::print_segment_points(int first_idx, int n)
+{
+
+	stringstream log_input;
+
+	// log_input << "first_idx = " << first_idx << "    length = " << n << endl;
+
+	for (int j = 0; j<n; j++)
+	{
+		log_input 	<< std::scientific << gsl_matrix_get(coordinates, j+first_idx, 0) << "    "
+					<< std::scientific << gsl_matrix_get(coordinates, j+first_idx, 1) << "    "
+					<< std::scientific << gsl_matrix_get(coordinates, j+first_idx, 2)
+					<< endl;
+	}
+
+	// write_log(log_input.str());
+
+	ofstream my_file;
+	my_file.open("bullet_physics_points.dat", ios::trunc);
+	my_file << log_input.str();
+
+	if (my_file.fail())
+	{
+		cout << "error in writing to a file!!!" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	my_file.close();
 }

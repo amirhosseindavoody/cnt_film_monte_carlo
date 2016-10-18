@@ -21,16 +21,15 @@
 
 
 //method declarations
-string outputFolderPathPrompt(bool incorrect);
 double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
 	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
 int getIndex(shared_ptr<vector<double>> vec, double val);
 double getRand(bool excludeZero);
 void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
 void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
-double convertUnits(string unit, double val);
+double convert_units(string unit, double val);
 shared_ptr<vector<double>> linspace(double low, double high, int num);
-void initRandomNumGen();
+void init_random_number_generator();
 void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
 bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
 void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
@@ -40,9 +39,6 @@ void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double T
 	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, uint64_t numTSteps, double regLenMin, string runtime);
 void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
 	shared_ptr<vector<shared_ptr<segment>>> inContact);
-double diffclock(clock_t end, clock_t start);
-string getRunStatus(double T, double Tmax, double runtime, bool runtimeKnown);
-string getRunTime(double runtime);
 
 
 #endif // functions_h

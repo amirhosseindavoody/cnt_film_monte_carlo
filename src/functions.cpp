@@ -306,46 +306,13 @@ double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segmen
 }
 
 /**
-Gets the path of output folder
-
-@param incorrect Runs special prompt in case that cmd args were incorrect
-@return The string containing the XML file path.
-*/
-string outputFolderPathPrompt(bool incorrect)
-{
-	if (incorrect)
-	{
-		string temp = " ";
-		cout << "Re-enter output folder path? [y/n]: ";
-		cin >> temp;
-		//check response, end if decline retry
-		if (temp.compare("y") != 0)
-		{
-			system("pause");
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	int inputPathLengthMax = 260; //Maximum path length for Windows
-	string returnString;
-	char *inputXMLFilePathArray = new char[inputPathLengthMax];
-	cout << "Enter path of output folder:\n";
-	if (incorrect)
-		cin.ignore(); //if reentering, must ignore the next input
-	cin.getline(inputXMLFilePathArray, inputPathLengthMax);
-	returnString = inputXMLFilePathArray;
-	delete[] inputXMLFilePathArray;
-	return returnString;
-}
-
-/**
 Converts numbers with some units to angstroms
 
 @param unit The current unit
 @param val The current value
 @return the value in angstroms
 */
-double convertUnits(string unit, double val)
+double convert_units(string unit, double val)
 {
 	if (unit.compare("mm") == 0 || unit.compare("millimeter") == 0)
 	{
@@ -369,7 +336,8 @@ double convertUnits(string unit, double val)
 	}
 	else
 	{
-		return INT_MIN;
+		cout << "error in converting units!!!" << endl;
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -397,85 +365,11 @@ shared_ptr<vector<double>> linspace(double low, double high, int num)
 Initialized the random number generator by providing a seed value from 
 the time.
 */
-void initRandomNumGen()
+void init_random_number_generator()
 {
 	//Initialize random number generation
 	time_t seconds;
 	time(&seconds); //assign time from clock
 	//Seed the random number generator
 	srand(static_cast<int>(seconds));
-}
-
-/**
-Measures time difference between two clocks
-
-@param end end time
-@param start start time
-@return The difference in milliseconds
-*/
-double diffclock(clock_t end, clock_t start)
-{
-
-	double diffticks = end - start;
-	double diffms = diffticks / (CLOCKS_PER_SEC / 1000);
-
-	return diffms;
-}
-
-/**
-Prints the status of the simulation
-
-@param T The current time of the simulation
-@param Tmax The end time of the simulation
-@param runtime The amount of time the simulation has been running
-@return The status of the simulation
-*/
-string getRunStatus(double T,double Tmax, double runtime, bool runtimeKnown)
-{
-	string ret;
-	if (runtimeKnown)
-	{
-		if (T != 0 && Tmax != 0)
-		{
-			ret = "Percent Complete: " + to_string(static_cast<int>(T / Tmax * 100)) + "%\n";
-		}
-		else
-		{
-			ret = "Preparing Simulation.\n";
-		}
-	}
-	ret += "Time Simulated: " + to_string(T*1.0e9) + " ns\n";
-	ret += "Runtime: ";
-	ret += getRunTime(runtime);
-	return ret;
-}
-
-
-/**
-Gets the runtime of the simulation
-
-@param runtime The total runtime of the simulation in milliseconds
-@return A formated string to beter display run time
-*/
-string getRunTime(double runtime)
-{
-	string ret;
-
-	int days = static_cast<int>(runtime / 86400000);
-	if (days < 10){ ret += "0" + to_string(days) + ":"; }
-	else{ ret += to_string(days) + ":"; }
-
-	int hours = static_cast<int>(runtime / 3600000.) % 24;
-	if (hours < 10){ ret += "0" + to_string(hours) + ":"; }
-	else{ ret += to_string(hours) + ":"; }
-
-	int minutes = static_cast<int>(runtime / 60000.) % 24;
-	if (minutes < 10){ ret += "0" + to_string(minutes) + ":"; }
-	else{ ret += to_string(minutes) + ":"; }
-
-	int seconds = static_cast<int>(runtime / 1000.) % 60;
-	if (seconds < 10){ ret += "0" + to_string(seconds); }
-	else{ ret += to_string(seconds); }
-
-	return ret;
 }
