@@ -47,17 +47,16 @@ class CNT
 	vector<vector<double>> positions; //2D array storing positions of cylinders and constraints
 	bool initialized = false; //a way to check if variables were initialized
 	int number_of_points; // the number of points in the csv file
-	gsl_matrix* coordinates;
+	vector<segment> segments_new;
 
 private:
 	void setDiameter(int n, int m);
 	void calculate_segments(double segLen);
-	Vector3d getPoint(int idx);
-	Vector3d calcEndPt(int idx, double extra);
-	Vector3d calcFinalEndPt(int idx);
-	gsl_vector* get_position(int n);
+	// Vector3d getPoint(int idx);
+	// Vector3d calcEndPt(int idx, double extra);
+	// Vector3d calcFinalEndPt(int idx);
 	void print_segment_points(int first_idx, int n);
-	void perform_PCA(int first_idx, int n, double segment_length, gsl_vector *first_point, gsl_vector *second_point);
+	void perform_PCA(int first_idx, int n, double segment_length, vector<double> &first_point, vector<double> &second_point);
 
 public:
 	CNT();

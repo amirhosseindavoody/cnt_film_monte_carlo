@@ -17,6 +17,23 @@ as the passed exciton
 @param e The exciton desired to see if a slot is available
 @return Whether or not the exciton can be added
 */
+
+segment::segment(int number, vector<double> first_point, vector<double> second_point)
+{
+	segment_number = number;
+	point1 = first_point;
+	point2 = second_point;
+	point_m = vector<double>(3);
+
+	for (int i=0; i<3; i++)
+	{
+		point_m[i] = (point1[i]+point2[i])/2.0;
+	}
+
+	tbl = make_shared<vector<tableElem>>(0);
+	rateVec = make_shared<vector<double>>(0);
+}
+
 bool segment::hasExciton(shared_ptr<exciton> e)
 {
 	int currEn = e->getEnergy();
