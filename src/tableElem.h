@@ -27,9 +27,7 @@ private:
 	void setSegidx(int num);
 
 public:
-	tableElem();
-	tableElem(double rnew, double t, double g, int tube, int seg);
-	~tableElem();
+	tableElem(double rnew=1, double t=0, double g=0, int tube=0, int seg=0);
 	double getRate();
 	double getr();
 	double getTheta();
@@ -37,6 +35,6 @@ public:
 	int getTubeidx();
 	int getSegidx();
 	static double calcDist(Vector3d v1, Vector3d v2);
-	static double calcThet(vector<shared_ptr<segment>>::iterator s1, vector<shared_ptr<segment>>::iterator s2);
+	static double calcThet(segment &s1, segment &s2);
 };
 

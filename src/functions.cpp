@@ -19,42 +19,35 @@
 #include "functions.h"
 
 
-/**
-Removes excitons from the list if they are in the exit contact and inject excitons into the inContact if there are
-not enough excitons
 
-@param numExcitonAtCont The number of excitons at the injection contact
-@param excitons The list of excitons to modify
-@param currCount The count of excitons in each of the regions
-@param inContact The list of segments in the injection contact
-*/
-void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, 
-	shared_ptr<vector<int>> currCount, shared_ptr<vector<shared_ptr<segment>>> inContact)
+// Removes excitons from the list if they are in the exit contact and inject excitons into the inContact if there are not enough excitons
+void updateExcitonList(int numExcitonsAtCont, vector<exciton> &excitons, vector<int> &currCount, vector<shared_ptr<segment>> inContact)
 {
 	// Adding excitons to the injection contact
-	int numExAdd = 0; //The number of excitons to be added to the injection contact
-	if ((numExAdd = numExcitonsAtCont - (*currCount)[0]) > 0)
+	int numExAdd = numExcitonsAtCont - currCount[0]; //The number of excitons to be added to the injection contact
+	if (numExAdd > 0)
 	{
-		for (int i = 0; i < numExAdd; i++)
+		for (int i = 0; i<numExAdd; i++)
 		{
-			excitons->push_back(make_shared<exciton>(exciton())); //initialize exciton at end of exciton list
-			injectExciton((*excitons)[excitons->size()-1], inContact); //last element is the exciton to inject
+			exciton curr_exciton;
+			excitons.push_back(curr_exciton); //initialize exciton at end of exciton list
+			injectExciton(curr_exciton, inContact); //last element is the exciton to inject
 		}
 	}
 
 	//Removing excitons from the exit contact
-	int numExRem = (*currCount)[currCount->size() - 1]; //Last element in the count list = num of excitons to remove
+	int numExRem = currCount.back(); //Last element in the count list = num of excitons to remove
 	if (numExRem > 0)
 	{
-		for (int i = 0; i < excitons->size(); i++)
+		for (int i = 0; i < excitons.size(); i++)
 		{
-			if ((*excitons)[i]->isAtOutContact())
+			if (excitons[i].isAtOutContact())
 			{
-				shared_ptr<exciton> swap = (*excitons)[excitons->size() - 1];
-				(*excitons)[excitons->size() - 1] = (*excitons)[i];
-				(*excitons)[i] = swap;
-				excitons->pop_back();
-				//excitons->erase(excitons->begin() + i);
+				// shared_ptr<exciton> swap = (*excitons)[excitons->size() - 1];
+				// (*excitons)[excitons->size() - 1] = (*excitons)[i];
+				// (*excitons)[i] = swap;
+				// excitons->pop_back();
+				excitons.erase(excitons.begin() + i);
 				i--;
 			}
 		}
@@ -62,157 +55,124 @@ void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<excit
 }
 
 
-/**
-Writes all passed information to a file that can be read by matlab to get the appropriate variable declarations
-*/
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions, 
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, uint64_t numTSteps, double regLenMin, string runtime)
+// Writes the pertinent information of the current state of simulation to file
+void writeStateToFile(ofstream &file, vector<int> &currCount, double time)
 {
-	string detailsFileName = outputPath + "details.csv";
-	shared_ptr<ofstream> detailsFile(new ofstream);
-	detailsFile->open(detailsFileName);
-	*detailsFile << "numExcitons,Tmax,deltaT,segLenMin,numRegions,xdim,minBin,rmax,numBins,lowAng,highAng,numAng,numTSteps,regLenMin,runtime" << endl;
-	*detailsFile << numExcitons << "," << Tmax << "," << deltaT << "," << segLenMin << "," << numRegions << "," << xdim 
-		<< "," << minBin << "," << rmax << "," << numBins << "," << lowAng << "," << highAng << "," << numAng << 
-		"," << numTSteps << ","  << regLenMin << "," << runtime << endl;
-}
-
-/**
-Writes the pertinent information of the current state of simulation to file
-
-@param file The file to write to
-@param currCount The distribution information to write to file
-@param T The current time of the simulation
-*/
-void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T)
-{
-	*file << T << "," << (*currCount)[0]; //Time followed by the counts
-	for (uint32_t i = 1; i < currCount->size(); i++)
+	//Time followed by the counts
+	file << std::scientific << time << "     "; 
+	for (uint32_t i = 1; i < currCount.size(); i++)
 	{
-		*file << "," << (*currCount)[i];
+		file << "     " << std::scientific << currCount[i];
 	}
-	*file << endl;
+	file << endl;
 }
 
 
-/**
-Takes the current exciton and adds it to the count of excitons in a certain region. 
-This is called once per exciton per time step.
 
-@param CNT_List The indexable list that contains the position information of exciton
-@param exciton The exciton that we want to mark the position of.
-@param currCount The vector that stores the count of excitons in the regions
-@param regionBdr The region vector that allows selection of currCount index
-*/
-void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, 
-	shared_ptr<vector<int>> currCount, shared_ptr<vector<double>> regionBdr)
+// Takes the current exciton and adds it to the count of excitons in a certain region. This is called once per exciton per time step.
+void markCurrentExcitonPosition(vector<CNT> &cnt_list, exciton &curr_exciton, vector<int> &currCount, vector<double> &regionBdr)
 {
-	//add count to the currCount vector in the location corresponding to the exciton 
-	//   region location
-	#pragma omp critical
-	(*currCount)[getIndex(regionBdr,
-		((*(*CNT_List)[exciton->getCNTidx()].segments)[exciton->getSegidx()]->mid(0)))]++;
-}
+	//add count to the currCount vector in the location corresponding to the exciton region location
+	int cnt_idx = curr_exciton.getCNTidx();
+	int seg_idx = curr_exciton.getSegidx();
+	CNT &curr_cnt = cnt_list[cnt_idx];
+	segment &curr_seg = curr_cnt.segments[seg_idx];
 
-/**
-Checks to see if an exciton has moved into the out contact
-
-@param exciton The exciton to check
-@param regionBdr The array that stores contact information
-@param CNT_List The indexable list that will reveal exciton location
-@return True if the exciton has moved into the output contact, false otherwise
-*/
-bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, 
-	shared_ptr<vector<CNT>> CNT_List)
-{
-	//If x component is creater than the second to last index of regionBdr, then it is in the output
-	return (((*(*CNT_List)[exciton->getCNTidx()].segments)[exciton->getSegidx()]->mid(0)) 
-					>= ((*regionBdr)[regionBdr->size() - 2]));
+	int i = getIndex(regionBdr, curr_seg.mid(0));
+	currCount[i]++;
 }
 
 
-/**
-Places the specified exciton into the input contact
-
-@param exciton The exciton to add to the contact
-@param inContact The list of segments for the injection contact
-*/
-void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact)
+// Checks to see if an exciton has moved into the out contact
+bool hasMovedToOutContact(exciton &curr_exciton, vector<double> &regionBdr, vector<CNT> &cnt_list)
 {
-	exciton->setEnergy(static_cast<int>(round(getRand(false)) + 1)); //randomly set the energy of the exciton
-	//choose a destination segment
-	shared_ptr<segment> injectedSeg = (*inContact)[static_cast<int>(rand() % inContact->size())];
-	//The self scattering table will have the correct indices for the current segment
-	shared_ptr<vector<tableElem>> tbl = injectedSeg->tbl;
-	//Set the exciton indices to the current segment
-	exciton->setCNTidx((*tbl)[tbl->size() - 1].getTubeidx());
-	exciton->setSegidx((*tbl)[tbl->size() - 1].getSegidx());
-	exciton->setAtOutContact(false); //initialized out contact boolean
+	//If x component is greater than the second to last index of regionBdr, then it is in the output
+	int cnt_idx = curr_exciton.getCNTidx();
+	int seg_idx = curr_exciton.getSegidx();
+	CNT &curr_cnt = cnt_list[cnt_idx];
+	segment &curr_seg = curr_cnt.segments[seg_idx];
 
-}
-
-
-/**
-Assigns the specified exciton to the next state in the simulation.
-
-@param CNT_List The list of carbon nanotubes
-@param e The exciton to be updated
-@param inContact The list of segments for the injection contact
-@param regionBdr The array that will help decide whether or not the exciton is in the out contact
-*/
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr)
-{
-	//Segment the current exciton is located on
-	shared_ptr<segment> seg = (*((*CNT_List)[e->getCNTidx()].segments))[e->getSegidx()];
-	//Get the table index for the
-	int tblIdx = getIndex(seg->rateVec, getRand(false)*gamma);
-	//stores information about the excitons destination
-	tableElem tbl = (*seg->tbl)[tblIdx];
-	/*
-	It was decided that there are no limits on the number of excitons that
-	can be on a segment. 7/20/15
-	*/
-	e->setCNTidx(tbl.getTubeidx());
-	e->setSegidx(tbl.getSegidx());
-	e->setAtOutContact(hasMovedToOutContact(e, regionBdr, CNT_List));
-
-}
-
-/**
-Adds to each segments' rate vector the self scattering component of the simulation
-
-@param CNT_List The list of carbon nanotubes
-@param maxGam For all segments, the maximum of the sum of rates
-*/
-void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam)
-{
-	//CNT index
-	int i = 0;
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	if ((curr_seg.mid(0)) >= (regionBdr[regionBdr.size() - 2]))
 	{
-		//segment index
-		int j = 0; 
-		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+
+// Places the specified exciton into the input contact
+void injectExciton(exciton &curr_exciton, vector<shared_ptr<segment>> &inContact)
+{
+	//randomly set the energy of the exciton
+	int energy = static_cast<int>(round(getRand(false))+1);
+	curr_exciton.setEnergy(energy);
+
+	//choose a destination segment
+	int contact_idx = static_cast<int>(rand() % inContact.size());
+	segment &injected_seg = *(inContact[contact_idx]);
+
+	//The self scattering table will have the correct indices for the current segment
+	vector<tableElem> &tbl = injected_seg.tbl;
+
+	//Set the exciton indices to the current segment
+	int cnt_idx = (tbl[tbl.size()-1]).getTubeidx();
+	int seg_idx = (tbl[tbl.size()-1]).getSegidx();
+	curr_exciton.setCNTidx(cnt_idx);
+	curr_exciton.setSegidx(seg_idx);
+	curr_exciton.setAtOutContact(false); //initialized out contact boolean
+}
+
+
+
+// Assigns the specified exciton to the next state in the simulation.
+void assignNextState(vector<CNT> &cnt_list, exciton &curr_exciton, double gamma, vector<double> &regionBdr)
+{
+
+	int cnt_idx = curr_exciton.getCNTidx();
+	int seg_idx = curr_exciton.getSegidx();
+
+	CNT &curr_cnt = cnt_list[cnt_idx];
+	segment &curr_segment = curr_cnt.segments[seg_idx];
+	
+	int tblIdx = getIndex(curr_segment.rateVec, getRand(false)*gamma);
+	tableElem &tbl = curr_segment.tbl[tblIdx];
+	
+	curr_exciton.setCNTidx(tbl.getTubeidx());
+	curr_exciton.setSegidx(tbl.getSegidx());
+
+	bool moved_to_out_contact = hasMovedToOutContact(curr_exciton, regionBdr, cnt_list);
+	curr_exciton.setAtOutContact(moved_to_out_contact);
+}
+
+
+// Adds to each segments' rate vector the self scattering component of the simulation
+void addSelfScattering(vector<CNT> &cnt_list, double maxGam)
+{
+	for (int i=0; i<cnt_list.size(); i++)
+	{
+		CNT &curr_cnt = cnt_list[i];
+		
+		for (int j=0; j<curr_cnt.segments.size(); j++)
 		{
-			double currGam = (*segit)->rateVec->back();
+			segment &curr_segment = curr_cnt.segments[j];
+
+			double currGam = curr_segment.rateVec.back();
 			if (maxGam > currGam)
 			{
-				(*segit)->tbl->push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				(*segit)->rateVec->push_back(maxGam);
+				curr_segment.tbl.push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
+				curr_segment.rateVec.push_back(maxGam);
 			}
-			j++;
 		}
-		i++;
 	}
 }
 
 
-/**
-Gets a random number between 0 and 1
 
-@return The random number between 0 and 1
-*/
+// Gets a random number between 0 and 1
 double getRand(bool excludeZero)
 {
 	if (excludeZero)
@@ -224,32 +184,27 @@ double getRand(bool excludeZero)
 	return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
 }
 
-/**
-Finds the index of the vector that has the number closest to but greater than val.
 
-@param vec The vector to search
-@param prob The number to compare the indicies to
-@return the index that requires the conditions in the method description
-*/
-int getIndex(shared_ptr<vector<double>> vec, double val)
+// Finds the index of the vector that has the number closest to but greater than val.
+int getIndex(vector<double> &vec, double val)
 {
-	if (vec == nullptr)
+	if (vec.empty())
 	{
-		cout << "Error: Empty vector passed to getIndex()";
-		system("pause");
+		cout << "Error: Empty vector passed to getIndex()" << endl;
 		exit(EXIT_FAILURE);
 	}
+
 	int left = 0;
-	int right = static_cast<int>(vec->size() - 1);
+	int right = vec.size() - 1;
 	while (left <= right)
 	{
 		if (right == left)
 		{
-			if ((*vec)[right] < val) { return right + 1; }
+			if (vec[right] < val) { return right + 1; }
 			return right;
 		}
 		int mid = static_cast<int>(static_cast<double>(right + left) / 2.0);
-		double midVal = (*vec)[mid];
+		double midVal = vec[mid];
 		if (midVal == val){ return mid; }
 
 		if (midVal > val){ right = mid - 1; }
@@ -258,60 +213,41 @@ int getIndex(shared_ptr<vector<double>> vec, double val)
 	return left;
 }
 
-/**
-Takes a segment and determines which elements should be added to its tables based on distance away
-from the segment.
 
-@param CNT_List The list of carbon nanotubes to iterate over
-@param seg The segment that we will be adding table elements to
-@param maxDist If segments are within maxDist of seg, then they will be added to the table
-@param colorMap A count of all rs at particular thetas to get mesh statistics
-@param rs The r values that are needed to place values in the heat map
-@param thetas The angles that are needed to place values in the heat map
-@return The sum of all the rates calculated for the segment. For transition purposes
-*/
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg,
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas)
+// Takes a segment and determines which elements should be added to its tables based on distance away from the segment.
+double updateSegTable(vector<CNT> &cnt_list, segment &seg, double maxDist, vector<vector<int>> &heatMap, vector<double> &rs, vector<double> &thetas)
 {
 	double rate = 0;
 	//iterate over CNTs
-	int i = 0; //CNT index counter
-	//originally structured without i and j
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	for (int i = 0; i<cnt_list.size(); i++)
 	{
-		int j = 0; //segment index counter
-		//iterate over all segments considered for seg
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
-		{
-			double r = tableElem::calcDist((*seg)->mid, (*segit)->mid);
-			auto theta = tableElem::calcThet(seg, segit);
+		CNT &curr_cnt = cnt_list[i];
 
-			//Heat Map Additions
+		for (int j=0; j<curr_cnt.segments.size(); j++)
+		{
+			segment &curr_segment = curr_cnt.segments[i];
+			double r = tableElem::calcDist(seg.mid, curr_segment.mid);
+			double theta = tableElem::calcThet(seg, curr_segment);
+
 			if (r != 0)
 			{
-				(*heatMap)[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
+				heatMap[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
 				//Check if within range
 				if (r <= maxDist) /////// Building TABLE /////
 				{
-					auto g = 6.4000e+19; //First draft estimate
-					(*seg)->tbl->push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					(*seg)->rateVec->push_back(rate += ((*seg)->tbl->back()).getRate());//tbl initialized in CNT::calculateSegments
+					double g = 6.4000e+19; //First draft estimate
+					seg.tbl.push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
+					rate += (seg.tbl.back()).getRate();
+					seg.rateVec.push_back(rate);//tbl initialized in CNT::calculateSegments
 				}
 			}	
-			j++;
 		}
-		i++;
 	}
 	return rate;
 }
 
-/**
-Converts numbers with some units to angstroms
 
-@param unit The current unit
-@param val The current value
-@return the value in angstroms
-*/
+// Converts numbers with some units to angstroms
 double convert_units(string unit, double val)
 {
 	if (unit.compare("mm") == 0 || unit.compare("millimeter") == 0)
@@ -341,35 +277,33 @@ double convert_units(string unit, double val)
 	}
 }
 
-/**
-Creates a vector with matlab style linspace numbering
 
-@param low The lowest number to be in vector
-@param high The highest number to be in vector
-@param num The number of points to be in vector
-@return A pointer to the resulting vector
-*/
-shared_ptr<vector<double>> linspace(double low, double high, int num)
+// Creates a vector with matlab style linspace numbering
+vector<double> linspace(double low, double high, int num)
 {
-	shared_ptr<vector<double>> retVec(new vector<double>(num));
+	vector<double> my_vector(num);
 	double step = (high - low) / static_cast<double>(num - 1);
 	for (int i = 0; i < num; i++)
 	{
-		(*retVec)[i] = low;
+		my_vector[i] = low;
 		low += step;
 	}
-	return retVec;
+	return my_vector;
 }
 
-/**
-Initialized the random number generator by providing a seed value from 
-the time.
-*/
+
+// Initialized the random number generator by providing a seed value from the time.
 void init_random_number_generator()
 {
-	//Initialize random number generation
 	time_t seconds;
 	time(&seconds); //assign time from clock
-	//Seed the random number generator
 	srand(static_cast<int>(seconds));
+}
+
+void clear_vector(vector<int> &my_vector, int value)
+{
+	for (int i=0; i<my_vector.size(); i++)
+	{
+		my_vector[i] = value;
+	}
 }

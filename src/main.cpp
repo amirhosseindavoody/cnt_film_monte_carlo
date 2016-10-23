@@ -58,60 +58,26 @@ int main(int argc, char *argv[])
 	//////////////////////////// BUILD CNT AND SEGMENTS //////////////////////////////////////////
 
 	//Iterate through the files and extract
-	shared_ptr<vector<CNT>> CNT_List = make_shared<vector<CNT>>();
-
-	for (list<string>::iterator curr_file = file_manager.file_list->begin(); curr_file != file_manager.file_list->end(); ++curr_file)
+	vector<CNT> cnt_list;
+	for (int i=0; i < file_manager.file_list.size(); i++)
 	{
-		string file_name = *curr_file;
+		string file_name = file_manager.file_list[i];
 		string path = file_manager.get_input_directory();
 		double segment_length = sim.segment_length;
 
-		CNT_List->push_back(CNT(file_name, path, segment_length));
+		cnt_list.push_back(CNT(file_name, path, segment_length));
 	}
-
-	//Extra check to ensure that all initilizations were successful
-	for (vector<CNT>::iterator it = CNT_List->begin(); it != CNT_List->end(); ++it)
-	{
-		if (!(*it).isInitialized())
-		{
-			cout << "CNT initialization failure!!!" << endl;
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	cout << "the cnts are read correctly!!!" << endl;
-
-	//Set final sim.rmax value
-	sim.rmax = sqrt(pow(sim.rmax, 2) + pow(ymax,2));
-
-	// return 0;
 
 	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
 
-	sim.rmax = 100 * ceil(sim.rmax / 100.0);
-	int numBins = static_cast<int>(sim.rmax / 10.0); //number of bins to place r's into 
-	double minBin = sim.rmax / static_cast<double>(numBins); //[Angstroms] The size of the bins
-	shared_ptr<vector<double>> rs = linspace(minBin, sim.rmax, numBins); //Builds rs vector within valid r range
+	sim.rmax = sqrt(pow(sim.rmax, 2) + pow(ymax,2));
 
-	//builds angle vector from 1 to 90 degrees. Enough bins to cover all relevant angles
-	// do not forget to use radians
-	double lowAng = 1 * M_PI / 180.0;
-	double highAng = 90 * M_PI / 180.0;
-	int numAng = 90; //Number of angles to record. One per degree
-	shared_ptr<vector<double>> thetas = linspace(lowAng, highAng, numAng);
-
-	shared_ptr<vector<vector<int>>> heatMap(new vector<vector<int>>(rs->size()));
-	//initialize all other vectors in the vector to the correct size
-	for (vector<vector<int>>::iterator it = heatMap->begin(); it != heatMap->end(); ++it)
-	{
-		it->resize(thetas->size());
-	}
-
-	/*
-	Building the table: Each CNT has a list of segments which has an empty list of table element objects.
-	The next section will be filling the segments vector of table elements by calculating the necessary
-	additions to it.
-	*/
+	int n_r = 100;
+	int n_theta = 100;
+	vector<double> rs = linspace(0, sim.rmax, n_r);
+	vector<double> thetas = linspace(0, 90, n_theta);
+	vector<vector<int>> heatMap(n_r, vector<int>(n_theta));
+	
 
 	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
 
@@ -120,33 +86,35 @@ int main(int argc, char *argv[])
 	double extra = sim.xdim - numRegions*sim.region_length_min; //extra amount * numRegions that should be added to sim.region_length_min
 	double regLen = sim.region_length_min + extra / numRegions; //The length of each region.
 
-	//The boundary of the rgions in the x direction
-	shared_ptr<vector<double>> regionBdr = linspace(regLen - (sim.xdim / 2), sim.xdim / 2, numRegions);
-	shared_ptr<vector<int>> segCountPerReg = make_shared<vector<int>>(vector<int>(numRegions)); //To get dist stats
-	//List of segments in the first region, which is used as a input contact
-	shared_ptr<vector<shared_ptr<segment>>> inContact(new vector<shared_ptr<segment>>(0));
+	vector<double> regionBdr = linspace(regLen - (sim.xdim / 2), sim.xdim / 2, numRegions); //The boundary of the rgions in the x direction
+	vector<int> segCountPerReg(numRegions); //To get dist stats
+	vector<shared_ptr<segment>> inContact(0); //List of segments in the first region, which is used as a input contact
 
 	
 	//iterate through all of the CNTs and segments
-	//The total number of segments in the simulation, used in exciton placement
-	auto numSegs = 0;
-	//The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
-	double gamma = 0;
+	int numSegs = 0; //The total number of segments in the simulation, used in exciton placement
+	double gamma = 0; //The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
 
-	int buildTblDecPerc = static_cast<int>(CNT_List->size() / 10.0); //ten percent of total number of tubes
+	int buildTblDecPerc = static_cast<int>(cnt_list.size() / 10.0); //ten percent of total number of tubes
 	int buildTblCntr = 0;
 	//loop over CNTs
-	for (vector<CNT>::iterator cntit = CNT_List->begin(); cntit != CNT_List->end(); ++cntit)
+	for (int i=0; i<cnt_list.size(); i++)
 	{
+		CNT &curr_cnt = cnt_list[i];
+
 		double newGamma;
+		
 		//loop over segments in each CNTs
-		for (vector<shared_ptr<segment>>::iterator segit = cntit->segments->begin(); segit != cntit->segments->end(); ++segit)
+		for (int j=0; j<curr_cnt.segments.size(); j++)
 		{
-			int regIdx = getIndex(regionBdr, (*segit)->mid(0));
-			(*segCountPerReg)[regIdx]++; //increment the count based on where segment is
-			if (regIdx == 0){ inContact->push_back(*segit); } //First region is injection contact
+			segment &curr_segment = curr_cnt.segments[j];
+
+			int regIdx = getIndex(regionBdr, curr_segment.mid(0));
+			segCountPerReg[regIdx]++; //increment the count based on where segment is
+
+			if (regIdx == 0){ inContact.push_back(make_shared<segment>(curr_segment)); } //First region is injection contact
 			//get add to each segment relevant table entries
-			newGamma = updateSegTable(CNT_List, segit, sim.maximum_distance, heatMap, rs, thetas);
+			newGamma = updateSegTable(cnt_list, curr_segment, sim.maximum_distance, heatMap, rs, thetas);
 			if (newGamma > gamma){ gamma = newGamma; }
 			numSegs++;
 		}
@@ -164,11 +132,9 @@ int main(int argc, char *argv[])
 	string segmentCountFileName = file_manager.output_directory + "segmentCountPerRegion.csv";
 	ofstream segmentCountFile;
 	segmentCountFile.open(segmentCountFileName);
-	segmentCountFile << (*segCountPerReg)[0];
-	//iterate through all of the rs and then thetas while printing to file
-	for (uint32_t i = 1; i < segCountPerReg->size(); i++)
+	for (uint32_t i = 0; i < segCountPerReg.size(); i++)
 	{
-		segmentCountFile << "," << (*segCountPerReg)[i];
+		segmentCountFile << " , " << segCountPerReg[i];
 	}
 	segmentCountFile.close();
 
@@ -178,11 +144,11 @@ int main(int argc, char *argv[])
 	ofstream heatMapFile;
 	heatMapFile.open(heatMapFileName);
 	//iterate through all of the rs and then thetas while printing to file
-	for (uint32_t i = 0; i < rs->size(); i++)
+	for (uint32_t i = 0; i < rs.size(); i++)
 	{
-		for (uint32_t j = 0; j < thetas->size(); j++)
+		for (uint32_t j = 0; j < thetas.size(); j++)
 		{
-			heatMapFile << (*heatMap)[i][j] << ",";
+			heatMapFile << heatMap[i][j] << " , ";
 		}
 		heatMapFile << "\n";
 	}
@@ -192,7 +158,7 @@ int main(int argc, char *argv[])
 
 	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
 
-	addSelfScattering(CNT_List, gamma);
+	addSelfScattering(cnt_list, gamma);
 
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
@@ -204,13 +170,10 @@ int main(int argc, char *argv[])
 
 	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
 
-	
-	//Vector of excitons. Positions and energies must still be assigned
-	shared_ptr<vector<shared_ptr<exciton>>> excitons(new vector<shared_ptr<exciton>>(sim.number_of_excitons));
+	vector<exciton> excitons(sim.number_of_excitons);
 	for (int exNum = 0; exNum < sim.number_of_excitons; exNum++)
 	{
-		(*excitons)[exNum] = make_shared<exciton>(exciton()); //initialize exciton at location in exciton list
-		injectExciton((*excitons)[exNum], inContact);
+		injectExciton(excitons[exNum], inContact);
 	}
 
 
@@ -219,18 +182,12 @@ int main(int argc, char *argv[])
 	double Tmax = deltaT * sim.number_of_steps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
-	shared_ptr<vector<int>> currCount; //The count of excitons in each region of the CNT mesh
+	vector<int> currCount(numRegions); //The count of excitons in each region of the CNT mesh
 
 	//File output initializations
 	string excitonDistFileName = file_manager.output_directory + "excitonDist.csv";
-	shared_ptr<ofstream> excitonDistFile(new ofstream);
-	excitonDistFile->open(excitonDistFileName);
-
-	//Status updates
-	int onePercent;
-	if (sim.auto_complete){ onePercent = 100; }
-	else { onePercent = static_cast<int>(sim.number_of_steps / 100.0); }
-	int printCnt = 0;
+	ofstream excitonDistFile;
+	excitonDistFile.open(excitonDistFileName);
 
 	//For automatic simulation end there will be a comparison of differences to some sim.threshold
 	// If the differences, divided by the maximum current differences are < sim.threshold for more
@@ -243,72 +200,75 @@ int main(int argc, char *argv[])
 	int timeSteps = 0; //current count of number of time steps
 	bool simDone = false; //boolean symbolizing a finished simulation
 
-
-	/*
-	This section will consist of iterating until the maximum time has been reached. Each iteration
-	for T will contain a single/multiple step for each exciton. 
-	*/
-	// omp_set_num_threads(NUM_THREADS);
+	// monte carlo stepping loop
 	while (T <= Tmax && !simDone) //iterates over time
 	{
+		T += deltaT;
 
 		//reset the exciton count after each time step
-		currCount = make_shared<vector<int>>(vector<int>(numRegions));
-		T += deltaT; //set new time checkpoint
-		#pragma omp parallel default(none) shared(CNT_List,currCount,regionBdr,gamma,excitons,deltaT)
+		clear_vector(currCount, 0);
+
+		for (int exNum = 0; exNum < excitons.size(); exNum++)
 		{
-			#pragma omp for
-			for (int exNum = 0; exNum < excitons->size(); exNum++) //iterates over excitons once
+			exciton &curr_exciton = excitons[exNum];
+			/*There is a change that the previous tr that was calculated was so long that it
+			not only has extra time in the next deltaT, but it skips it completely. In this case
+			the exciton movement is skipped all together and its extra time is decreased by deltaT
+			until the exciton can move again. Otherwise the code runs as usual.
+			*/
+			double extraT = curr_exciton.getTExtra();
+			if (extraT > deltaT)
 			{
-				shared_ptr<exciton> currEx = (*excitons)[exNum];
-				/*There is a change that the previous tr that was calculated was so long that it
-				not only has extra time in the next deltaT, but it skips it completely. In this case
-				the exciton movement is skipped all together and its extra time is decreased by deltaT
-				until the exciton can move again. Otherwise the code runs as usual.
-				*/
-				double extraT = currEx->getTExtra();
-				if (extraT > deltaT)
+				curr_exciton.setTExtra(extraT - deltaT);
+				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, regionBdr);
+			}
+			else
+			{
+				double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
+				/*give time to excitons that have no extra time. This happens only when excitons
+				are just injected.*/
+				if (extraT == 0)
 				{
-					currEx->setTExtra(currEx->getTExtra() - deltaT);
-					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
+					tr_tot += -(1 / gamma)*log(getRand(true));
 				}
-				else
+				while (tr_tot <= deltaT)
 				{
-					double tr_tot = extraT; //the sum of all tr's in the current deltaT time step
-					/*give time to excitons that have no extra time. This happens only when excitons
-					are just injected.*/
-					if (extraT == 0)
-					{
-						tr_tot += -(1 / gamma)*log(getRand(true));
-					}
-					while (tr_tot <= deltaT)
-					{
-						//choose new state
-						assignNextState(CNT_List, currEx, gamma, regionBdr);
-						tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
-					}
-					//Recording distribution
-					markCurrentExcitonPosition(CNT_List, currEx, currCount, regionBdr);
-					//record the time past deltaT that the assign next state will cover
-					currEx->setTExtra(tr_tot - deltaT);
+					//choose new state
+					assignNextState(cnt_list, curr_exciton, gamma, regionBdr);
+					tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
 				}
+				//Recording distribution
+				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, regionBdr);
+				//record the time past deltaT that the assign next state will cover
+				curr_exciton.setTExtra(tr_tot - deltaT);
 			}
 		}
 
 		if (sim.auto_complete)
 		{
 			timeSteps++;
-			currAve += excitons->size();
+			currAve += excitons.size();
 			if (sim.num_to_check == timeSteps)
 			{
 				currAve /= sim.num_to_check; //calculate average
+				
 				//check for max difference
-				if ((difference = currAve - prevAve) > maxDiff){ maxDiff = difference; }
+				if ((difference = currAve - prevAve) > maxDiff)
+				{
+					maxDiff = difference;
+				}
+				
 				if (difference / maxDiff < sim.threshold)
 				{
-					if (++numInARow >= sim.num_to_finish){ simDone = true; }
+					if (++numInARow >= sim.num_to_finish)
+					{
+						simDone = true;
+					}
 				}
-				else{ numInARow = 0; }
+				else
+				{
+					numInARow = 0;
+				}
 				prevAve = currAve;
 				timeSteps = 0; //reset the time counter
 			}
@@ -319,23 +279,11 @@ int main(int argc, char *argv[])
 
 		//Update Exciton List for injection and exit contact
 		updateExcitonList(sim.number_of_excitons, excitons, currCount, inContact);
-
-		printCnt++;
-		if (printCnt == onePercent)
-		{
-			printCnt = 0;
-		}
 		
 	}
 
 	//Close files finish program
-	excitonDistFile->close();
-
-	// uint64_t numTSteps = static_cast<uint64_t>(T / deltaT);
-
-	//Write helper information
-	// writeExcitonDistSupportingInfo(file_manager.output_directory, sim.number_of_excitons, Tmax, deltaT, sim.segment_length, numRegions, sim.xdim, minBin, sim.rmax, numBins, lowAng, highAng, numAng, numTSteps, sim.region_length_min, getRunTime(runtime));
+	excitonDistFile.close();
 
 	return 0;
 }
-

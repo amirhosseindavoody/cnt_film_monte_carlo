@@ -30,8 +30,8 @@ segment::segment(int number, vector<double> first_point, vector<double> second_p
 		point_m[i] = (point1[i]+point2[i])/2.0;
 	}
 
-	tbl = make_shared<vector<tableElem>>(0);
-	rateVec = make_shared<vector<double>>(0);
+	tbl = vector<tableElem>(0);
+	rateVec = vector<double>(0);
 }
 
 bool segment::hasExciton(shared_ptr<exciton> e)

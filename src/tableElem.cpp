@@ -3,40 +3,16 @@
 
 #include "tableElem.h"
 
-/**
-Creates table element object
-
-@return tableElem Object
-*/
-tableElem::tableElem()
-{
-	setr(1);
-	setTheta(0);
-	setGamma(0);
-	setRate();
-	setTubeidx(0);
-	setSegidx(0);
-}
-/**
-Creates table element object
-
-@return tableElem Object
-*/
+// Creates table element object
 tableElem::tableElem(double rnew, double t, double g, int tube, int seg)
 {
-	setr(rnew);
-	setTheta(t);
-	setGamma(g);
-	setRate();
-	setTubeidx(tube);
-	setSegidx(seg);
-}
+	r = rnew;
+	theta = t;
+	gamma = g;
+	tubeidx = tube;
+	segidx = seg;
 
-/**
-Destructor for class
-*/
-tableElem::~tableElem()
-{
+	setRate();
 }
 
 void tableElem::setRate()
@@ -45,171 +21,120 @@ void tableElem::setRate()
 }
 
 
-/**
-Sets the distance r
-
-@param rnew Distance between one seg to other
-*/
+// Sets the distance r
 void tableElem::setr(double rnew)
 {
 	if (rnew < 0)
 	{
-		cout << "Error: Negative r not accepted.\n";
-		system("pause");
+		cout << "Error: Negative r not accepted." << endl;
 		exit(EXIT_FAILURE);
 	}
 	r = rnew;
 }
 
-/**
-Sets the angle between two segments
 
-@param t The angle between two segments
-*/
+// Sets the angle between two segments
 void tableElem::setTheta(double t)
 {
 	if (t < 0 || t > 2*M_PI)
 	{
-		cout << "Error: Theta must be between 0 and 2*pi.\n";
-		system("pause");
+		cout << "Error: Theta must be between 0 and 2*pi." << endl;
 		exit(EXIT_FAILURE);
 	}
 	theta = t;
 }
 
-/**
-Sets gamma parameter
 
-@param g The new gamma value
-*/
+// Sets gamma parameter
 void tableElem::setGamma(double g)
 {
 	if (g < 0)
 	{
-		cout << "Error: g in setGamma must be positive.\n";
-		system("pause");
+		cout << "Error: g in setGamma must be positive." << endl;
 		exit(EXIT_FAILURE);
 	}
 	gamma = g;
 }
 
-/**
-Sets the destination tube number
 
-@param num The tube number
-*/
+// Sets the destination tube number
 void tableElem::setTubeidx(int num)
 {
 	if (num < 0)
 	{
-		cout << "Error: Tube number must not be negative.\n";
-		system("pause");
+		cout << "Error: Tube number must not be negative." << endl;
 		exit(EXIT_FAILURE);
 	}
 	tubeidx = num;
 }
 
-/**
-Sets the destination segment number
 
-@param num The segment number
-*/
+// Sets the destination segment number
 void tableElem::setSegidx(int num)
 {
 	if (num < 0)
 	{
-		cout << "Error: Segment number must not be negative.\n";
-		system("pause");
+		cout << "Error: Segment number must not be negative." << endl;
 		exit(EXIT_FAILURE);
 	}
 	segidx = num;
 }
 
-/**
-Gets the total transition rate based on gamma, r, and theta
 
-@return The transition rate in inverse seconds
-*/
+// Gets the total transition rate based on gamma, r, and theta
 double tableElem::getRate()
 {
 	return gammaTot;
 }
 
-/**
-Gets r value
 
-@return r value
-*/
+// Gets r value
 double tableElem::getr()
 {
 	return r;
 }
 
-/**
-Gets theta value
 
-@return theta value
-*/
+// Gets theta value
 double tableElem::getTheta()
 {
 	return theta;
 }
 
-/**
-Gets gamma value
 
-@return gamma value
-*/
+// Gets gamma value
 double tableElem::getGamma()
 {
 	return gamma;
 }
 
-/**
-Gets tube number
-
-@return tube number
-*/
+// Gets tube number
 int tableElem::getTubeidx()
 {
 	return tubeidx;
 }
 
-/**
-Gets the segment number
 
-@return segment number
-*/
+// Gets the segment number
 int tableElem::getSegidx()
 {
 	return segidx;
 }
 
 
-/**
-Calculates distance between two segments
 
-@param v1 first segment center
-@param v2 second segment center
-
-@return The distance between v1 and v2
-*/
+// Calculates distance between two segments
 double tableElem::calcDist(Vector3d v1, Vector3d v2)
 {
 	return (v1 - v2).norm();
 }
 
-/**
-Calculates the angle between two vectors
 
-@param s1 first segment
-@param s2 second segment
-@return The angle between the two segments (0 to pi/2)
-*/
-double tableElem::calcThet(vector<shared_ptr<segment>>::iterator s1, vector<shared_ptr<segment>>::iterator s2)
+// Calculates the angle between two vectors
+double tableElem::calcThet(segment &s1, segment &s2)
 {
-	Vector3d v1 = (*s1)->p2 - (*s1)->p1;
-	Vector3d v2 = (*s2)->p2 - (*s2)->p1;
+	Vector3d v1 = s1.p2 - s1.p1;
+	Vector3d v2 = s2.p2 - s2.p1;
 	double val = acos(v1.dot(v2) / (v1.norm()*v2.norm())); //range 0 to pi
 	if (val <= M_PI / 2.0)
 	{

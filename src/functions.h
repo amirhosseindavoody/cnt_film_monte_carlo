@@ -19,26 +19,24 @@
 #include <omp.h>
 #include <stdint.h>
 
+#include "exciton.h"
+
 
 //method declarations
-double updateSegTable(shared_ptr<vector<CNT>> CNT_List, vector<shared_ptr<segment>>::iterator seg, 
-	double maxDist, shared_ptr<vector<vector<int>>> heatMap, shared_ptr<vector<double>> rs, shared_ptr<vector<double>> thetas);
-int getIndex(shared_ptr<vector<double>> vec, double val);
+void updateExcitonList(int numExcitonsAtCont, vector<exciton> &excitons, vector<int> &currCount, vector<shared_ptr<segment>> inContact);
+void writeStateToFile(ofstream &file, vector<int> &currCount, double time);
+void markCurrentExcitonPosition(vector<CNT> &cnt_list, exciton &curr_exciton, vector<int> &currCount, vector<double> &regionBdr);
+bool hasMovedToOutContact(exciton &curr_exciton, vector<double> &regionBdr, vector<CNT> &cnt_list);
+void injectExciton(exciton &curr_exciton, vector<shared_ptr<segment>> &inContact);
+void assignNextState(vector<CNT> &cnt_list, exciton &curr_exciton, double gamma, vector<double> &regionBdr);
+void addSelfScattering(vector<CNT> &cnt_list, double maxGam);
 double getRand(bool excludeZero);
-void addSelfScattering(shared_ptr<vector<CNT>> CNT_List, double maxGam);
-void assignNextState(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> e, double gamma, shared_ptr<vector<double>> regionBdr);
+int getIndex(vector<double> &vec, double val);
+double updateSegTable(vector<CNT> &cnt_list, segment &seg, double maxDist, vector<vector<int>> &heatMap, vector<double> &rs, vector<double> &thetas);
 double convert_units(string unit, double val);
-shared_ptr<vector<double>> linspace(double low, double high, int num);
+vector<double> linspace(double low, double high, int num);
 void init_random_number_generator();
-void injectExciton(shared_ptr<exciton> exciton, shared_ptr<vector<shared_ptr<segment>>> inContact);
-bool hasMovedToOutContact(shared_ptr<exciton> exciton, shared_ptr<vector<double>> regionBdr, shared_ptr<vector<CNT>> CNT_List);
-void markCurrentExcitonPosition(shared_ptr<vector<CNT>> CNT_List, shared_ptr<exciton> exciton, shared_ptr<vector<int>> currCount,
-	shared_ptr<vector<double>> regionBdr);
-void writeStateToFile(shared_ptr<ofstream> file, shared_ptr<vector<int>> currCount, double T);
-void writeExcitonDistSupportingInfo(string outputPath, int numExcitons, double Tmax, double deltaT, double segLenMin, int numRegions,
-	double xdim, double minBin, double rmax, int numBins, double lowAng, double highAng, int numAng, uint64_t numTSteps, double regLenMin, string runtime);
-void updateExcitonList(int numExcitonsAtCont, shared_ptr<vector<shared_ptr<exciton>>> excitons, shared_ptr<vector<int>> currCount,
-	shared_ptr<vector<shared_ptr<segment>>> inContact);
+void clear_vector(vector<int> &my_vector, int value);
 
 
 #endif // functions_h

@@ -57,7 +57,6 @@ string file_management::get_input_directory()
 // This function creates a list of files that contain information of cnt geometry and location from the bullet physics simulation.
 void file_management::build_cnt_file_list()
 {
-	file_list = make_unique<list<string>>();
 	DIR *resDir;
 	struct dirent *ent = nullptr;
 
@@ -66,10 +65,6 @@ void file_management::build_cnt_file_list()
 	//Check if folder can be opened - should work due to above checks
 	if ((resDir = opendir(input_directory.c_str())) != nullptr)
 	{
-		//throw away first two results as they are . and ..
-		readdir(resDir);
-		readdir(resDir);
-
 		//iterate over all of the real files
 		while ((ent = readdir(resDir)) != nullptr)
 		{
@@ -78,21 +73,19 @@ void file_management::build_cnt_file_list()
 			regex_search(tmps, matches, rgx);
 			if (!matches.empty())
 			{
-				file_list->push_back(ent->d_name);
+				file_list.push_back(ent->d_name);
 			}
 		}
 		closedir(resDir); //deletes pointer
-
 	}
 	else
 	{
-		cout << "Could not open results directory!!!" << endl;
+		cout << "Could not open input directory!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
 	delete ent;
 	ent = nullptr;
 }
-
 
 simulation_parameters file_management::parse_xml()
 {
@@ -123,10 +116,6 @@ simulation_parameters file_management::parse_xml()
 		cout << "error: must enter positive device dimensions!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	cout << "xdim = " << sim.xdim << endl;
-	cout << "ydim = " << sim.ydim << endl;
-	cout << "zdim = " << sim.zdim << endl;
 	// END DEVICE DIMENSIONS NODE //
 
 	//x and z dim are the ground dimensions and y is height. Need to make sure bottom corner
@@ -142,7 +131,6 @@ simulation_parameters file_management::parse_xml()
 		cout << "Error: Must have positive number of excitons." << endl;
 		exit(EXIT_FAILURE);
 	}
-	cout << "number of excitons = " << sim.number_of_excitons << endl;
 	// END NUMBER OF EXCITONS NODE //
 
 
@@ -164,8 +152,6 @@ simulation_parameters file_management::parse_xml()
 		cout << "Error: Segment length must be positive number!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	cout << "segment length = " << sim.segment_length << endl;
 	// END SEGMENT LENGTH NODE //
 
 	// SEGMENT SEPARATION //
@@ -243,6 +229,19 @@ simulation_parameters file_management::parse_xml()
 
 void file_management::change_working_directory(const char *path)
 {
+	// check if folder or file exists.
+	struct stat buf;
+	if (stat(path,&buf) == 0)
+	{
+		stringstream command;
+		command << "rm -f -r " << path;
+		system(command.str().c_str());
+	}
+
+	stringstream command;
+	command << "mkdir " << path;
+	system(command.str().c_str());
+
 	int rc = chdir(path);
 	if (rc < 0)
 	{
@@ -254,6 +253,4 @@ void file_management::change_working_directory(const char *path)
 	// char buffer[max_path_length];
 	// char *current_path = getcwd(buffer, max_path_length);
 	// cout << "current working directory: "<< current_path << endl;
-
-	system("rm -r ./*.*");
 }

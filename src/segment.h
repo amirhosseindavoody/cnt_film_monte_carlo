@@ -26,8 +26,8 @@ struct segment
 	Vector3d p1; //first point in segment
 	Vector3d p2; //second point in segment
 	Vector3d mid; //middle point in segment
-	shared_ptr<vector<tableElem>> tbl;
-	shared_ptr<vector<double>> rateVec; // Vector to store all rates
+	vector<tableElem> tbl;
+	vector<double> rateVec; // Vector to store all rates
 
 	vector<double> point1;
 	vector<double> point2;

@@ -1,11 +1,6 @@
-/**
-exciton.h
-Purpose: Header for exciton.cpp
+#ifndef exciton_h
+#define exciton_h
 
-@author Alex Gabourie
-@version 1.00
-*/
-#pragma once
 class exciton
 {
 	int cntidx; //Index of the CNT the exciton belongs to
@@ -31,3 +26,4 @@ public:
 
 };
 
+#endif //exciton_h

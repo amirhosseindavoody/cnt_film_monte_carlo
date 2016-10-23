@@ -40,7 +40,7 @@ CNT::CNT()
 	tubeSeparation = 0;
 	minSpacing = 0;
 	diameter = 0;
-	cntNum = 0;
+	cnt_number = 0;
 	number_of_points = 0;
 	positions = vector<vector<double>>(3);
 
@@ -66,7 +66,7 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 		//input checking
 		if (!matches.empty())
 		{
-			cntNum = stoi(matches[0]);
+			cnt_number = stoi(matches[0]);
 		}
 		//Cannot extract CNT number from file name.
 		else
@@ -174,7 +174,7 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 	}
 	
 	//Now that all parameters are extracted, calculate diameter
-	setDiameter(n, m);
+	set_diameter(n, m);
 
 	//move past coordinate labels line
 	getline(file, temp, '\n');
@@ -222,7 +222,11 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 		
 		getline(ss, tmp_string, ',');
 		double y = stod(tmp_string);
-		if (y > ymax){ ymax = y; }
+		if (y > ymax)
+		{
+			cout << "y = " << ymax << endl;
+			ymax = y;
+		}
 		
 		getline(ss, tmp_string, ',');
 		double z = stod(tmp_string);
@@ -235,137 +239,32 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 	//Calculate the segments needed for table generation
 	calculate_segments(segment_length);
 
+	print_segment_points(0, number_of_points);
+
 	//Checks to see if some segments were calculated
-	if (segments->empty())
+	if (segments.empty())
 	{
-		cout << "Error: No segments calculated for tube number: ";
-		cout << cntNum;
-		cout << "\n";
+		cout << "Error: No segments calculated for tube number: " << cnt_number << endl;
 		exit(EXIT_FAILURE);
 	}
 
 	initialized = true;
 
+	// stringstream log_input;
+	// log_input << "segment size = " << segments.size();
+	// write_log(log_input.str());
 }
 
-//Destructor implemented automatically
-
-
-/**
-Uses the chirality of the nanotube to calculate the diameter
-@param n Hamada n paramter
-@param m Hamada m parameter
-*/
-void CNT::setDiameter(int n, int m)
+void CNT::set_diameter(int n, int m)
 {
 	diameter = A_CC*sqrt(pow(n*1., 2) + pow(m*1., 2) + n*m) / M_PI;
 }
 
-/**
-Gets the diameter of the CNT
-
-@param void
-@return Diameter of the CNT
-*/
 double CNT::getDiameter()
 {
 	return diameter;
 }
 
-/**
-Gets the length of the CNT
-
-@param void
-@return Length of the CNT
-*/
-double CNT::getLength()
-{
-	return length;
-}
-
-/**
-Gets the height of each compositional cylinders
-
-@param void
-@return The height of each compositional cylinders
-*/
-double CNT::getCylinderHeight()
-{
-	return cylinderHeight;
-}
-
-/**
-Gets the separation between two compositional cylinders
-
-@param void
-@return The separation between two compositional cylinders
-*/
-double CNT::getTubeSeparation()
-{
-	return tubeSeparation;
-}
-
-/**
-Gets the minimum spacing between two nanotubes
-
-@param void
-@return minimum spacing between two nanotubes
-*/
-double CNT::getMinSpacing()
-{
-	return minSpacing;
-}
-
-/**
-Gets m parameter of the CNT
-
-@param void
-@return m
-*/
-int CNT::getm()
-{
-	return m;
-}
-
-/**
-Gets n parameter of the CNT
-
-@param void
-@return n
-*/
-int CNT::getn()
-{
-	return n;
-}
-
-
-/**
-Gets the tube number
-
-@param void
-@return CNT number
-*/
-int CNT::getCNTNum()
-{
-	return cntNum;
-}
-
-/**
-Says whether or not the CNT was initialized
-
-@return initialization status
-*/
-bool CNT::isInitialized()
-{
-	return initialized;
-}
- 
-/**
-Calculates the segments used for the MC simulations
-
-@param segment_length The desired length of the segments
-@return Vector of the segments
-*/
 void CNT::calculate_segments(double segment_length)
 {
 	//parameter check
@@ -379,8 +278,6 @@ void CNT::calculate_segments(double segment_length)
 		cout << "Error: Minimum segment length must be positive!!!" << endl;
 		exit(EXIT_FAILURE);
 	}
-
-	// segments = make_shared<vector<shared_ptr<segment>>>();
 
 	double current_length = 0.;
 
@@ -420,15 +317,12 @@ void CNT::calculate_segments(double segment_length)
 			// print_segment_points(first_idx, n);
 
 			segment curr_segment(segment_number, first_point, second_point);
-			segments_new.push_back(curr_segment);
+			segments.push_back(curr_segment);
 
 			first_idx = second_idx;
 			current_length = 0.;
 		}
 	}
-
-	exit(EXIT_SUCCESS);
-
 }
 
 
@@ -445,8 +339,10 @@ void CNT::print_segment_points(int first_idx, int n)
 					<< endl;
 	}
 
+	stringstream file_name;
+	file_name << "cnt_" << cnt_number << ".dat";
 	ofstream my_file;
-	my_file.open("bullet_physics_points.dat", ios::app);
+	my_file.open(file_name.str(), ios::app);
 	my_file << log_input.str();
 
 	if (my_file.fail())
@@ -496,12 +392,6 @@ void CNT::perform_PCA(int first_idx, int n, double segment_length, vector<double
 	gsl_matrix *V = gsl_matrix_alloc(3,3);
 	gsl_linalg_SV_decomp (cov, V, S, work);
 
-	cout << gsl_matrix_get(cov, 0, 0) << "   "
-		 << gsl_matrix_get(cov, 1, 0) << "   "
-		 << gsl_matrix_get(cov, 2, 0) << endl;
-
-	cout << "norm = " << sqrt(pow(gsl_matrix_get(cov, 0, 0),2) + pow(gsl_matrix_get(cov, 1, 0),2) + pow(gsl_matrix_get(cov, 2, 0),2)) << endl;
-
 	for (int dim=0; dim<3; dim++)
 	{
 		double val1 = +gsl_matrix_get(cov, dim, 0)*segment_length/2.0 + gsl_vector_get(avg, dim);
@@ -538,6 +428,5 @@ void CNT::perform_PCA(int first_idx, int n, double segment_length, vector<double
 	gsl_matrix_free(XT);
 	gsl_matrix_free(cov);
 	gsl_matrix_free(V);
-
 }
 
