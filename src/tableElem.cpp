@@ -1,90 +1,36 @@
 #include <stdio.h>
 #include <iostream>
+#include <string>
+#include <cstdlib> //defines EXIT_FAILURE and EXIT_SUCCESS
 
+#include "write_log.h"
+#include "math_functions.h"
 #include "tableElem.h"
 
+using namespace math_functions;
+
 // Creates table element object
-tableElem::tableElem(double rnew, double t, double g, int tube, int seg)
+tableElem::tableElem(double distance, double angle, double forster_const, int tube_idx, int seg_idx)
 {
-	r = rnew;
-	theta = t;
-	gamma = g;
-	tubeidx = tube;
-	segidx = seg;
+	r = distance;
+	theta = angle;
+	gamma = forster_const;
+	tubeidx = tube_idx;
+	segidx = seg_idx;
 
-	setRate();
+	set_rate();
 }
 
-void tableElem::setRate()
+void tableElem::set_rate()
 {
-	gammaTot = abs(gamma*cos(theta) / pow(r, 6));
-}
-
-
-// Sets the distance r
-void tableElem::setr(double rnew)
-{
-	if (rnew < 0)
-	{
-		cout << "Error: Negative r not accepted." << endl;
-		exit(EXIT_FAILURE);
-	}
-	r = rnew;
-}
-
-
-// Sets the angle between two segments
-void tableElem::setTheta(double t)
-{
-	if (t < 0 || t > 2*M_PI)
-	{
-		cout << "Error: Theta must be between 0 and 2*pi." << endl;
-		exit(EXIT_FAILURE);
-	}
-	theta = t;
-}
-
-
-// Sets gamma parameter
-void tableElem::setGamma(double g)
-{
-	if (g < 0)
-	{
-		cout << "Error: g in setGamma must be positive." << endl;
-		exit(EXIT_FAILURE);
-	}
-	gamma = g;
-}
-
-
-// Sets the destination tube number
-void tableElem::setTubeidx(int num)
-{
-	if (num < 0)
-	{
-		cout << "Error: Tube number must not be negative." << endl;
-		exit(EXIT_FAILURE);
-	}
-	tubeidx = num;
-}
-
-
-// Sets the destination segment number
-void tableElem::setSegidx(int num)
-{
-	if (num < 0)
-	{
-		cout << "Error: Segment number must not be negative." << endl;
-		exit(EXIT_FAILURE);
-	}
-	segidx = num;
+	rate = abs(gamma*cos(theta) / pow(r, 6));
 }
 
 
 // Gets the total transition rate based on gamma, r, and theta
 double tableElem::getRate()
 {
-	return gammaTot;
+	return rate;
 }
 
 
@@ -101,13 +47,6 @@ double tableElem::getTheta()
 	return theta;
 }
 
-
-// Gets gamma value
-double tableElem::getGamma()
-{
-	return gamma;
-}
-
 // Gets tube number
 int tableElem::getTubeidx()
 {
@@ -119,29 +58,6 @@ int tableElem::getTubeidx()
 int tableElem::getSegidx()
 {
 	return segidx;
-}
-
-
-
-// Calculates distance between two segments
-double tableElem::calcDist(Vector3d v1, Vector3d v2)
-{
-	return (v1 - v2).norm();
-}
-
-
-// Calculates the angle between two vectors
-double tableElem::calcThet(segment &s1, segment &s2)
-{
-	Vector3d v1 = s1.p2 - s1.p1;
-	Vector3d v2 = s2.p2 - s2.p1;
-	double val = acos(v1.dot(v2) / (v1.norm()*v2.norm())); //range 0 to pi
-	if (val <= M_PI / 2.0)
-	{
-		return val;
-	}
-	return (M_PI - val);
-
 }
 
 

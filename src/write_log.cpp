@@ -2,11 +2,11 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <fstream>
 
 using namespace std;
 
-template <class T>
-void write_log(T input)
+void write_log(string input)
 {
 
 	ofstream log_file;

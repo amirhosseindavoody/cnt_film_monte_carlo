@@ -9,10 +9,7 @@
 using namespace std;
 
 //method declarations
-template <class T>
-void write_log(T log_input);
-
-#include "write_log.hpp"
+void write_log(string input);
 
 
 #endif // write_log_h

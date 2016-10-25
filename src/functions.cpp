@@ -18,6 +18,8 @@
 
 #include "functions.h"
 
+using namespace math_functions;
+
 
 
 // Removes excitons from the list if they are in the exit contact and inject excitons into the inContact if there are not enough excitons
@@ -43,12 +45,8 @@ void updateExcitonList(int numExcitonsAtCont, vector<exciton> &excitons, vector<
 		{
 			if (excitons[i].isAtOutContact())
 			{
-				// shared_ptr<exciton> swap = (*excitons)[excitons->size() - 1];
-				// (*excitons)[excitons->size() - 1] = (*excitons)[i];
-				// (*excitons)[i] = swap;
-				// excitons->pop_back();
 				excitons.erase(excitons.begin() + i);
-				i--;
+				i--; // this is to make sure that the new exciton object with now index equal to "i" is not at the out_contact.
 			}
 		}
 	}
@@ -78,7 +76,7 @@ void markCurrentExcitonPosition(vector<CNT> &cnt_list, exciton &curr_exciton, ve
 	CNT &curr_cnt = cnt_list[cnt_idx];
 	segment &curr_seg = curr_cnt.segments[seg_idx];
 
-	int i = getIndex(regionBdr, curr_seg.mid(0));
+	int i = get_index(regionBdr, curr_seg.point_m[0]);
 	currCount[i]++;
 }
 
@@ -92,7 +90,7 @@ bool hasMovedToOutContact(exciton &curr_exciton, vector<double> &regionBdr, vect
 	CNT &curr_cnt = cnt_list[cnt_idx];
 	segment &curr_seg = curr_cnt.segments[seg_idx];
 
-	if ((curr_seg.mid(0)) >= (regionBdr[regionBdr.size() - 2]))
+	if ((curr_seg.point_m[0]) >= (regionBdr[regionBdr.size() - 2]))
 	{
 		return true;
 	}
@@ -138,7 +136,7 @@ void assignNextState(vector<CNT> &cnt_list, exciton &curr_exciton, double gamma,
 	CNT &curr_cnt = cnt_list[cnt_idx];
 	segment &curr_segment = curr_cnt.segments[seg_idx];
 	
-	int tblIdx = getIndex(curr_segment.rateVec, getRand(false)*gamma);
+	int tblIdx = get_index(curr_segment.rateVec, getRand(false)*gamma);
 	tableElem &tbl = curr_segment.tbl[tblIdx];
 	
 	curr_exciton.setCNTidx(tbl.getTubeidx());
@@ -185,64 +183,29 @@ double getRand(bool excludeZero)
 }
 
 
-// Finds the index of the vector that has the number closest to but greater than val.
-int getIndex(vector<double> &vec, double val)
-{
-	if (vec.empty())
-	{
-		cout << "Error: Empty vector passed to getIndex()" << endl;
-		exit(EXIT_FAILURE);
-	}
-
-	int left = 0;
-	int right = vec.size() - 1;
-	while (left <= right)
-	{
-		if (right == left)
-		{
-			if (vec[right] < val) { return right + 1; }
-			return right;
-		}
-		int mid = static_cast<int>(static_cast<double>(right + left) / 2.0);
-		double midVal = vec[mid];
-		if (midVal == val){ return mid; }
-
-		if (midVal > val){ right = mid - 1; }
-		else { left = mid + 1; }
-	}
-	return left;
-}
-
-
-// Takes a segment and determines which elements should be added to its tables based on distance away from the segment.
-double updateSegTable(vector<CNT> &cnt_list, segment &seg, double maxDist, vector<vector<int>> &heatMap, vector<double> &rs, vector<double> &thetas)
+// calculates the table of scattering rates from a segment to all possible final segments.
+// it also returns the total scattering rates out of that element.
+double make_rate_table(vector<shared_ptr<segment>> &seg_list, segment &seg, double max_dist)
 {
 	double rate = 0;
-	//iterate over CNTs
-	for (int i = 0; i<cnt_list.size(); i++)
+
+	for (int i = 0; i<seg_list.size(); i++)
 	{
-		CNT &curr_cnt = cnt_list[i];
+		segment &f_segment = *(seg_list[i]);
 
-		for (int j=0; j<curr_cnt.segments.size(); j++)
+		double r = seg.get_distance(f_segment);
+		double theta = seg.get_angle(f_segment);
+
+		//Check if within range
+		if ((r > 0)&&(r <= max_dist)) /////// Building TABLE /////
 		{
-			segment &curr_segment = curr_cnt.segments[i];
-			double r = tableElem::calcDist(seg.mid, curr_segment.mid);
-			double theta = tableElem::calcThet(seg, curr_segment);
-
-			if (r != 0)
-			{
-				heatMap[getIndex(rs, r)][getIndex(thetas, theta)]++; //////// Heat Map ///////
-				//Check if within range
-				if (r <= maxDist) /////// Building TABLE /////
-				{
-					double g = 6.4000e+19; //First draft estimate
-					seg.tbl.push_back(tableElem(r, theta, g, i, j)); //tbl initialized in CNT::calculateSegments
-					rate += (seg.tbl.back()).getRate();
-					seg.rateVec.push_back(rate);//tbl initialized in CNT::calculateSegments
-				}
-			}	
-		}
+			double g = 6.4000e+19; //First draft estimate
+			seg.tbl.push_back(tableElem(r, theta, g, seg.cnt_idx, seg.seg_idx)); //tbl initialized in CNT::calculateSegments
+			rate += (seg.tbl.back()).getRate();
+			seg.rateVec.push_back(rate);//tbl initialized in CNT::calculateSegments
+		}	
 	}
+
 	return rate;
 }
 
@@ -277,33 +240,10 @@ double convert_units(string unit, double val)
 	}
 }
 
-
-// Creates a vector with matlab style linspace numbering
-vector<double> linspace(double low, double high, int num)
-{
-	vector<double> my_vector(num);
-	double step = (high - low) / static_cast<double>(num - 1);
-	for (int i = 0; i < num; i++)
-	{
-		my_vector[i] = low;
-		low += step;
-	}
-	return my_vector;
-}
-
-
 // Initialized the random number generator by providing a seed value from the time.
 void init_random_number_generator()
 {
 	time_t seconds;
 	time(&seconds); //assign time from clock
 	srand(static_cast<int>(seconds));
-}
-
-void clear_vector(vector<int> &my_vector, int value)
-{
-	for (int i=0; i<my_vector.size(); i++)
-	{
-		my_vector[i] = value;
-	}
 }

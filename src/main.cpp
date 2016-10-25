@@ -24,9 +24,11 @@
 #include "CNT.h"
 #include "tableElem.h"
 #include "simulation_parameters.h"
+#include "output.h"
 
 
 using namespace std;
+using namespace output;
 
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
@@ -35,11 +37,12 @@ double ymax = 0; //stores maximum height the cylinders of the CNTs are found at.
 int main(int argc, char *argv[])
 {
 	double runtime;
-	clock_t start = clock(); //timing functions
+	clock_t start = clock();
 
-	//Initialize random number generator before anything to ensure that getRand() always works
 	init_random_number_generator();
 
+
+	// load cnt geometry data **************************************************************************
 	if (argc != 2)
 	{
 		cout << "input directory must be entered as an argument!!!" << endl;;
@@ -55,9 +58,7 @@ int main(int argc, char *argv[])
 
 	file_manager.change_working_directory(file_manager.output_directory.c_str());
 
-	//////////////////////////// BUILD CNT AND SEGMENTS //////////////////////////////////////////
-
-	//Iterate through the files and extract
+	// create cnt objects and load their information
 	vector<CNT> cnt_list;
 	for (int i=0; i < file_manager.file_list.size(); i++)
 	{
@@ -68,97 +69,68 @@ int main(int argc, char *argv[])
 		cnt_list.push_back(CNT(file_name, path, segment_length));
 	}
 
-	//////////////////////////// CREATE DIST VECTORS AND ARRAYS ///////////////////////////////
+	// create a list of segment pointers that has a list of all segments
+	vector<shared_ptr<segment>> seg_list(0);
+	for (int i=0; i<cnt_list.size(); i++)
+	{
+		for (int j=0; j<cnt_list[i].segments.size(); j++)
+		{
+			cnt_list[i].segments[j].cnt_idx = i;
+			cnt_list[i].segments[j].seg_idx = j;
+			shared_ptr<segment> seg_ptr = make_shared<segment>(cnt_list[i].segments[j]);
+			seg_list.push_back(seg_ptr);
+		}
+	}
+	
+	{
+		string log_input = "number of segments = " + to_string(seg_list.size());
+		write_log(log_input);
+	}
 
 	sim.rmax = sqrt(pow(sim.rmax, 2) + pow(ymax,2));
 
-	int n_r = 100;
-	int n_theta = 100;
-	vector<double> rs = linspace(0, sim.rmax, n_r);
-	vector<double> thetas = linspace(0, 90, n_theta);
-	vector<vector<int>> heatMap(n_r, vector<int>(n_theta));
-	
+	// get some statistics about cnt network *****************************************************
+	segment_x_distribution(cnt_list, sim);
+	segment_angle_distance_distribution(seg_list, sim);
 
-	//////////////////////////// BUILD TABLE ////////////////////////////////////////////////
-
-	///////////// Variables for placing excitons in the future /////////////
-	int numRegions = static_cast<int>(sim.xdim / sim.region_length_min); //number of regions in the simulation
-	double extra = sim.xdim - numRegions*sim.region_length_min; //extra amount * numRegions that should be added to sim.region_length_min
-	double regLen = sim.region_length_min + extra / numRegions; //The length of each region.
-
-	vector<double> regionBdr = linspace(regLen - (sim.xdim / 2), sim.xdim / 2, numRegions); //The boundary of the rgions in the x direction
-	vector<int> segCountPerReg(numRegions); //To get dist stats
+	// create list of contact segments ***********************************************************
+	int num_regions = static_cast<int>(sim.xdim / sim.region_length_min); //number of regions in the simulation
+	vector<double> region_boundaries = linspace(-sim.xdim/2.0, sim.xdim/2, num_regions); //The boundary of the rgions in the x direction
 	vector<shared_ptr<segment>> inContact(0); //List of segments in the first region, which is used as a input contact
 
-	
-	//iterate through all of the CNTs and segments
-	int numSegs = 0; //The total number of segments in the simulation, used in exciton placement
-	double gamma = 0; //The maximum of sums of gammas from each segment. This sets the constant gamma value for the entire simulation
-
-	int buildTblDecPerc = static_cast<int>(cnt_list.size() / 10.0); //ten percent of total number of tubes
-	int buildTblCntr = 0;
-	//loop over CNTs
-	for (int i=0; i<cnt_list.size(); i++)
+	for (int i=0; i<seg_list.size(); i++)
 	{
-		CNT &curr_cnt = cnt_list[i];
+		segment &curr_segment = *(seg_list[i]);
 
-		double newGamma;
-		
-		//loop over segments in each CNTs
-		for (int j=0; j<curr_cnt.segments.size(); j++)
+		int regIdx = get_index(region_boundaries, curr_segment.point_m[0]);
+
+		if (regIdx == 0)
 		{
-			segment &curr_segment = curr_cnt.segments[j];
-
-			int regIdx = getIndex(regionBdr, curr_segment.mid(0));
-			segCountPerReg[regIdx]++; //increment the count based on where segment is
-
-			if (regIdx == 0){ inContact.push_back(make_shared<segment>(curr_segment)); } //First region is injection contact
-			//get add to each segment relevant table entries
-			newGamma = updateSegTable(cnt_list, curr_segment, sim.maximum_distance, heatMap, rs, thetas);
-			if (newGamma > gamma){ gamma = newGamma; }
-			numSegs++;
+			inContact.push_back(make_shared<segment>(curr_segment));
 		}
-		buildTblCntr++;
-		if (buildTblCntr == buildTblDecPerc)
-		{
-			buildTblCntr = 0;
-		}
-		
 	}
 
-
-	/////////////////////////////// OUTPUT SEG COUNT PER REGION //////////////////////////////////////
-
-	string segmentCountFileName = file_manager.output_directory + "segmentCountPerRegion.csv";
-	ofstream segmentCountFile;
-	segmentCountFile.open(segmentCountFileName);
-	for (uint32_t i = 0; i < segCountPerReg.size(); i++)
+	// build scattering rate tables for each segment ********************************************
+	double max_rate = 0; //maximum total scattering rate from all segments.
+	for (int i=0; i<seg_list.size(); i++)
 	{
-		segmentCountFile << " , " << segCountPerReg[i];
-	}
-	segmentCountFile.close();
-
-	/////////////////////////////// OUTPUT HEATMAP //////////////////////////////////////
-
-	string heatMapFileName = file_manager.output_directory + "heatMap.csv";
-	ofstream heatMapFile;
-	heatMapFile.open(heatMapFileName);
-	//iterate through all of the rs and then thetas while printing to file
-	for (uint32_t i = 0; i < rs.size(); i++)
-	{
-		for (uint32_t j = 0; j < thetas.size(); j++)
+		segment &curr_segment = *(seg_list[i]);
+		double total_rate = make_rate_table(seg_list, curr_segment, sim.maximum_distance);
+		if (total_rate > max_rate)
 		{
-			heatMapFile << heatMap[i][j] << " , ";
-		}
-		heatMapFile << "\n";
+			max_rate = total_rate;
+		}		
 	}
-	heatMapFile.close();
 
-
+	{
+		stringstream log_input;
+		log_input << "maximum scattering rate = " << std::scientific << max_rate;
+		write_log(log_input.str());
+	}
 
 	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
 
-	addSelfScattering(cnt_list, gamma);
+	addSelfScattering(cnt_list, max_rate);
 
 	/*
 	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
@@ -178,11 +150,11 @@ int main(int argc, char *argv[])
 
 
 	//////////////////////////////////// TIME STEPS ///////////////////////////////////
-	double deltaT = (1 / gamma)*sim.tfac; //time steps at which statistics are calculated
+	double deltaT = (1 / max_rate)*sim.tfac; //time steps at which statistics are calculated
 	double Tmax = deltaT * sim.number_of_steps; //maximum simulation time
 	double T = 0; //Current simulation time, also time at which next stats will be calculated
 
-	vector<int> currCount(numRegions); //The count of excitons in each region of the CNT mesh
+	vector<int> currCount(num_regions); //The count of excitons in each region of the CNT mesh
 
 	//File output initializations
 	string excitonDistFileName = file_manager.output_directory + "excitonDist.csv";
@@ -206,7 +178,7 @@ int main(int argc, char *argv[])
 		T += deltaT;
 
 		//reset the exciton count after each time step
-		clear_vector(currCount, 0);
+		vector_clear(currCount, 0);
 
 		for (int exNum = 0; exNum < excitons.size(); exNum++)
 		{
@@ -220,7 +192,7 @@ int main(int argc, char *argv[])
 			if (extraT > deltaT)
 			{
 				curr_exciton.setTExtra(extraT - deltaT);
-				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, regionBdr);
+				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, region_boundaries);
 			}
 			else
 			{
@@ -229,16 +201,16 @@ int main(int argc, char *argv[])
 				are just injected.*/
 				if (extraT == 0)
 				{
-					tr_tot += -(1 / gamma)*log(getRand(true));
+					tr_tot += -(1 / max_rate)*log(getRand(true));
 				}
 				while (tr_tot <= deltaT)
 				{
 					//choose new state
-					assignNextState(cnt_list, curr_exciton, gamma, regionBdr);
-					tr_tot += -(1 / gamma)*log(getRand(true)); // add the tr calculation to current time for individual particle
+					assignNextState(cnt_list, curr_exciton, max_rate, region_boundaries);
+					tr_tot += -(1 / max_rate)*log(getRand(true)); // add the tr calculation to current time for individual particle
 				}
 				//Recording distribution
-				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, regionBdr);
+				markCurrentExcitonPosition(cnt_list, curr_exciton, currCount, region_boundaries);
 				//record the time past deltaT that the assign next state will cover
 				curr_exciton.setTExtra(tr_tot - deltaT);
 			}

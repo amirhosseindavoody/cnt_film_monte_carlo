@@ -1,30 +1,20 @@
-﻿/**
-segment.cpp
-Purpose: Segment struct used in each CNT object
-
-@author Alex Gabourie
-@version 1.00
-*/
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <iostream>
 
 #include "segment.h"
+#include "math_functions.h"
 
-/**
-Determines if the segment has an exciton of the same type
-as the passed exciton
+using namespace math_functions;
 
-@param e The exciton desired to see if a slot is available
-@return Whether or not the exciton can be added
-*/
-
+// Determines if the segment has an exciton of the same type as the passed exciton
 segment::segment(int number, vector<double> first_point, vector<double> second_point)
 {
 	segment_number = number;
+	
 	point1 = first_point;
 	point2 = second_point;
+	
 	point_m = vector<double>(3);
-
 	for (int i=0; i<3; i++)
 	{
 		point_m[i] = (point1[i]+point2[i])/2.0;
@@ -41,7 +31,6 @@ bool segment::hasExciton(shared_ptr<exciton> e)
 	if (currEn != 1 && currEn != 2)
 	{
 		cout << "Exciton passed to \"hasExciton\" has not been initialized correctly.\n";
-		system("pause");
 		exit(EXIT_FAILURE);
 	}
 
@@ -58,13 +47,7 @@ bool segment::hasExciton(shared_ptr<exciton> e)
 	return false; //slot is empty
 }
 
-/**
-Sets the exciton in the correct slot to the exciton passed to function.
-
-
-@param e The exciton desired to be added to the segment
-@return True if assignment works and false if assignment not successful
-*/
+// Sets the exciton in the correct slot to the exciton passed to function.
 bool segment::setExciton(shared_ptr<exciton> e)
 {
 	int currEn = e->getEnergy();
@@ -92,12 +75,7 @@ bool segment::setExciton(shared_ptr<exciton> e)
 	return false;
 }
 
-/**
-Removes the exciton of the correct type
-
-@param e The exciton desired to be removed from the segment
-@return True if exciton removed, false if no exciton to remove
-*/
+// Removes the exciton of the correct type
 bool segment::removeExciton(shared_ptr<exciton> e)
 {
 	int currEn = e->getEnergy();
@@ -125,10 +103,7 @@ bool segment::removeExciton(shared_ptr<exciton> e)
 	return false; //no exciton present to remove
 }
 
-/**
-Checks to see if the exciton that is passes is the exact exciton that
-already exists in the location.
-*/
+// Checks to see if the exciton that is passes is the exact exciton that already exists in the location.
 bool segment::hasExactExciton(shared_ptr<exciton> e)
 {
 	//If adding the same exciton to the same location, that is self scattering and allowed
@@ -137,4 +112,26 @@ bool segment::hasExactExciton(shared_ptr<exciton> e)
 		return true;
 	}
 	return false;
+}
+
+// calculates the distance between current segment and another segment.
+double segment::get_distance(segment &f_seg)
+{
+	vector<double> diff = vector_sub(point_m , f_seg.point_m);
+	double norm = vector_norm(diff);
+	return norm;
+	
+}
+
+// calculates the angle between current segment and another segment.
+double segment::get_angle(segment &f_seg)
+{
+	vector<double> v1 = vector_sub(point1, point2);
+	vector<double> v2 = vector_sub(f_seg.point1, f_seg.point2);
+	double val = acos(dot_product(v1, v2) / (vector_norm(v1)*vector_norm(v2))); //range 0 to pi
+	if (val <= M_PI / 2.0)
+	{
+		return val;
+	}
+	return (M_PI - val);
 }

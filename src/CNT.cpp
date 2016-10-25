@@ -224,7 +224,6 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 		double y = stod(tmp_string);
 		if (y > ymax)
 		{
-			cout << "y = " << ymax << endl;
 			ymax = y;
 		}
 		
@@ -239,7 +238,7 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 	//Calculate the segments needed for table generation
 	calculate_segments(segment_length);
 
-	print_segment_points(0, number_of_points);
+	// print_segment_points(0, number_of_points);
 
 	//Checks to see if some segments were calculated
 	if (segments.empty())
@@ -249,10 +248,6 @@ CNT::CNT(const string fileName, const string folderPath, double segment_length)
 	}
 
 	initialized = true;
-
-	// stringstream log_input;
-	// log_input << "segment size = " << segments.size();
-	// write_log(log_input.str());
 }
 
 void CNT::set_diameter(int n, int m)

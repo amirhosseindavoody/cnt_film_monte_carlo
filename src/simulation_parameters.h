@@ -20,7 +20,7 @@ class simulation_parameters
 		simulation_parameters();
 
 		double segment_length; //[Angstrom] this is the length of the cnt segments that are used in the monte carlo simulation
-		double region_length_min; //[Angstrom]
+		double region_length_min; //[Angstrom] this is the length of the bids that we calculate the exciton population in them.
 		int number_of_steps; //the total number of time steps in the monte carlo simulation
 		double maximum_distance; //[Angstroms]  the maximum segment separation to be considered for exciton transfer
 		int number_of_excitons; //the number of excitons in the simulation
@@ -32,7 +32,7 @@ class simulation_parameters
 
 		double rmax; //maximum possible differences between sections of CNTs
 		double xdim; //Dimension in which exciton populations will be monitored
-		double ydim;
+		double ydim; // this is the dimension that cnts are poured from. It has the lowest dimension.
 		double zdim;
 	private:
 		
