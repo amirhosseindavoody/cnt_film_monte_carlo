@@ -141,7 +141,7 @@ int math_functions::get_index(vector<double> &vec, double val)
 		else if(tmp_vec[ix_upper] == 0) {return ix_upper;}
 		else
 		{
-			cout << "error in finding bisection root: 1" << endl;
+			cout << "error in finding bisection root: value larger than bounds of the array" << endl;
 			exit(EXIT_FAILURE);
 		}
 	}

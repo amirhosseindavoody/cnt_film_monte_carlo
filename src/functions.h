@@ -29,7 +29,7 @@ void markCurrentExcitonPosition(vector<CNT> &cnt_list, exciton &curr_exciton, ve
 bool hasMovedToOutContact(exciton &curr_exciton, vector<double> &regionBdr, vector<CNT> &cnt_list);
 void injectExciton(exciton &curr_exciton, vector<shared_ptr<segment>> &inContact);
 void assignNextState(vector<CNT> &cnt_list, exciton &curr_exciton, double gamma, vector<double> &regionBdr);
-void addSelfScattering(vector<CNT> &cnt_list, double maxGam);
+void add_self_scattering(vector<CNT> &cnt_list, double maxGam);
 double getRand(bool excludeZero);
 double make_rate_table(vector<shared_ptr<segment>> &seg_list, segment &seg, double maxDist);
 double convert_units(string unit, double val);

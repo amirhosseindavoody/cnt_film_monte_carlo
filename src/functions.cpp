@@ -103,15 +103,15 @@ bool hasMovedToOutContact(exciton &curr_exciton, vector<double> &regionBdr, vect
 
 
 // Places the specified exciton into the input contact
-void injectExciton(exciton &curr_exciton, vector<shared_ptr<segment>> &inContact)
+void injectExciton(exciton &curr_exciton, vector<shared_ptr<segment>> &in_contact)
 {
 	//randomly set the energy of the exciton
 	int energy = static_cast<int>(round(getRand(false))+1);
 	curr_exciton.setEnergy(energy);
 
 	//choose a destination segment
-	int contact_idx = static_cast<int>(rand() % inContact.size());
-	segment &injected_seg = *(inContact[contact_idx]);
+	int contact_idx = static_cast<int>(rand() % in_contact.size());
+	segment &injected_seg = *(in_contact[contact_idx]);
 
 	//The self scattering table will have the correct indices for the current segment
 	vector<tableElem> &tbl = injected_seg.tbl;
@@ -148,22 +148,18 @@ void assignNextState(vector<CNT> &cnt_list, exciton &curr_exciton, double gamma,
 
 
 // Adds to each segments' rate vector the self scattering component of the simulation
-void addSelfScattering(vector<CNT> &cnt_list, double maxGam)
+void add_self_scattering(vector<shared_ptr<segment>> &seg_list, double max_rate)
 {
-	for (int i=0; i<cnt_list.size(); i++)
+	for (int i=0; i<seg_list.size(); i++)
 	{
-		CNT &curr_cnt = cnt_list[i];
-		
-		for (int j=0; j<curr_cnt.segments.size(); j++)
+		segment &seg = *(seg_list[i]);
+		double self_rate = max_rate - seg.rateVec.back();
+		if(self_rate>0)
 		{
-			segment &curr_segment = curr_cnt.segments[j];
-
-			double currGam = curr_segment.rateVec.back();
-			if (maxGam > currGam)
-			{
-				curr_segment.tbl.push_back(tableElem(1.0, 0.0, maxGam - currGam, i, j));
-				curr_segment.rateVec.push_back(maxGam);
-			}
+			int cnt_idx = seg.cnt_idx;
+			int seg_idx = seg.seg_idx;
+			seg.tbl.push_back(tableElem(1.0, 0.0, self_rate, cnt_idx, seg_idx))
+			seg.rateVec.push_back(max_rate);
 		}
 	}
 }

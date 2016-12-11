@@ -33,16 +33,15 @@ using namespace output;
 //Global variables
 double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
 
-//Runs the file input, monte carlo, and file output sections of code
 int main(int argc, char *argv[])
 {
 	double runtime;
 	clock_t start = clock();
 
 	init_random_number_generator();
-
-
-	// load cnt geometry data **************************************************************************
+	// ********************************************************************************************
+	// load cnt geometry data
+	// ********************************************************************************************
 	if (argc != 2)
 	{
 		cout << "input directory must be entered as an argument!!!" << endl;;
@@ -88,29 +87,39 @@ int main(int argc, char *argv[])
 	}
 
 	sim.rmax = sqrt(pow(sim.rmax, 2) + pow(ymax,2));
-
-	// get some statistics about cnt network *****************************************************
+	// ********************************************************************************************
+	// get some statistics about cnt network
+	// ********************************************************************************************
 	segment_x_distribution(cnt_list, sim);
 	segment_angle_distance_distribution(seg_list, sim);
 
-	// create list of contact segments ***********************************************************
+	// ********************************************************************************************
+	// create list of contact segments
+	// ********************************************************************************************
 	int num_regions = static_cast<int>(sim.xdim / sim.region_length_min); //number of regions in the simulation
 	vector<double> region_boundaries = linspace(-sim.xdim/2.0, sim.xdim/2, num_regions); //The boundary of the rgions in the x direction
-	vector<shared_ptr<segment>> inContact(0); //List of segments in the first region, which is used as a input contact
+	vector<shared_ptr<segment>> in_contact(0); //List of segments in the first region, which is used as a input contact
+	vector<shared_ptr<segment>> out_contact(0); //List of segments in the first region, which is used as a input contact
 
 	for (int i=0; i<seg_list.size(); i++)
 	{
 		segment &curr_segment = *(seg_list[i]);
 
-		int regIdx = get_index(region_boundaries, curr_segment.point_m[0]);
+		int region_idx = get_index(region_boundaries, curr_segment.point_m[0]);
 
-		if (regIdx == 0)
+		if (region_idx == 0)
 		{
-			inContact.push_back(make_shared<segment>(curr_segment));
+			in_contact.push_back(make_shared<segment>(curr_segment));
+		}
+		else if((region_idx == region_boundaries.size()-2) && (region_idx == region_boundaries.size()-1))
+		{
+			out_contact.push_back(make_shared<segment>(curr_segment));
 		}
 	}
 
-	// build scattering rate tables for each segment ********************************************
+	// ********************************************************************************************
+	// build scattering rate tables for each segment
+	// ********************************************************************************************
 	double max_rate = 0; //maximum total scattering rate from all segments.
 	for (int i=0; i<seg_list.size(); i++)
 	{
@@ -122,30 +131,24 @@ int main(int argc, char *argv[])
 		}		
 	}
 
+	// write the maximum scattering rate in the simulation
 	{
 		stringstream log_input;
 		log_input << "maximum scattering rate = " << std::scientific << max_rate;
 		write_log(log_input.str());
 	}
 
-	/////////////////////////////// ADD SELF SCATTERING //////////////////////////////////
+	// add self-scattering rates to the scattering table
+	add_self_scattering(seg_list, max_rate);
 
-	addSelfScattering(cnt_list, max_rate);
-
-	/*
-	Now that the tables have been built, the next step is to populate the mesh with excitons. The way this will happen
-	is, after a specific number of excitons are chosen to be created, each exciton will be created and assigned an index
-	that corresponds to the CNT mesh. The available locations for excitons to start will be determined by the number of 
-	segments that are within the delta x region specified. The exciton assignment will be equally and randomly distributed 
-	among the list of segments in the delta x region.
-	*/
-
-	//////////////////////////// PLACE EXCITONS ////////////////////////////////////////////
-
+	
+	// ********************************************************************************************
+	// populate segments with excitons
+	// ********************************************************************************************
 	vector<exciton> excitons(sim.number_of_excitons);
-	for (int exNum = 0; exNum < sim.number_of_excitons; exNum++)
+	for (int i = 0; i<excitons.size(); i++)
 	{
-		injectExciton(excitons[exNum], inContact);
+		injectExciton(excitons[i], in_contact);
 	}
 
 
@@ -172,7 +175,9 @@ int main(int argc, char *argv[])
 	int timeSteps = 0; //current count of number of time steps
 	bool simDone = false; //boolean symbolizing a finished simulation
 
+	// ********************************************************************************************
 	// monte carlo stepping loop
+	// ********************************************************************************************
 	while (T <= Tmax && !simDone) //iterates over time
 	{
 		T += deltaT;
@@ -250,7 +255,7 @@ int main(int argc, char *argv[])
 		writeStateToFile(excitonDistFile, currCount, T);
 
 		//Update Exciton List for injection and exit contact
-		updateExcitonList(sim.number_of_excitons, excitons, currCount, inContact);
+		updateExcitonList(sim.number_of_excitons, excitons, currCount, in_contact);
 		
 	}
 
