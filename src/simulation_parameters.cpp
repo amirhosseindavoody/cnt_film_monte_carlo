@@ -8,10 +8,11 @@
 #include <list>
 #include <vector>
 #include <memory>
+#include <cmath>
 
 #include "simulation_parameters.h"
 
-using namespace std;
+// using namespace std;
 
 simulation_parameters::simulation_parameters()
 {
@@ -24,7 +25,7 @@ simulation_parameters::simulation_parameters()
 	threshold = 0.01;
 	num_to_finish = 5;
 	num_to_check = 1000;
-	tfac = log(0.3);
+	tfac = std::log(0.3);
 
 	rmax = 0;
 	xdim = 0;

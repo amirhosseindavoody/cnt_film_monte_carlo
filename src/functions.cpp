@@ -158,7 +158,7 @@ void add_self_scattering(vector<shared_ptr<segment>> &seg_list, double max_rate)
 		{
 			int cnt_idx = seg.cnt_idx;
 			int seg_idx = seg.seg_idx;
-			seg.tbl.push_back(tableElem(1.0, 0.0, self_rate, cnt_idx, seg_idx))
+			seg.tbl.push_back(tableElem(1.0, 0.0, self_rate, cnt_idx, seg_idx));
 			seg.rateVec.push_back(max_rate);
 		}
 	}
