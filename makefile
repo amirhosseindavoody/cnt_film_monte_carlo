@@ -1,8 +1,8 @@
 CC=g++
-CC+= -Wno-deprecated-declarations
+# CC+= -Wno-deprecated-declarations
 
 CFLAGS = -I./ -I./eigen/ -std=c++17
-LFLAGS = -lgsl -lgslcblas -lm -std=c++17
+LFLAGS = -lgsl -lgslcblas -lm -lstdc++fs -std=c++17
 
 SRCDIR = ./src
 OBJDIR = ./obj
