@@ -20,9 +20,12 @@ particle::particle(const mc::arr1d pos, const mc::arr1d momentum, const mc::t_fl
 };
 
 // perform free flight
-void particle::fly(mc::t_float dt)
+void particle::fly(const mc::t_float& dt, const mc::arr1d& volume)
 {
-	_pilot->fly(_pos, _momentum, _eff_mass, dt);
+	_old_pos = _pos;
+	_old_momentum = _momentum;
+
+	_pilot->fly(_pos, _momentum, _eff_mass, dt, volume);
 };
 
 // get position of the particle

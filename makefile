@@ -1,4 +1,4 @@
-CC=g++
+CC=g++-7
 # CC+= -Wno-deprecated-declarations
 
 CFLAGS = -I./ -I./eigen/ -std=c++17

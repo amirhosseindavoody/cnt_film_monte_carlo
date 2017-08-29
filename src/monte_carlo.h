@@ -20,10 +20,10 @@ private:
 	mc::t_float _time; // total simulation time that has elapsed
 	mc::t_float _temperature; // temperature of the simulation
 	mc::t_float _beta; // 1/kB*T is the inverse of the thermal energy
+	mc::arr1d _volume; // the physical extent of the simulation domain
 
-	// output directory and files
+	// output directory
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
-	std::experimental::filesystem::path _output_file_path; // this is the full address of the output file.
 
 public:
 	

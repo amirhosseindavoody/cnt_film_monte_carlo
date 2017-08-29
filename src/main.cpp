@@ -2,36 +2,10 @@
 //
 
 #include <stdio.h>
-#include <iostream>
-#include <string>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <list>
-#include <vector>
-#include <memory>
-#include <locale>
-#include <math.h>
-#include <regex>
-#include <omp.h>
-#include <stdint.h>
-#include <unistd.h> // used for changing the working directory in the program: chdir
 
-// #include "rapidxml.hpp"
-// #include "rapidxml_utils.hpp"
-// #include "file_management.h"
-// #include "functions.h"
-// #include "write_log.h"
-// #include "CNT.h"
-// #include "tableElem.h"
-// #include "simulation_parameters.h"
-// #include "output.h"
-
+#include "utility.h"
 #include "monte_carlo.h"
 #include "scatter.h"
-#include "utility.h"
-
-//Global variables
-// double ymax = 0; //stores maximum height the cylinders of the CNTs are found at. All will be greater than 0.
 
 int main(int argc, char *argv[])
 {

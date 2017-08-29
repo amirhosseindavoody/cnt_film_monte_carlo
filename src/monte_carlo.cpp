@@ -43,6 +43,8 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	_num_particles = _particles.size();
 	_time = 0.;
 
+	_volume = {100.e-9, 100.e-9, 1000.e-9};
+
 };
 
 // set the output directory and the output file name
@@ -86,15 +88,6 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 		// std::exit(EXIT_FAILURE);
 	}
 
-	if (argc <= 2)
-	{
-		_output_file_path = _output_directory.path() / "output.dat";
-	}
-	else
-	{
-		_output_file_path = _output_directory.path() / std::string(argv[2]);
-	}
-	std::cout << "output file name:" << _output_file_path << std::endl;
 };
 
 // returns the number of particles
@@ -115,12 +108,12 @@ void monte_carlo::step(mc::t_float dt)
 		while(it->get_ff_time() <= new_dt)
 		{
 			new_dt -= it->get_ff_time();
-			it->fly(it->get_ff_time());
+			it->fly(it->get_ff_time(), _volume);
 			it->scatter();
 			it->update_ff_time();
 		}
 
-		it->fly(new_dt);
+		it->fly(new_dt, _volume);
 		it->get_ff_time() -= new_dt;
 	}
 
