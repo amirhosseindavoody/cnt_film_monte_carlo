@@ -13,6 +13,7 @@ class free_flight
 {
 private:
 	mc::arr1d _acceleration; // acceleration in the three dimension space
+	mc::arr1d _inv_acceleration; // inverse of the acceleration in three dimension space
 
 public:
 	free_flight(mc::arr1d accel = {0,0,0}); // constructor

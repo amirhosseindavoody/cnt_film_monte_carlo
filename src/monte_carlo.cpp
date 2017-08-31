@@ -19,6 +19,8 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 
 	_temperature = 300;
 	_beta = 1./(mc::kB*_temperature);
+	_volume = {100.e-9, 100.e-9, 1000.e-9};
+	_time = 0.;
 
 
 	mc::t_float eff_mass = mc::elec_mass;
@@ -26,24 +28,24 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	
 	for (int i=0; i<num_particles; ++i)
 	{
+		
+		mc::arr1d pos;
+		for (int j=0; j<pos.size(); ++j)
+			pos[j] = _volume[j]*mc::get_rand_include_zero<mc::t_float>();
+
 		// get random energy with correct distribution
 		mc::t_float energy = -(3./2./_beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
 		mc::t_float velocity_magnitude = std::sqrt(energy*2./eff_mass);
-		
-
 		// get uniformly distribution direction
 		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
 		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
-
-		mc::arr1d pos = {0., 0., 0.};
 		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+
 		_particles.emplace_back(pos, velocity, eff_mass, pilot);
 
 	}
 	_num_particles = _particles.size();
-	_time = 0.;
 
-	_volume = {100.e-9, 100.e-9, 1000.e-9};
 
 };
 
@@ -56,7 +58,8 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 	
 	if (argc <= 1)
 	{
-		_output_directory.assign("/Users/amirhossein/research/test");
+		// _output_directory.assign("/Users/amirhossein/research/test");
+		_output_directory.assign("/home/amirhossein/research/test");
 	}
 	else
 	{
@@ -103,6 +106,7 @@ void monte_carlo::step(mc::t_float dt)
 	mc::t_float new_dt;
 	for (std::list<mc::particle>::iterator it = _particles.begin(); it != _particles.end(); ++it)
 	{
+		std::cout << "****\nnew particle\n****\n\n";
 		new_dt = dt;
 		
 		while(it->get_ff_time() <= new_dt)

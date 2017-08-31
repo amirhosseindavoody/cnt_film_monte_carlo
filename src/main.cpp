@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	clock_t start = clock();
 
 
-	mc::monte_carlo mc_simulation(1);
+	mc::monte_carlo mc_simulation(1000);
 	mc_simulation.process_command_line_args(argc, argv);
 
 	float time_step = 1.e-14;
@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
 
 	while(mc_simulation.time() < 1.e-9)
 	{
+		std::cout << "\nsimulation time [seconds]: " << mc_simulation.time() << std::endl << std::endl;
 		mc_simulation.step(time_step);
 
 		if (int(mc_simulation.time()/time_step) % 100 == 0)
