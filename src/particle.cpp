@@ -7,10 +7,10 @@ namespace mc
 {
 
 // constructor
-particle::particle(const mc::arr1d pos, const mc::arr1d momentum, const mc::t_float eff_mass, const std::shared_ptr<mc::free_flight> pilot, const std::shared_ptr<mc::scatter> scatterer)
+particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_float eff_mass, const std::shared_ptr<mc::free_flight> pilot, const std::shared_ptr<mc::scatter> scatterer)
 {
 	_pos = pos;
-	_momentum = momentum;
+	_velocity = velocity;
 	_eff_mass = eff_mass;
 	kin_energy();
 	_pilot = pilot;
@@ -23,9 +23,10 @@ particle::particle(const mc::arr1d pos, const mc::arr1d momentum, const mc::t_fl
 void particle::fly(const mc::t_float& dt, const mc::arr1d& volume)
 {
 	_old_pos = _pos;
-	_old_momentum = _momentum;
+	_old_velocity = _velocity;
 
-	_pilot->fly(_pos, _momentum, _eff_mass, dt, volume);
+	_pilot->fly(_pos, _velocity, _eff_mass, dt, volume);
+	_pilot->check_boundary(_pos, _velocity, _old_pos, _old_velocity, _eff_mass, dt, volume);
 };
 
 // get position of the particle
@@ -34,10 +35,10 @@ const mc::arr1d& particle::pos()
 	return _pos;
 };
 
-// get momentum of the particle
-const mc::arr1d& particle::momentum()
+// get velocity of the particle
+const mc::arr1d& particle::velocity()
 {
-	return _momentum;
+	return _velocity;
 };
 
 // print the state of the particle
@@ -48,16 +49,16 @@ std::ostream& operator<< (std::ostream& stream, const particle& _particle)
 		stream << _particle._pos[i] << " ";
 	}
 	stream << ", ";
-	for (int i=0; i<_particle._momentum.size(); ++i)
+	for (int i=0; i<_particle._velocity.size(); ++i)
 	{
-		stream << _particle._momentum[i] << " ";
+		stream << _particle._velocity[i] << " ";
 	}
 };
 
 // update and return the kinetic energy of the particle
 const mc::t_float& particle::kin_energy()
 {
-	_kin_energy = mc::norm2(_momentum)/(2.*_eff_mass);
+	_kin_energy = _eff_mass*mc::norm2(_velocity)/2.;
 	return _kin_energy;
 };
 
@@ -78,7 +79,7 @@ mc::t_float& particle::get_ff_time()
 void particle::scatter()
 {
 	mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
-	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _momentum);
+	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
 }; 
 
 } // namespace mc

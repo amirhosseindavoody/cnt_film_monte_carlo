@@ -86,7 +86,7 @@ mc::t_int scatter::cnvrt_energy_to_state_index(const mc::t_float energy)
 };
 
 // update the final state of the particle
-void scatter::update_state(const mc::t_int& scat_mechanism, const mc::t_float& energy, mc::arr1d& pos, mc::arr1d& momentum)
+void scatter::update_state(const mc::t_int& scat_mechanism, const mc::t_float& energy, mc::arr1d& pos, mc::arr1d& velocity)
 {
 	switch(scat_mechanism)
 	{
@@ -150,14 +150,14 @@ void scatter::update_state(const mc::t_int& scat_mechanism, const mc::t_float& e
 		new_energy = -(3./2.*0.025*mc::eV)*std::log(mc::get_rand_include_zero<mc::t_float>());
 	}
 
-	mc::t_float mag = std::sqrt(new_energy*2.*mc::elec_mass);
+	mc::t_float velocity_magnitude = std::sqrt(new_energy*2./mc::elec_mass);
 	
 	// get uniformly distribution direction
 	mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
 	mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
 
 	pos = {0., 0., 0.};
-	momentum = {mag*std::sin(theta)*std::cos(phi), mag*std::sin(theta)*std::sin(phi), mag*std::cos(theta)};
+	velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
 }; 
 
 } // mc namespace

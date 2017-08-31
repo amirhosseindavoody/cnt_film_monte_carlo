@@ -25,10 +25,9 @@ private:
 	mc::t_int cnvrt_energy_to_state_index(mc::t_float energy); // converts particle energy to appropriate index in the scattering table
 public:
 	scatter(); // constructor
-
 	mc::t_float ff_time(); // get random free flight time
 	mc::t_int get_scat_mechanism(mc::t_float energy); // get the index of the scattering mechanism
-	void update_state(const mc::t_int& scat_mechanism, const mc::t_float& energy, mc::arr1d& pos, mc::arr1d& momentum); // update the final state of the particle
+	void update_state(const mc::t_int& scat_mechanism, const mc::t_float& energy, mc::arr1d& pos, mc::arr1d& velocity); // update the final state of the particle
 
 }; // end class scatter
 

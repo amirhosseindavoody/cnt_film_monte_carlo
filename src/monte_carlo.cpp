@@ -28,7 +28,7 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	{
 		// get random energy with correct distribution
 		mc::t_float energy = -(3./2./_beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
-		mc::t_float mag = std::sqrt(energy*2.*eff_mass);
+		mc::t_float velocity_magnitude = std::sqrt(energy*2./eff_mass);
 		
 
 		// get uniformly distribution direction
@@ -36,8 +36,8 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
 
 		mc::arr1d pos = {0., 0., 0.};
-		mc::arr1d momentum = {mag*std::sin(theta)*std::cos(phi), mag*std::sin(theta)*std::sin(phi), mag*std::cos(theta)};
-		_particles.emplace_back(pos, momentum, eff_mass, pilot);
+		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+		_particles.emplace_back(pos, velocity, eff_mass, pilot);
 
 	}
 	_num_particles = _particles.size();
