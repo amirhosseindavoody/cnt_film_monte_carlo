@@ -18,7 +18,7 @@ namespace mc
 //#################################################################################################
 // custom data types
 //#################################################################################################
-typedef double t_float; // custom float type for mc class
+typedef long double t_float; // custom float type for mc class
 typedef int t_int; // custom integer type for mc class
 
 typedef std::vector<t_float> v1d; // custom 1d float array for mc class

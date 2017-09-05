@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	clock_t start = clock();
 
 
-	mc::monte_carlo mc_simulation(1000);
+	mc::monte_carlo mc_simulation(1);
 	mc_simulation.process_command_line_args(argc, argv);
 
 	float time_step = 1.e-14;
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	// 		seg_list.push_back(seg_ptr);
 	// 	}
 	// }
-	
+
 	// {
 	// 	string log_input = "number of segments = " + to_string(seg_list.size());
 	// 	write_log(log_input);
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 	// 	if (total_rate > max_rate)
 	// 	{
 	// 		max_rate = total_rate;
-	// 	}		
+	// 	}
 	// }
 
 	// // write the maximum scattering rate in the simulation
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	// // add self-scattering rates to the scattering table
 	// add_self_scattering(seg_list, max_rate);
 
-	
+
 	// // ********************************************************************************************
 	// // populate segments with excitons
 	// // ********************************************************************************************
@@ -227,13 +227,13 @@ int main(int argc, char *argv[])
 	// 		if (sim.num_to_check == timeSteps)
 	// 		{
 	// 			currAve /= sim.num_to_check; //calculate average
-				
+
 	// 			//check for max difference
 	// 			if ((difference = currAve - prevAve) > maxDiff)
 	// 			{
 	// 				maxDiff = difference;
 	// 			}
-				
+
 	// 			if (difference / maxDiff < sim.threshold)
 	// 			{
 	// 				if (++numInARow >= sim.num_to_finish)
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 
 	// 	//Update Exciton List for injection and exit contact
 	// 	updateExcitonList(sim.number_of_excitons, excitons, currCount, in_contact);
-		
+
 	// }
 
 	// //Close files finish program

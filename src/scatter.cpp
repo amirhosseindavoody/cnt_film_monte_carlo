@@ -145,19 +145,19 @@ void scatter::update_state(const mc::t_int& scat_mechanism, const mc::t_float& e
 	// get random energy with correct distribution
 	const mc::t_float max_energy = 10.*0.025*mc::eV;
 	mc::t_float new_energy = energy;
-	if (new_energy > max_energy)
+	if (new_energy > max_energy) // renormalize energy if the electron has too much energy
 	{
 		new_energy = -(3./2.*0.025*mc::eV)*std::log(mc::get_rand_include_zero<mc::t_float>());
 	}
-
 	mc::t_float velocity_magnitude = std::sqrt(new_energy*2./mc::elec_mass);
-	
+
+
 	// get uniformly distribution direction
 	mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
 	mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
-
-	pos = {0., 0., 0.};
 	velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
-}; 
+
+	// pos = {0., 0., 0.};
+};
 
 } // mc namespace

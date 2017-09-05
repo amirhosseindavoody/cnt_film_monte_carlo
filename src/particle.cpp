@@ -22,11 +22,14 @@ particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_fl
 // perform free flight
 void particle::fly(const mc::t_float& dt, const mc::arr1d& volume)
 {
+	std::cout << "***\nnew fly\n***\n\n";
 	_old_pos = _pos;
 	_old_velocity = _velocity;
 
 	_pilot->fly(_pos, _velocity, _eff_mass, dt, volume);
+	// std::cout << " ,c_pos= " << _pos[0] << std::endl << " ,o_pos= " << _old_pos[0] << std::endl << std::endl;
 	_pilot->check_boundary(_pos, _velocity, _old_pos, _old_velocity, _eff_mass, dt, volume);
+	// std::cin.ignore();
 };
 
 // get position of the particle
@@ -80,6 +83,6 @@ void particle::scatter()
 {
 	mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
 	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
-}; 
+};
 
 } // namespace mc

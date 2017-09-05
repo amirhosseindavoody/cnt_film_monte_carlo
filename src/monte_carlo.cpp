@@ -24,11 +24,12 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 
 
 	mc::t_float eff_mass = mc::elec_mass;
-	std::shared_ptr<mc::free_flight> pilot = std::make_shared<mc::free_flight>();
-	
+	mc::arr1d acceleration = {0., 0., 0.};
+	std::shared_ptr<mc::free_flight> pilot = std::make_shared<mc::free_flight>(acceleration);
+
 	for (int i=0; i<num_particles; ++i)
 	{
-		
+
 		mc::arr1d pos;
 		for (int j=0; j<pos.size(); ++j)
 			pos[j] = _volume[j]*mc::get_rand_include_zero<mc::t_float>();
@@ -55,17 +56,17 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 	namespace fs = std::experimental::filesystem;
 
 	std::cout << "current path is " << fs::current_path() << std::endl;
-	
+
 	if (argc <= 1)
 	{
-		// _output_directory.assign("/Users/amirhossein/research/test");
-		_output_directory.assign("/home/amirhossein/research/test");
+		_output_directory.assign("/Users/amirhossein/research/test");
+		// _output_directory.assign("/home/amirhossein/research/test");
 	}
 	else
 	{
 		_output_directory.assign(argv[1]);
 	}
-	
+
 	if (not fs::exists(_output_directory.path()))
 	{
 		std::cout << "warning: output directory does NOT exist!!!" << std::endl;
@@ -108,7 +109,7 @@ void monte_carlo::step(mc::t_float dt)
 	{
 		std::cout << "****\nnew particle\n****\n\n";
 		new_dt = dt;
-		
+
 		while(it->get_ff_time() <= new_dt)
 		{
 			new_dt -= it->get_ff_time();
