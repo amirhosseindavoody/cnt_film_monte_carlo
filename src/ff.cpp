@@ -24,19 +24,17 @@ free_flight::free_flight(mc::arr1d accel)
 		_inv_acceleration[i] = 1./accel[i];
 	}
 
-	std::cout << "\n****\n";
-	std::cout << "acceleration = ";
-	for (auto elem : _acceleration)
-		std::cout << elem << " , ";
-	std::cout << std::endl;
-
-	std::cout << "inverse acceleration = ";
-	for (auto elem : _inv_acceleration)
-		std::cout << elem << " , ";
-	std::cout << std::endl;
-	std::cout << "****\n";
-
-	// _number_of_flights_without_boundary_collisions = 0;
+	// std::cout << "\n****\n";
+	// std::cout << "acceleration = ";
+	// for (auto elem : _acceleration)
+	// 	std::cout << elem << " , ";
+	// std::cout << std::endl;
+	//
+	// std::cout << "inverse acceleration = ";
+	// for (auto elem : _inv_acceleration)
+	// 	std::cout << elem << " , ";
+	// std::cout << std::endl;
+	// std::cout << "****\n";
 };
 
 // perform free flight

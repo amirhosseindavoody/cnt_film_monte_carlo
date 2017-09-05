@@ -38,6 +38,12 @@ const mc::arr1d& particle::pos()
 	return _pos;
 };
 
+// get position of the particle
+const mc::t_float& particle::pos(mc::t_int i)
+{
+	return _pos[i];
+};
+
 // get velocity of the particle
 const mc::arr1d& particle::velocity()
 {
