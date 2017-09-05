@@ -12,7 +12,6 @@ int main(int argc, char *argv[])
 	double runtime;
 	clock_t start = clock();
 
-
 	mc::monte_carlo mc_simulation(1);
 	mc_simulation.process_command_line_args(argc, argv);
 
@@ -20,12 +19,13 @@ int main(int argc, char *argv[])
 
 	std::fstream file;
 
-	while(mc_simulation.time() < 1.e-9)
+	while (mc_simulation.time() < 1.e-9)
 	{
-		std::cout << "\nsimulation time [seconds]: " << mc_simulation.time() << std::endl << std::endl;
+		std::cout << "\nsimulation time [seconds]: " << mc_simulation.time() << std::endl
+				  << std::endl;
 		mc_simulation.step(time_step);
 
-		if (int(mc_simulation.time()/time_step) % 100 == 0)
+		if (int(mc_simulation.time() / time_step) % 100 == 0)
 		{
 			std::cout << "simulation time [seconds]: " << mc_simulation.time() << std::endl;
 			mc_simulation.write_state(file);
@@ -35,7 +35,6 @@ int main(int argc, char *argv[])
 	mc_simulation.write_state(file);
 
 	std::exit(1);
-
 
 	// init_random_number_generator();
 	// // ********************************************************************************************
@@ -140,7 +139,6 @@ int main(int argc, char *argv[])
 	// // add self-scattering rates to the scattering table
 	// add_self_scattering(seg_list, max_rate);
 
-
 	// // ********************************************************************************************
 	// // populate segments with excitons
 	// // ********************************************************************************************
@@ -149,7 +147,6 @@ int main(int argc, char *argv[])
 	// {
 	// 	injectExciton(excitons[i], in_contact);
 	// }
-
 
 	// //////////////////////////////////// TIME STEPS ///////////////////////////////////
 	// double deltaT = (1 / max_rate)*sim.tfac; //time steps at which statistics are calculated

@@ -59,8 +59,8 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 
 	if (argc <= 1)
 	{
-		_output_directory.assign("/Users/amirhossein/research/test");
-		// _output_directory.assign("/home/amirhossein/research/test");
+		// _output_directory.assign("/Users/amirhossein/research/test");
+		_output_directory.assign("/home/amirhossein/research/test");
 	}
 	else
 	{

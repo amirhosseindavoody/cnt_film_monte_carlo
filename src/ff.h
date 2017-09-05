@@ -15,7 +15,7 @@ private:
 	mc::arr1d _acceleration; // acceleration in the three dimension space
 	mc::arr1d _inv_acceleration; // inverse of the acceleration in three dimension space
 
-	mc::t_int _number_of_flights_without_boundary_collisions;
+	// mc::t_int _number_of_flights_without_boundary_collisions;
 
 public:
 	free_flight(mc::arr1d accel = {0,0,0}); // constructor
