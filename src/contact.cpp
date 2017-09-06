@@ -43,10 +43,12 @@ void contact::enlist(const std::list<mc::particle>::iterator particle_ptr)
 		}
 	}
 
-	// if (is_in_contact)
-	// {
-	// 	_particles
-	// }
+	if (is_in_contact)
+	{
+		std::cout << "adding particle to contact area list!!!" << std::endl;
+		_particle_iterators.emplace_back(particle_ptr);
+		std::cin.ignore();
+	}
 
 };
 

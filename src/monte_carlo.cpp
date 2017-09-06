@@ -26,6 +26,9 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	mc::t_float eff_mass = mc::elec_mass;
 	mc::arr1d acceleration = {0., 0., 0.};
 	std::shared_ptr<mc::free_flight> pilot = std::make_shared<mc::free_flight>(acceleration);
+	std::shared_ptr<mc::scatter> scatterer = std::make_shared<mc::scatter>();
+
+	mc::t_int id = 0;
 
 	for (int i=0; i<num_particles; ++i)
 	{
@@ -42,11 +45,11 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
 		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
 
-		_particles.emplace_back(pos, velocity, eff_mass, pilot);
+		_particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
+		id ++;
 
 	}
 	_num_particles = _particles.size();
-
 
 };
 

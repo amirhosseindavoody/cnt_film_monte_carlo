@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 	double runtime;
 	clock_t start = clock();
 
-	mc::monte_carlo mc_simulation(1);
+	mc::monte_carlo mc_simulation(10);
 	mc_simulation.process_command_line_args(argc, argv);
 
 	float time_step = 1.e-14;

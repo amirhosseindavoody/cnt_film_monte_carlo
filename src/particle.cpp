@@ -7,8 +7,9 @@ namespace mc
 {
 
 // constructor
-particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_float eff_mass, const std::shared_ptr<mc::free_flight> pilot, const std::shared_ptr<mc::scatter> scatterer)
+particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_float eff_mass, const std::shared_ptr<mc::free_flight> pilot, const std::shared_ptr<mc::scatter> scatterer, const mc::t_int id)
 {
+	_id = id;
 	_pos = pos;
 	_velocity = velocity;
 	_eff_mass = eff_mass;
@@ -89,6 +90,12 @@ void particle::scatter()
 {
 	mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
 	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
+};
+
+// get a constant reference to the particle id;
+const mc::t_int& particle::id() const
+{
+	return _id;
 };
 
 } // namespace mc
