@@ -13,7 +13,10 @@ namespace mc
 {
 
 // constructor
-monte_carlo::monte_carlo(unsigned long int num_particles)
+monte_carlo::monte_carlo(unsigned long int num_particles):
+	_left_contact({0,0,0}, {100.e-9, 100.e-9, 100.e-9}, 100),
+	_bulk({0,0,100.e-9}, {100.e-9,100.e-9,900.e-9}, 0),
+	_right_contact({0,0,900.e-9}, {100.e-9,100.e-9,1000.e-9})
 {
 	mc::init_random_number_generator();
 
@@ -65,8 +68,8 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 
 	if (argc <= 1)
 	{
-		// _output_directory.assign("/Users/amirhossein/research/test");
-		_output_directory.assign("/home/amirhossein/research/test");
+		_output_directory.assign("/Users/amirhossein/research/test");
+		// _output_directory.assign("/home/amirhossein/research/test");
 	}
 	else
 	{
@@ -109,23 +112,22 @@ unsigned long int monte_carlo::num_particles()
 // step the simulation in time
 void monte_carlo::step(mc::t_float dt)
 {
-
-	mc::t_float new_dt;
+	// step particles in the bulk section
 	for (const auto& index: _bulk_particles_index)
 	{
-		std::cout << "****\nnew particle\n****\n\n";
-		new_dt = dt;
+		_particles[index].step(dt,_volume);
+	}
 
-		while(_particles[index].get_ff_time() <= new_dt)
-		{
-			new_dt -= _particles[index].get_ff_time();
-			_particles[index].fly(_particles[index].get_ff_time(), _volume);
-			_particles[index].scatter();
-			_particles[index].update_ff_time();
-		}
+	// step particles in the right contact section
+	for (const auto& index: _right_contact_particles_index)
+	{
+		_particles[index].step(dt,_volume);
+	}
 
-		_particles[index].fly(new_dt, _volume);
-		_particles[index].get_ff_time() -= new_dt;
+	//step particles in the left contact sections
+	for (const auto& index: _left_contact_particles_index)
+	{
+		_particles[index].step(dt,_volume);
 	}
 
 	_time += dt;
@@ -156,5 +158,86 @@ mc::t_float& monte_carlo::time()
 	return _time;
 };
 
+// update the list of particle indices for active, inactive, bulk, and contact regions.
+void monte_carlo::update_particle_list()
+{
+	// move left_contact to bulk and right_contact
+	for (auto it=_left_contact_particles_index.begin(); it!=_left_contact_particles_index.end(); ++it)
+	{
+		if (_bulk.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_bulk_particles_index.splice(_bulk_particles_index.end(),_left_contact_particles_index, std::next(it,1));
+		}
+		else if (_right_contact.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_right_contact_particles_index.splice(_right_contact_particles_index.end(),_left_contact_particles_index, std::next(it,1));
+		}
+	}
+
+	// move bulk to left_contact and right_contact
+	for (auto it=_bulk_particles_index.begin(); it!=_bulk_particles_index.end(); ++it)
+	{
+		if (_left_contact.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_left_contact_particles_index.splice(_left_contact_particles_index.end(),_bulk_particles_index, std::next(it,1));
+		}
+		else if (_right_contact.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_right_contact_particles_index.splice(_right_contact_particles_index.end(),_bulk_particles_index, std::next(it,1));
+		}
+	}
+
+	// move right_contact to bulk and left_contact
+	for (auto it=_right_contact_particles_index.begin(); it!=_right_contact_particles_index.end(); ++it)
+	{
+		if (_left_contact.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_left_contact_particles_index.splice(_left_contact_particles_index.end(),_right_contact_particles_index, std::next(it,1));
+		}
+		else if (_bulk.in_region(_particles[*it].pos()))
+		{
+			--it;
+			_bulk_particles_index.splice(_bulk_particles_index.end(),_right_contact_particles_index, std::next(it,1));
+		}
+	}
+
+	// // sanity check to see if we did everything correctly
+	// bool correct_particle_region = true;
+	// for (auto it=_left_contact_particles_index.begin(); it!=_left_contact_particles_index.end(); ++it)
+	// {
+	// 	if (! _left_contact.in_region(_particles[*it].pos()))
+	// 	{
+	// 		std::cout << "particle is supposed to be in the left contact: id= " << _particles[*it].id() << std::endl;
+	// 		correct_particle_region = false;
+	// 	}
+	// }
+	// for (auto it=_right_contact_particles_index.begin(); it!=_right_contact_particles_index.end(); ++it)
+	// {
+	// 	if (! _right_contact.in_region(_particles[*it].pos()))
+	// 	{
+	// 		std::cout << "particle is supposed to be in the right contact: id= " << _particles[*it].id() << std::endl;
+	// 		correct_particle_region = false;
+	// 	}
+	// }
+	// for (auto it=_bulk_particles_index.begin(); it!=_bulk_particles_index.end(); ++it)
+	// {
+	// 	if (! _bulk.in_region(_particles[*it].pos()))
+	// 	{
+	// 		std::cout << "particle is supposed to be in the bulk: id= " << _particles[*it].id() << std::endl;
+	// 		correct_particle_region = false;
+	// 	}
+	// }
+	//
+	// if (! correct_particle_region)
+	// {
+	// 	std::cin.ignore();
+	// }
+
+};
 
 } // namespace mc

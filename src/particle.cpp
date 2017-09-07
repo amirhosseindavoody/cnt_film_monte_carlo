@@ -23,7 +23,7 @@ particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_fl
 // perform free flight
 void particle::fly(const mc::t_float& dt, const mc::arr1d& volume)
 {
-	std::cout << "***\nnew fly\n***\n\n";
+	// std::cout << "***\nnew fly\n***\n\n";
 	_old_pos = _pos;
 	_old_velocity = _velocity;
 
@@ -96,6 +96,21 @@ void particle::scatter()
 const mc::t_int& particle::id() const
 {
 	return _id;
+};
+
+// step particle state for dt in time
+void particle::step(mc::t_float dt, const mc::arr1d& volume)
+{
+	while(_ff_time <= dt)
+	{
+		dt -= _ff_time;
+		fly(_ff_time, volume);
+		scatter();
+		update_ff_time();
+	}
+
+	fly(dt, volume);
+	_ff_time -= dt;
 };
 
 } // namespace mc
