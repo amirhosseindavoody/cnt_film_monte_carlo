@@ -30,6 +30,8 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 
 	mc::t_int id = 0;
 
+	_particles.reserve(num_particles);
+
 	for (int i=0; i<num_particles; ++i)
 	{
 
@@ -46,6 +48,7 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
 
 		_particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
+		_bulk_particles_index.emplace_back(i);
 		id ++;
 
 	}
@@ -108,21 +111,21 @@ void monte_carlo::step(mc::t_float dt)
 {
 
 	mc::t_float new_dt;
-	for (std::list<mc::particle>::iterator it = _particles.begin(); it != _particles.end(); ++it)
+	for (const auto& index: _bulk_particles_index)
 	{
 		std::cout << "****\nnew particle\n****\n\n";
 		new_dt = dt;
 
-		while(it->get_ff_time() <= new_dt)
+		while(_particles[index].get_ff_time() <= new_dt)
 		{
-			new_dt -= it->get_ff_time();
-			it->fly(it->get_ff_time(), _volume);
-			it->scatter();
-			it->update_ff_time();
+			new_dt -= _particles[index].get_ff_time();
+			_particles[index].fly(_particles[index].get_ff_time(), _volume);
+			_particles[index].scatter();
+			_particles[index].update_ff_time();
 		}
 
-		it->fly(new_dt, _volume);
-		it->get_ff_time() -= new_dt;
+		_particles[index].fly(new_dt, _volume);
+		_particles[index].get_ff_time() -= new_dt;
 	}
 
 	_time += dt;
@@ -139,9 +142,9 @@ void monte_carlo::write_state(std::fstream &file)
 	}
 
 	file << _time << " , " << num_particles() << " ; ";
-	for (std::list<mc::particle>::iterator it = _particles.begin(); it != _particles.end(); ++it)
+	for (const auto& m_particle: _particles)
 	{
-		file << (*it);
+		file << m_particle;
 		file << "; ";
 	}
 	file << std::endl;

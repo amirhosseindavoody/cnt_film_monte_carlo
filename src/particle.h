@@ -39,6 +39,7 @@ public:
 	void scatter(); // scatter the particle to a new state using the scatterer object
 	friend std::ostream& operator<< (std::ostream& stream, const particle& _particle); // print the state of the particle
 	const mc::t_int& id() const; // get a constant reference to the particle id;
+	void step(const mc::t_float&dt); // step particle state for dt in time
 
 }; //particle class
 
