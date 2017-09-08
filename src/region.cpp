@@ -6,7 +6,7 @@ namespace mc
 {
 
 // constructor
-region::region(const mc::arr1d lower_corner, const mc::arr1d upper_corner, const mc::t_int number_of_expected_particles)
+region::region(const mc::arr1d lower_corner, const mc::arr1d upper_corner)
 {
 	_lower_corner = lower_corner;
 	_upper_corner = upper_corner;
@@ -25,48 +25,65 @@ region::region(const mc::arr1d lower_corner, const mc::arr1d upper_corner, const
 	{
 		_volume = _volume*(_upper_corner[i]-_lower_corner[i]);
 	}
-
-	_number_of_expected_particles = number_of_expected_particles;
-	_number_of_actual_particles = 0;
 };
 
 // add a particle to the _particles list if the particle is in the region region
-void region::enlist(const std::list<mc::particle>::iterator particle_ptr)
+bool region::enlist(std::list<mc::particle>::iterator& particle_iterator, std::list<mc::particle>& other_region_particles)
 {
-	bool is_in_region = true;
-
-	for (int i=0; i<_lower_corner.size(); ++i)
-	{
-		if ((particle_ptr->pos(i) < _lower_corner[i]) || (particle_ptr->pos(i) > _upper_corner[i]))
-		{
-			is_in_region = false;
-		}
-	}
-
+	bool is_in_region = in_region(*particle_iterator);
 	if (is_in_region)
 	{
-		std::cout << "adding particle to region area list!!!" << std::endl;
-		_particle_iterators.emplace_back(particle_ptr);
-		std::cin.ignore();
+		auto prev_iterator = std::prev(particle_iterator,1); // get the iterator of the previous particle from the other region particle list
+		_new_particles.splice(_new_particles.end(), other_region_particles, particle_iterator);
+		particle_iterator = prev_iterator; // now the particle iterator is the previous particle from the other region particle list
 	}
 
+	return is_in_region;
 };
 
-// checks if a coordinate is inside the region
-bool region::in_region(const mc::arr1d& pos)
+// populate the region with a certain number of particles
+void region::populate(const mc::t_float& beta, const mc::t_uint& number_of_particles)
 {
-	for (int i=0; i<_lower_corner.size(); ++i)
+	_number_of_expected_particles = number_of_particles;
+
+	mc::t_float eff_mass = mc::elec_mass;
+	mc::arr1d acceleration = {0., 0., 0.};
+	std::shared_ptr<mc::free_flight> pilot = std::make_shared<mc::free_flight>(acceleration);
+	std::shared_ptr<mc::scatter> scatterer = std::make_shared<mc::scatter>();
+
+	mc::t_int id = 0;
+
+	// _particles.reserve(num_particles);
+
+	for (int i=0; i<_number_of_expected_particles; ++i)
 	{
-		if (pos[i] < _lower_corner[i])
-		{
-			return false;
-		}
-		if (pos[i] > _upper_corner[i])
-		{
-			return false;
-		}
+		mc::arr1d pos;
+		for (int j=0; j<pos.size(); ++j)
+			pos[j] = _lower_corner[j]+(_upper_corner[j]-_lower_corner[j])*mc::get_rand_include_zero<mc::t_float>();
+
+		// get random energy with correct distribution
+		mc::t_float energy = -(3./2./beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
+		mc::t_float velocity_magnitude = std::sqrt(energy*2./eff_mass);
+		// get uniformly distribution direction
+		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
+		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
+		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+
+		_particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
+		++id;
 	}
-	return true;
+};
+
+// dump _new_particles into _particles list
+void region::dump_new_particles()
+{
+	_particles.splice(_particles.end(),_new_particles);
+};
+
+// return _particles list
+std::list<mc::particle>& region::particles()
+{
+	return _particles;
 };
 
 } // mc namespace

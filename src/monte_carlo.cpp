@@ -14,9 +14,7 @@ namespace mc
 
 // constructor
 monte_carlo::monte_carlo(unsigned long int num_particles):
-	_left_contact({0,0,0}, {100.e-9, 100.e-9, 100.e-9}, 100),
-	_bulk({0,0,100.e-9}, {100.e-9,100.e-9,900.e-9}, 0),
-	_right_contact({0,0,900.e-9}, {100.e-9,100.e-9,1000.e-9})
+	_bulk({0,0,100.e-9}, {100.e-9,100.e-9,900.e-9})
 {
 	mc::init_random_number_generator();
 
@@ -26,37 +24,17 @@ monte_carlo::monte_carlo(unsigned long int num_particles):
 	_time = 0.;
 
 
-	mc::t_float eff_mass = mc::elec_mass;
-	mc::arr1d acceleration = {0., 0., 0.};
-	std::shared_ptr<mc::free_flight> pilot = std::make_shared<mc::free_flight>(acceleration);
-	std::shared_ptr<mc::scatter> scatterer = std::make_shared<mc::scatter>();
+	mc::arr1d lower_corner = {0,0,0};
+	mc::arr1d upper_corner = {100.e-9, 100.e-9, 100.e-9};
+	_contacts.emplace_back(lower_corner, upper_corner);
 
-	mc::t_int id = 0;
+	lower_corner = {0,0,900.e-9};
+	upper_corner = {100.e-9,100.e-9,1000.e-9};
+	_contacts.emplace_back(lower_corner, upper_corner);
 
-	_particles.reserve(num_particles);
-
-	for (int i=0; i<num_particles; ++i)
-	{
-
-		mc::arr1d pos;
-		for (int j=0; j<pos.size(); ++j)
-			pos[j] = _volume[j]*mc::get_rand_include_zero<mc::t_float>();
-
-		// get random energy with correct distribution
-		mc::t_float energy = -(3./2./_beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
-		mc::t_float velocity_magnitude = std::sqrt(energy*2./eff_mass);
-		// get uniformly distribution direction
-		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
-		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
-		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
-
-		_particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
-		_bulk_particles_index.emplace_back(i);
-		id ++;
-
-	}
-	_num_particles = _particles.size();
-
+	_contacts[0].populate(_beta, 1000);
+	_contacts[1].populate(_beta,1000);
+	_bulk.populate(_beta,0);
 };
 
 // set the output directory and the output file name
@@ -104,31 +82,45 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 };
 
 // returns the number of particles
-unsigned long int monte_carlo::num_particles()
+mc::t_uint monte_carlo::num_particles()
 {
-	return _num_particles;
+	mc::t_uint number_of_particles = _bulk.number_of_particles();
+	for (auto& contact: _contacts)
+	{
+		number_of_particles += contact.number_of_particles();
+	}
+	return number_of_particles;
 };
 
 // step the simulation in time
 void monte_carlo::step(mc::t_float dt)
 {
-	// step particles in the bulk section
-	for (const auto& index: _bulk_particles_index)
+	for (auto& contact: _contacts)
 	{
-		_particles[index].step(dt,_volume);
+		for (auto&& it=contact.particles().begin(); it!=contact.particles().end(); ++it)
+		{
+			it->step(dt,_volume);
+			_bulk.enlist(it,contact.particles());
+		}
 	}
 
-	// step particles in the right contact section
-	for (const auto& index: _right_contact_particles_index)
+	// move bulk to left_contact and right_contact
+	for (auto&& it=_bulk.particles().begin(); it!=_bulk.particles().end(); ++it)
 	{
-		_particles[index].step(dt,_volume);
+		it->step(dt,_volume);
+		for (auto& contact: _contacts)
+		{
+			bool enlisted = contact.enlist(it,_bulk.particles());
+			if (enlisted)	break;
+		}
 	}
 
-	//step particles in the left contact sections
-	for (const auto& index: _left_contact_particles_index)
+	// dump the new particles into the particles list in each region
+	for (auto& contact: _contacts)
 	{
-		_particles[index].step(dt,_volume);
+		contact.dump_new_particles();
 	}
+	_bulk.dump_new_particles();
 
 	_time += dt;
 
@@ -144,100 +136,12 @@ void monte_carlo::write_state(std::fstream &file)
 	}
 
 	file << _time << " , " << num_particles() << " ; ";
-	for (const auto& m_particle: _particles)
+	for (const auto& m_particle: _bulk.particles())
 	{
 		file << m_particle;
 		file << "; ";
 	}
 	file << std::endl;
-};
-
-// get the mc simulation time
-mc::t_float& monte_carlo::time()
-{
-	return _time;
-};
-
-// update the list of particle indices for active, inactive, bulk, and contact regions.
-void monte_carlo::update_particle_list()
-{
-	// move left_contact to bulk and right_contact
-	for (auto it=_left_contact_particles_index.begin(); it!=_left_contact_particles_index.end(); ++it)
-	{
-		if (_bulk.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_bulk_particles_index.splice(_bulk_particles_index.end(),_left_contact_particles_index, std::next(it,1));
-		}
-		else if (_right_contact.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_right_contact_particles_index.splice(_right_contact_particles_index.end(),_left_contact_particles_index, std::next(it,1));
-		}
-	}
-
-	// move bulk to left_contact and right_contact
-	for (auto it=_bulk_particles_index.begin(); it!=_bulk_particles_index.end(); ++it)
-	{
-		if (_left_contact.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_left_contact_particles_index.splice(_left_contact_particles_index.end(),_bulk_particles_index, std::next(it,1));
-		}
-		else if (_right_contact.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_right_contact_particles_index.splice(_right_contact_particles_index.end(),_bulk_particles_index, std::next(it,1));
-		}
-	}
-
-	// move right_contact to bulk and left_contact
-	for (auto it=_right_contact_particles_index.begin(); it!=_right_contact_particles_index.end(); ++it)
-	{
-		if (_left_contact.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_left_contact_particles_index.splice(_left_contact_particles_index.end(),_right_contact_particles_index, std::next(it,1));
-		}
-		else if (_bulk.in_region(_particles[*it].pos()))
-		{
-			--it;
-			_bulk_particles_index.splice(_bulk_particles_index.end(),_right_contact_particles_index, std::next(it,1));
-		}
-	}
-
-	// // sanity check to see if we did everything correctly
-	// bool correct_particle_region = true;
-	// for (auto it=_left_contact_particles_index.begin(); it!=_left_contact_particles_index.end(); ++it)
-	// {
-	// 	if (! _left_contact.in_region(_particles[*it].pos()))
-	// 	{
-	// 		std::cout << "particle is supposed to be in the left contact: id= " << _particles[*it].id() << std::endl;
-	// 		correct_particle_region = false;
-	// 	}
-	// }
-	// for (auto it=_right_contact_particles_index.begin(); it!=_right_contact_particles_index.end(); ++it)
-	// {
-	// 	if (! _right_contact.in_region(_particles[*it].pos()))
-	// 	{
-	// 		std::cout << "particle is supposed to be in the right contact: id= " << _particles[*it].id() << std::endl;
-	// 		correct_particle_region = false;
-	// 	}
-	// }
-	// for (auto it=_bulk_particles_index.begin(); it!=_bulk_particles_index.end(); ++it)
-	// {
-	// 	if (! _bulk.in_region(_particles[*it].pos()))
-	// 	{
-	// 		std::cout << "particle is supposed to be in the bulk: id= " << _particles[*it].id() << std::endl;
-	// 		correct_particle_region = false;
-	// 	}
-	// }
-	//
-	// if (! correct_particle_region)
-	// {
-	// 	std::cin.ignore();
-	// }
-
 };
 
 } // namespace mc

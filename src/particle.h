@@ -30,8 +30,14 @@ private:
 public:
 	particle(const mc::arr1d _pos={0.,0.,0.}, const mc::arr1d _velocity={0.,0.,0.}, const mc::t_float _eff_mass = mc::elec_mass, const std::shared_ptr<mc::free_flight> _pilot = std::make_shared<mc::free_flight>(), const std::shared_ptr<mc::scatter> _scatterer = std::make_shared<mc::scatter>(), const mc::t_int id = -1); // constructor
 	void fly(const mc::t_float& dt, const mc::arr1d& volume); // perform free flight
-	const mc::arr1d& pos(); // get position of the particle
-	const mc::t_float& pos(mc::t_int i); // get position of the particle
+	inline const mc::arr1d& pos() const // get position of the particle
+	{
+		return _pos;
+	};
+	inline const mc::t_float& pos(const mc::t_int& i) const // get position of the particle
+	{
+		return _pos[i];
+	};
 	const mc::arr1d& velocity(); // get velocity of the particle
 	const mc::t_float& kin_energy(); // update and return the kinetic energy of the particle
 	const mc::t_float& update_ff_time(); // update and return the free flight time until the next scattering

@@ -17,7 +17,6 @@ particle::particle(const mc::arr1d pos, const mc::arr1d velocity, const mc::t_fl
 	_pilot = pilot;
 	_scatterer = scatterer;
 	update_ff_time();
-
 };
 
 // perform free flight
@@ -31,18 +30,6 @@ void particle::fly(const mc::t_float& dt, const mc::arr1d& volume)
 	// std::cout << " ,c_pos= " << _pos[0] << std::endl << " ,o_pos= " << _old_pos[0] << std::endl << std::endl;
 	_pilot->check_boundary(_pos, _velocity, _old_pos, _old_velocity, _eff_mass, dt, volume);
 	// std::cin.ignore();
-};
-
-// get position of the particle
-const mc::arr1d& particle::pos()
-{
-	return _pos;
-};
-
-// get position of the particle
-const mc::t_float& particle::pos(mc::t_int i)
-{
-	return _pos[i];
 };
 
 // get velocity of the particle
