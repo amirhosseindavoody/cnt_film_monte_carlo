@@ -1,5 +1,5 @@
 CC=g++-7
-# CC+= -Wno-deprecated-declarations
+CC+= -O3
 
 CFLAGS = -I./ -I./eigen/ -std=c++17
 LFLAGS = -lgsl -lgslcblas -lm -lstdc++fs -std=c++17

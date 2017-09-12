@@ -28,9 +28,12 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	_domain.first = {0., 0., 0.};
 	_domain.second = {100.e-9, 100.e-9, 1000.e-9};
 
-	_contacts[0].populate(_beta, 1100);
-	_contacts[1].populate(_beta,100);
-	_bulk.populate(_beta,0);
+	_pilot = std::make_shared<mc::free_flight>();
+	_scatterer = std::make_shared<mc::scatter>();
+
+	_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
+	_contacts[1].populate(_beta, 100, _pilot, _scatterer);
+	_bulk.populate(_beta,0, _pilot, _scatterer);
 
 	_population_profile = std::vector<mc::t_uint>(10, 0);
 	_history_of_population_profiler = 0;
@@ -81,17 +84,6 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 
 };
 
-// returns the number of particles
-mc::t_uint monte_carlo::num_particles()
-{
-	mc::t_uint number_of_particles = _bulk.number_of_particles();
-	for (auto& contact: _contacts)
-	{
-		number_of_particles += contact.number_of_particles();
-	}
-	return number_of_particles;
-};
-
 // step the simulation in time
 void monte_carlo::step(mc::t_float dt)
 {
@@ -116,14 +108,14 @@ void monte_carlo::step(mc::t_float dt)
 	}
 
 	// dump the new particles into the particles list in each region
+	_bulk.dump_new_particles();
 	// for (auto& contact: _contacts)
 	// {
 	// 	contact.dump_new_particles();
 	// }
-	_bulk.dump_new_particles();
 
-	_contacts[0].populate(_beta, 1100);
-	_contacts[1].populate(_beta,100);
+	_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
+	_contacts[1].populate(_beta, 100, _pilot, _scatterer);
 
 	_time += dt;
 
@@ -138,7 +130,7 @@ void monte_carlo::write_state(std::fstream &file)
 		file << std::showpos << std::scientific;
 	}
 
-	file << _time << " , " << num_particles() << " ; ";
+	file << _time << " , " << number_of_particles() << " ; ";
 	for (const auto& m_particle: _bulk.particles())
 	{
 		file << m_particle;
