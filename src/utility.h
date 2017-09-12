@@ -30,6 +30,7 @@ typedef std::array<t_float, 3> arr1d; // custom 1d array for expressing the posi
 // physical and mathematical constants
 //#################################################################################################
 const t_float eV = 1.6e-19;				  // electron volt in Jouls
+const t_float q0 = 1.6e-19;				  // electron volt in Jouls
 const t_float hbar = 6.582e-16 * eV;	  // planck constant in eV.s/rad units
 const t_float pi = 3.14159265359;		  // pi number
 const t_float elec_mass = 9.10938356e-31; // electron mass

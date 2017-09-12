@@ -65,6 +65,10 @@ public:
 	{
 		return _velocity;
 	};
+	inline const mc::t_float& velocity(const mc::t_int& i) const // get velocity of the particle
+	{
+		return _velocity[i];
+	};
 	inline void set_velocity(const mc::arr1d& velocity) // set velocity of the particle
 	{
 		_velocity = velocity;

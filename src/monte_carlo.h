@@ -33,8 +33,10 @@ private:
 
 	// output files properties
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
+	mc::t_uint _number_of_profile_sections; // number of profile sections used for profiling
 	std::vector<mc::t_uint> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
 	mc::t_uint _history_of_population_profiler; // this is the number of steps that the _population_profile have been recorded for considering the running average
+	std::vector<mc::t_float> _current_profile; // this is the average current profile along the simulation domain
 
 public:
 
@@ -55,7 +57,13 @@ public:
 	{
 		return _time;
 	};
-	void update_population_profile(const mc::t_uint& max_history, std::fstream& file); // calculate and save the population profile
+	void update_profile(const mc::t_uint& max_history, std::fstream& population_file, std::fstream& current_file); // calculate and save the population profile
+
+	inline void repopulate_contacts() // repopulate contacts
+	{
+		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
+		_contacts[1].populate(_beta, 100, _pilot, _scatterer);
+	};
 
 }; // end class monte_carlo
 

@@ -17,15 +17,18 @@ int main(int argc, char *argv[])
 
 	float time_step = 1.e-14;
 
-	std::fstream file;
+	std::fstream population_file;
+	std::fstream current_file;
 
-	while (mc_simulation.time() < 1.e-8)
+	// while (mc_simulation.time() < 5.e-10)
+	while (true)
 	{
 		mc_simulation.step(time_step);
+		mc_simulation.repopulate_contacts();
+		mc_simulation.update_profile(1000,population_file, current_file);
 
 		if (int(mc_simulation.time() / time_step) % 1000 == 0)
 		{
-			mc_simulation.update_population_profile(1000,file);
 			std::cout << "simulation time [seconds]: " << mc_simulation.time() << " .... number of particles: " << mc_simulation.number_of_particles() << std::endl;
 		}
 	}

@@ -35,8 +35,10 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	_contacts[1].populate(_beta, 100, _pilot, _scatterer);
 	_bulk.populate(_beta,0, _pilot, _scatterer);
 
-	_population_profile = std::vector<mc::t_uint>(10, 0);
+	_number_of_profile_sections = 10;
 	_history_of_population_profiler = 0;
+	_population_profile = std::vector<mc::t_uint>(_number_of_profile_sections, 0);
+	_current_profile = std::vector<mc::t_float>(_number_of_profile_sections, 0.);
 
 };
 
@@ -109,13 +111,10 @@ void monte_carlo::step(mc::t_float dt)
 
 	// dump the new particles into the particles list in each region
 	_bulk.dump_new_particles();
-	// for (auto& contact: _contacts)
-	// {
-	// 	contact.dump_new_particles();
-	// }
-
-	_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
-	_contacts[1].populate(_beta, 100, _pilot, _scatterer);
+	for (auto& contact: _contacts)
+	{
+		contact.dump_new_particles();
+	}
 
 	_time += dt;
 
@@ -140,7 +139,7 @@ void monte_carlo::write_state(std::fstream &file)
 };
 
 // calculate and save the population profile
-void monte_carlo::update_population_profile(const mc::t_uint& max_history, std::fstream &file)
+void monte_carlo::update_profile(const mc::t_uint& max_history, std::fstream &population_file, std::fstream& current_file)
 {
 	if (_history_of_population_profiler < max_history)
 	{
@@ -152,24 +151,41 @@ void monte_carlo::update_population_profile(const mc::t_uint& max_history, std::
 		{
 			int i = std::floor((m_particle.pos(2)-_bulk.lower_corner(2))/length);
 			_population_profile[i] += 1;
+			_current_profile[i] += m_particle.velocity(2);
 		}
 	}
 	else
 	{
-		if (! file.is_open())
-		{
-			file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
-			file << std::showpos << std::scientific;
-		}
+		mc::t_float section_volume = _bulk.volume()/mc::t_float(_population_profile.size());
 
-		file << time() << " ";
+		if (! population_file.is_open())
+		{
+			population_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
+			population_file << std::showpos << std::scientific;
+		}
+		population_file << time() << " ";
 		for (auto& element: _population_profile)
 		{
-			file << mc::t_float(element)/mc::t_float(_history_of_population_profiler);
-			file << " ";
+			population_file << mc::q0*mc::t_float(element)/mc::t_float(_history_of_population_profiler)/section_volume;
+			population_file << " ";
 			element = 0;
 		}
-		file << std::endl;
+		population_file << std::endl;
+
+		if (! current_file.is_open())
+		{
+			current_file.open(_output_directory.path() / "current_profile.dat", std::ios::out);
+			current_file << std::showpos << std::scientific;
+		}
+		current_file << time() << " ";
+		for (auto& element: _current_profile)
+		{
+			current_file << element/mc::t_float(_history_of_population_profiler)/section_volume;
+			current_file << " ";
+			element = 0;
+		}
+		current_file << std::endl;
+
 		_history_of_population_profiler = 0;
 	}
 };
