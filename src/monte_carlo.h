@@ -16,11 +16,13 @@ namespace mc
 class monte_carlo
 {
 private:
+
+	// simulation parameters
 	mc::t_uint _num_particles; // number of particles
 	mc::t_float _time; // total simulation time that has elapsed
 	mc::t_float _temperature; // temperature of the simulation
 	mc::t_float _beta; // 1/kB*T is the inverse of the thermal energy
-	mc::arr1d _volume; // the physical extent of the simulation domain
+	std::pair<mc::arr1d, mc::arr1d> _domain; // the physical extent of the simulation domain
 
 	// defining various domains in the simulation
 	mc::region _bulk;
@@ -28,6 +30,8 @@ private:
 
 	// output directory
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
+	std::vector<mc::t_uint> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
+	mc::t_uint _history_of_population_profiler; // this is the number of steps that the _population_profile have been recorded for considering the running average
 
 public:
 
@@ -40,6 +44,7 @@ public:
 	{
 		return _time;
 	};
+	void update_population_profile(const mc::t_uint& max_history, std::fstream& file); // calculate and save the population profile
 
 }; // end class monte_carlo
 

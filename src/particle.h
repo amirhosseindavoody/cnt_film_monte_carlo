@@ -28,8 +28,27 @@ private:
 	std::shared_ptr<mc::scatter> _scatterer; // pointer to scatter object for scattering the particle
 
 public:
-	particle(const mc::arr1d _pos={0.,0.,0.}, const mc::arr1d _velocity={0.,0.,0.}, const mc::t_float _eff_mass = mc::elec_mass, const std::shared_ptr<mc::free_flight> _pilot = std::make_shared<mc::free_flight>(), const std::shared_ptr<mc::scatter> _scatterer = std::make_shared<mc::scatter>(), const mc::t_int id = -1); // constructor
-	void fly(const mc::t_float& dt, const mc::arr1d& volume); // perform free flight
+	inline particle(const mc::arr1d& pos={0.,0.,0.}, const mc::arr1d& velocity={0.,0.,0.}, const mc::t_float& eff_mass = mc::elec_mass,
+		const std::shared_ptr<mc::free_flight>& pilot = std::make_shared<mc::free_flight>(),
+		const std::shared_ptr<mc::scatter>& scatterer = std::make_shared<mc::scatter>(), const mc::t_int& id = -1) // constructor
+	{
+		_id = id;
+		_pos = pos;
+		_velocity = velocity;
+		_eff_mass = eff_mass;
+		kin_energy();
+		_pilot = pilot;
+		_scatterer = scatterer;
+		update_ff_time();
+	};
+	inline void fly(const mc::t_float& dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // perform free flight within the simulation domain
+	{
+		_old_pos = _pos;
+		_old_velocity = _velocity;
+
+		_pilot->fly(_pos, _velocity, _eff_mass, dt);
+		_pilot->check_boundary(_pos, _velocity, _old_pos, _old_velocity, _eff_mass, dt, domain);
+	};
 	inline const mc::arr1d& pos() const // get position of the particle
 	{
 		return _pos;
@@ -38,14 +57,66 @@ public:
 	{
 		return _pos[i];
 	};
-	const mc::arr1d& velocity(); // get velocity of the particle
-	const mc::t_float& kin_energy(); // update and return the kinetic energy of the particle
-	const mc::t_float& update_ff_time(); // update and return the free flight time until the next scattering
-	mc::t_float& get_ff_time(); // return the free flight time until the next scattering
-	void scatter(); // scatter the particle to a new state using the scatterer object
-	friend std::ostream& operator<< (std::ostream& stream, const particle& _particle); // print the state of the particle
-	const mc::t_int& id() const; // get a constant reference to the particle id;
-	void step(mc::t_float dt, const mc::arr1d& volume); // step particle state for dt in time
+	inline void set_pos(const mc::arr1d& pos) // set position of the particle
+	{
+		_pos = pos;
+	};
+	inline const mc::arr1d& velocity() const // get velocity of the particle
+	{
+		return _velocity;
+	};
+	inline void set_velocity(const mc::arr1d& velocity) // set velocity of the particle
+	{
+		_velocity = velocity;
+	};
+	inline const mc::t_float& kin_energy() // update and return the kinetic energy of the particle
+	{
+		_kin_energy = _eff_mass*mc::norm2(_velocity)/2.;
+		return _kin_energy;
+	};
+	inline const mc::t_float& update_ff_time() // update and return the free flight time until the next scattering
+	{
+		_ff_time = _scatterer->ff_time();
+		return _ff_time;
+	};
+	inline mc::t_float& get_ff_time() // return the free flight time until the next scattering
+	{
+		return _ff_time;
+	};
+	inline void scatter() // scatter the particle to a new state using the scatterer object
+	{
+		mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
+		_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
+	};
+	inline friend std::ostream& operator<< (std::ostream& stream, const particle& _particle) // print the state of the particle
+	{
+		for (int i=0; i<_particle._pos.size(); ++i)
+		{
+			stream << _particle._pos[i] << " ";
+		}
+		stream << ", ";
+		for (int i=0; i<_particle._velocity.size(); ++i)
+		{
+			stream << _particle._velocity[i] << " ";
+		}
+	};
+	inline const mc::t_int& id() const // get a constant reference to the particle id;
+	{
+		return _id;
+	};
+	inline void step(mc::t_float dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // step particle state for dt in time
+	{
+		while(_ff_time <= dt)
+		{
+			dt -= _ff_time;
+			fly(_ff_time, domain);
+			scatter();
+			update_ff_time();
+		}
+
+		fly(dt, domain);
+		_ff_time -= dt;
+	};
 
 }; //particle class
 

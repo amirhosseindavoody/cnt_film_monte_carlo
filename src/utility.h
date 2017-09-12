@@ -16,7 +16,7 @@ namespace mc
 //#################################################################################################
 // custom data types
 //#################################################################################################
-typedef long double t_float; // custom float type for mc class
+typedef double t_float; // custom float type for mc class
 typedef int t_int;			 // custom integer type for mc class
 typedef unsigned int t_uint;	// custom unsigned integer type for mc class
 

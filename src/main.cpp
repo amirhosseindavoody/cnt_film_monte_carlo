@@ -19,16 +19,16 @@ int main(int argc, char *argv[])
 
 	std::fstream file;
 
-	while (mc_simulation.time() < 1.e-10)
+	while (mc_simulation.time() < 1.e-8)
 	{
 		// std::cout << "\nsimulation time [seconds]: " << mc_simulation.time() << std::endl << std::endl;
 
 		mc_simulation.step(time_step);
+		mc_simulation.update_population_profile(1000,file);
 
 		if (int(mc_simulation.time() / time_step) % 1000 == 0)
 		{
 			std::cout << "simulation time [seconds]: " << mc_simulation.time() << std::endl;
-			// mc_simulation.update_particle_list();
 			// mc_simulation.write_state(file);
 		}
 	}

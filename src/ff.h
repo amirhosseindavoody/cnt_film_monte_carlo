@@ -17,9 +17,9 @@ private:
 
 public:
 	free_flight(mc::arr1d accel = {0,0,0}); // constructor
-	void fly(mc::arr1d &pos, mc::arr1d &velocity, const mc::t_float &eff_mass, const mc::t_float &dt, const mc::arr1d& volume); // perform free_flight
+	void fly(mc::arr1d &pos, mc::arr1d &velocity, const mc::t_float &eff_mass, const mc::t_float &dt); // perform free_flight
 	const mc::arr1d& acceleration(); // get constant reference to acceleration vector
-	void check_boundary(mc::arr1d &pos, mc::arr1d &velocity, const mc::arr1d& old_pos, const mc::arr1d& old_velocity, const mc::t_float &eff_mass, const mc::t_float &dt, const mc::arr1d& volume); // check for collision to boundaries
+	void check_boundary(mc::arr1d &pos, mc::arr1d &velocity, const mc::arr1d& old_pos, const mc::arr1d& old_velocity, const mc::t_float &eff_mass, const mc::t_float &dt, const std::pair<mc::arr1d, mc::arr1d>& domian); // check for collision to boundaries
 }; // end class particle
 
 } // end namespace mc
