@@ -14,15 +14,21 @@ namespace mc
 class region
 {
 private:
+  mc::t_uint _id; // this is a unique id for each region which is used for hashing
   mc::arr1d _lower_corner; // coordinate of the lower corner of the region
   mc::arr1d _upper_corner; // coordinate of the upper corner or the region
   mc::t_float _volume; // volume of the region region
   mc::t_int _number_of_expected_particles; // number of expected particles in the region region
+
+  mc::t_int _net_particle_flow; // total number of that are comming in (positive) or going out (negative) of the region
+
   std::list<mc::particle> _particles; // list of particles in the region
   std::list<mc::particle> _new_particles; // list of particles newly entered the region
 
 public:
-  region(const mc::arr1d& lower_corner = {0,0,0}, const mc::arr1d& upper_corner = {0,0,0}) // constructor
+  // region(const mc::t_int& id = static_cast<mc::t_uint>(std::rand()), const mc::arr1d& lower_corner = {0,0,0}, const mc::arr1d& upper_corner = {0,0,0}) // constructor
+  region(const mc::arr1d& lower_corner = {0,0,0}, const mc::arr1d& upper_corner = {0,0,0}, const mc::t_int& id = std::rand()): // constructor
+    _id(id)
   {
   	set_borders(lower_corner, upper_corner);
   };
@@ -167,6 +173,10 @@ public:
   inline const mc::t_float& volume() const // get volume of the region
   {
     return _volume;
+  };
+  inline bool operator < (const mc::region& rhs) const // comparision operator for comparing regions for use in map data structures
+  {
+    return (_id < rhs._id);
   };
 
 }; //region class

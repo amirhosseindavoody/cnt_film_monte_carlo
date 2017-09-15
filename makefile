@@ -2,7 +2,7 @@ CC=g++-7
 CC+= -O3
 
 CFLAGS = -I./ -I./eigen/ -std=c++17
-LFLAGS = -lgsl -lgslcblas -lm -lstdc++fs -std=c++17
+LFLAGS = -lm -lstdc++fs -std=c++17
 
 SRCDIR = ./src
 OBJDIR = ./obj

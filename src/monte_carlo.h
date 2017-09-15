@@ -5,6 +5,7 @@
 #include <list>
 #include <experimental/filesystem>
 #include <fstream>
+#include <map>
 
 #include "particle.h"
 #include "utility.h"
@@ -37,6 +38,8 @@ private:
 	std::vector<mc::t_uint> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
 	mc::t_uint _history_of_population_profiler; // this is the number of steps that the _population_profile have been recorded for considering the running average
 	std::vector<mc::t_float> _current_profile; // this is the average current profile along the simulation domain
+	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
+	std::map<mc::region, mc::t_int> _current; // this is the net current into each reagion
 
 public:
 
@@ -57,12 +60,37 @@ public:
 	{
 		return _time;
 	};
-	void update_profile(const mc::t_uint& max_history, std::fstream& population_file, std::fstream& current_file); // calculate and save the population profile
-
 	inline void repopulate_contacts() // repopulate contacts
 	{
 		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
 		_contacts[1].populate(_beta, 100, _pilot, _scatterer);
+	};
+	void update_profile(const mc::t_uint& max_history, std::fstream& population_file, std::fstream& current_file); // calculate and save the population profile
+	inline void save_current(const mc::t_uint& max_history, std::fstream& current_file, const mc::t_float& time_step) // save the net currents for each region
+	{
+		if (_history_of_region_currents < max_history)
+		{
+			_history_of_region_currents += 1;
+		}
+		else
+		{
+			if (! current_file.is_open())
+			{
+				current_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
+				current_file << std::showpos << std::scientific;
+			}
+
+			current_file << time() << " ";
+			for (auto& element: _current)
+			{
+				current_file << mc::q0*mc::t_float(element.second)/mc::t_float(_history_of_region_currents)/time_step;
+				current_file << " ";
+				element.second = 0;
+			}
+			current_file << std::endl;
+
+			_history_of_region_currents = 0;
+		}
 	};
 
 }; // end class monte_carlo

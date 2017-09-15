@@ -16,7 +16,23 @@ private:
 	mc::arr1d _inv_acceleration; // inverse of the acceleration in three dimension space
 
 public:
-	free_flight(mc::arr1d accel = {0,0,0}); // constructor
+	inline free_flight(mc::arr1d accel = {0,0,0}) // constructor
+	{
+		// make sure that there is an inverse for acceleration value. othersize put a small value instead of acceleration so that 1/accel is not infinity
+		for (auto &elem : accel)
+		{
+			if (! std::isfinite(1./elem))
+			{
+				elem = std::numeric_limits<mc::t_float>::epsilon();
+			}
+		}
+
+		for (int i=0; i<accel.size(); ++i)
+		{
+			_acceleration[i] = accel[i];
+			_inv_acceleration[i] = 1./accel[i];
+		}
+	};
 	inline void fly(mc::arr1d &pos, mc::arr1d &velocity, const mc::t_float &eff_mass, const mc::t_float &dt) // perform free_flight
 	{
 		const mc::t_float coeff = dt*dt/2.;

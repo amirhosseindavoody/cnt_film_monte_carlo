@@ -18,14 +18,16 @@ int main(int argc, char *argv[])
 	float time_step = 1.e-14;
 
 	std::fstream population_file;
-	std::fstream current_file;
+	std::fstream current_profile_file;
+	std::fstream region_current_file;
 
 	// while (mc_simulation.time() < 5.e-10)
 	while (true)
 	{
 		mc_simulation.step(time_step);
 		mc_simulation.repopulate_contacts();
-		mc_simulation.update_profile(1000,population_file, current_file);
+		mc_simulation.update_profile(1000,population_file, current_profile_file);
+		mc_simulation.save_current(1000, region_current_file, time_step);
 
 		if (int(mc_simulation.time() / time_step) % 1000 == 0)
 		{

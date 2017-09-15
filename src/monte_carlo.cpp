@@ -39,6 +39,9 @@ monte_carlo::monte_carlo(unsigned long int num_particles)
 	_history_of_population_profiler = 0;
 	_population_profile = std::vector<mc::t_uint>(_number_of_profile_sections, 0);
 	_current_profile = std::vector<mc::t_float>(_number_of_profile_sections, 0.);
+	_current[_contacts[0]] = 0;
+	_current[_contacts[1]] = 0;
+	_current[_bulk] = 0;
 
 };
 
@@ -51,8 +54,8 @@ void monte_carlo::process_command_line_args(int argc, char* argv[])
 
 	if (argc <= 1)
 	{
-		_output_directory.assign("/Users/amirhossein/research/test");
-		// _output_directory.assign("/home/amirhossein/research/test");
+		// _output_directory.assign("/Users/amirhossein/research/test");
+		_output_directory.assign("/home/amirhossein/research/test");
 	}
 	else
 	{
@@ -94,7 +97,12 @@ void monte_carlo::step(mc::t_float dt)
 		for (auto&& it=contact.particles().begin(); it!=contact.particles().end(); ++it)
 		{
 			it->step(dt,_domain);
-			_bulk.enlist(it,contact.particles());
+			bool enlisted = _bulk.enlist(it,contact.particles());
+			if (enlisted)
+			{
+				_current[contact] -= 1;
+				_current[_bulk] += 1;
+			}
 		}
 	}
 
@@ -105,7 +113,12 @@ void monte_carlo::step(mc::t_float dt)
 		for (auto& contact: _contacts)
 		{
 			bool enlisted = contact.enlist(it,_bulk.particles());
-			if (enlisted)	break;
+			if (enlisted)
+			{
+				_current[_bulk] -= 1;
+				_current[contact] += 1;
+				break;
+			}
 		}
 	}
 
@@ -146,7 +159,6 @@ void monte_carlo::update_profile(const mc::t_uint& max_history, std::fstream &po
 		_history_of_population_profiler += 1;
 
 		mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_population_profile.size());
-
 		for (const auto& m_particle: _bulk.particles())
 		{
 			int i = std::floor((m_particle.pos(2)-_bulk.lower_corner(2))/length);
@@ -166,7 +178,7 @@ void monte_carlo::update_profile(const mc::t_uint& max_history, std::fstream &po
 		population_file << time() << " ";
 		for (auto& element: _population_profile)
 		{
-			population_file << mc::q0*mc::t_float(element)/mc::t_float(_history_of_population_profiler)/section_volume;
+			population_file << mc::t_float(element)/mc::t_float(_history_of_population_profiler)/section_volume;
 			population_file << " ";
 			element = 0;
 		}
@@ -180,7 +192,7 @@ void monte_carlo::update_profile(const mc::t_uint& max_history, std::fstream &po
 		current_file << time() << " ";
 		for (auto& element: _current_profile)
 		{
-			current_file << element/mc::t_float(_history_of_population_profiler)/section_volume;
+			current_file << mc::q0*element/mc::t_float(_history_of_population_profiler)/section_volume;
 			current_file << " ";
 			element = 0;
 		}
