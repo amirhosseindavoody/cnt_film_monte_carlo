@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <chrono>
+#include <ctime>
 
 #include "utility.h"
 #include "monte_carlo.h"
@@ -10,24 +11,38 @@
 int main(int argc, char *argv[])
 {
 
-	auto start_time = std::chrono::high_resolution_clock::now();
+	// std::array<float, 3> a = {1,2,3};
+	// for (int i=0; i<10; i++)
+	// {
+	// 	// std::cout << i << " " << a[i] << std::endl;
+	// 	std::cout << i << " " << a.at(i) << std::endl;
+	// }
+	//
+	// std::exit(EXIT_FAILURE);
 
-	mc::monte_carlo mc_simulation(2);
+	// print the start time and start recording the run time
+	std::time_t start_time = std::time(nullptr);
+	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
+
+	mc::monte_carlo mc_simulation;
 	mc_simulation.process_command_line_args(argc, argv);
 
-	float time_step = 1.e-14;
 
 	std::fstream population_file;
 	std::fstream current_profile_file;
 	std::fstream region_current_file;
+	std::fstream debug_file;
+
+	mc::t_float time_step = 1.e-14;
+	mc::t_uint max_history = 1000;
 
 	// while (mc_simulation.time() < 5.e-10)
 	while (true)
 	{
 		mc_simulation.step(time_step);
 		mc_simulation.repopulate_contacts();
-		mc_simulation.update_profile(1000,population_file, current_profile_file);
-		mc_simulation.save_current(1000, region_current_file, time_step);
+		mc_simulation.population_profiler(1000, population_file, debug_file);
+		mc_simulation.save_region_current(max_history, region_current_file, time_step);
 
 		if (int(mc_simulation.time() / time_step) % 1000 == 0)
 		{
@@ -35,9 +50,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	auto end_time = std::chrono::high_resolution_clock::now();
-	auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-	std::cout << std::scientific << "runtime is: " << float(elapsed_time.count())/1.e3 << " [seconds]" << std::endl;
+	// print the end time and the runtime
+	std::time_t end_time = std::time(nullptr);
+	std::cout << "\nruntime: " << std::difftime(end_time,start_time) << " seconds" << std::endl;
+	std::cout << "\n***\nend time:\n" << std::asctime(std::localtime(&end_time)) << "***\n\n";
 
 	return 0;
 }

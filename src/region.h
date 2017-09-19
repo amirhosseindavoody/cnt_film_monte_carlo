@@ -20,7 +20,7 @@ private:
   mc::t_float _volume; // volume of the region region
   mc::t_int _number_of_expected_particles; // number of expected particles in the region region
 
-  mc::t_int _net_particle_flow; // total number of that are comming in (positive) or going out (negative) of the region
+  mc::t_int _particle_flow_log; // this is the net number of particles flowing in (positive) or out (negative) of the region, the first component is the particle flow, the second number is the history.
 
   std::list<mc::particle> _particles; // list of particles in the region
   std::list<mc::particle> _new_particles; // list of particles newly entered the region
@@ -53,16 +53,33 @@ public:
   		_volume = _volume*(_upper_corner[i]-_lower_corner[i]);
   	}
   };
-  inline bool enlist(std::list<mc::particle>::iterator& particle_iterator, std::list<mc::particle>& other_region_particles) // add a particle to the _particles list if the particle is in the region region
+  inline void loose_particle() // decrease the net particle flow by one
+  {
+    _particle_flow_log -= 1;
+  };
+  inline void get_particle() // increase the net particle flow by one
+  {
+    _particle_flow_log += 1;
+  };
+  inline const mc::t_int& particle_flow() const // read the net particle flow
+  {
+    return _particle_flow_log;
+  };
+  inline void reset_particle_flow() // reset the particle flow counter to zero.
+  {
+    _particle_flow_log = 0;
+  }
+  inline bool enlist(std::list<mc::particle>::iterator& particle_iterator, mc::region& other_region) // add a particle to the _particles list if the particle is in the region region
   {
   	bool is_in_region = in_region(*particle_iterator);
   	if (is_in_region)
   	{
   		auto prev_iterator = std::prev(particle_iterator,1); // get the iterator of the previous particle from the other region particle list
-  		_new_particles.splice(_new_particles.end(), other_region_particles, particle_iterator);
+  		_new_particles.splice(_new_particles.end(), other_region.particles(), particle_iterator);
   		particle_iterator = prev_iterator; // now the particle iterator is the previous particle from the other region particle list
+      other_region.loose_particle();
+      get_particle();
   	}
-
   	return is_in_region;
   };
   inline bool in_region(const mc::arr1d& pos) // checks if a coordinate is inside the region

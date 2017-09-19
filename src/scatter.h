@@ -21,10 +21,52 @@ private:
 	mc::t_float _delta_energy; // size of energy sections in scattering table
 	mc::v2d _scat_table; // scattering table: the first index is the number of states, the second index is the scattering mechanism
 
-	void make_table(); // make the scattering table
-	mc::t_int cnvrt_energy_to_state_index(mc::t_float energy); // converts particle energy to appropriate index in the scattering table
+	inline void make_table() // make the scattering table
+	{
+		_scat_table = mc::v2d(_num_states, mc::v1d(_num_scat_mech,0));
+		mc::v1d temp_element(_num_scat_mech+1, 0.);
+
+		for (int i=0; i<_num_states; ++i)
+		{
+			temp_element[0] = mc::get_rand_include_zero<mc::t_float>();
+			for (int j=1; j<temp_element.size(); ++j)
+			{
+				temp_element[j] = temp_element[j-1] + mc::get_rand_include_zero<mc::t_float>();
+			}
+
+			for (int j=0; j<_num_scat_mech; ++j)
+			{
+				_scat_table[i][j] = temp_element[j]/temp_element.back();
+			}
+
+		}
+	};
+	inline mc::t_int cnvrt_energy_to_state_index(mc::t_float energy) // converts particle energy to appropriate index in the scattering table
+	{
+		if (energy < _min_energy)
+		{
+			return 0;
+		}
+		if (energy > _max_energy)
+		{
+			return _num_states-1;
+		}
+		return static_cast<mc::t_int>(std::floor((energy - _min_energy)/_delta_energy));
+	};
 public:
-	scatter(); // constructor
+	inline scatter() // constructor
+	{
+		_max_rate = 1.e14;
+		_inverse_max_rate = 1./_max_rate;
+
+		_num_scat_mech = 10;
+		_num_states = 1000;
+		_min_energy = 0.;
+		_max_energy = 5.*0.025*mc::eV;
+		_delta_energy = (_max_energy-_min_energy)/static_cast<mc::t_float>(_num_states);
+
+		make_table();
+	};
 	inline mc::t_float ff_time() // get random free flight time
 	{
 		return -_inverse_max_rate*std::log(mc::get_rand_exclude_zero<mc::t_float>());

@@ -10,10 +10,4 @@
 namespace mc
 {
 
-// initialize the seed of the random number generator
-void init_random_number_generator()
-{
-	std::srand(std::time(0));
-};
-
 } // namespace mc

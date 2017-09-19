@@ -221,7 +221,7 @@ simulation_parameters file_management::parse_xml()
 			exit(EXIT_FAILURE);
 		}
 	}
-	// END AUTO COMPLETE // 
+	// END AUTO COMPLETE //
 
 	return sim;
 }

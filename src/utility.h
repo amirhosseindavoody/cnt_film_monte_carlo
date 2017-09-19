@@ -39,14 +39,15 @@ const t_float kB = 1.38064852e-23;		  // Boltzmann constant in Jouls/Kelvin unit
 //#################################################################################################
 // random number routines
 //#################################################################################################
-void init_random_number_generator(); // initialize the seed of the random number generator
-
+inline void init_random_number_generator() // initialize the seed of the random number generator
+{
+	std::srand(std::time(0));
+};
 template <typename T>
 inline T get_rand_include_zero() // Gets a random number between 0 and 1 including zero.
 {
 	return static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX);
 };
-
 template <typename T>
 inline T get_rand_exclude_zero() // Gets a random number between 0 and 1 excluding zero
 {
@@ -70,7 +71,6 @@ inline T norm(std::array<T, 3> arr) // calculate norm of an array
 	}
 	return std::sqrt(result);
 };
-
 template <typename T>
 inline T norm2(std::array<T, 3> arr) // calculate norm^2 of an array
 {
@@ -81,7 +81,6 @@ inline T norm2(std::array<T, 3> arr) // calculate norm^2 of an array
 	}
 	return result;
 };
-
 inline void hist(std::list<mc::t_float> &mlist, const mc::t_int nbin) // UNFINISHED: calculate histogram with nbins
 {
 	mc::t_float minval = *std::min_element(mlist.begin(), mlist.end());
