@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 q0 = 1.6e-19
 
 box_size = 500
-steady_state_reached = 4000
+steady_state_reached = 2000
 
 directory = "/Users/amirhossein/Desktop/new_runs/test_1/"
 

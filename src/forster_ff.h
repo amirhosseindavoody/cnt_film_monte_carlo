@@ -1,18 +1,15 @@
-#ifndef ff_h
-#define ff_h
+#ifndef forster_ff_h
+#define forster_ff_h
 
 #include <iostream>
 #include <array>
 
 #include "utility.h"
-#include "particle.h"
 
 namespace mc
 {
 
-class particle;
-
-class free_flight
+class forster_free_flight : 
 {
 private:
 	mc::arr1d _acceleration; // acceleration in the three dimension space
@@ -46,19 +43,6 @@ public:
 			velocity[i] += _acceleration[i]*dt;
 		}
 	};
-
-	void fly(mc::particle& p, const mc::t_float& dt); // perform free_flight
-	// inline void fly(mc::particle& p, const mc::t_float& dt) // perform free_flight
-	// {
-	// 	const mc::t_float coeff = dt*dt/2.;
-	//
-	// 	for (int i=0; i<p.pos().size(); ++i)
-	// 	{
-	// 		p.set_pos(i, p.pos(i)+p.velocity(i)*dt + _acceleration[i]*coeff);
-	// 		p.set_velocity(i, p.velocity(i)+_acceleration[i]*dt);
-	// 	}
-	// };
-
 	inline const mc::arr1d& acceleration() // get constant reference to acceleration vector
 	{
 		return _acceleration;
@@ -104,4 +88,4 @@ public:
 
 } // end namespace mc
 
-#endif // ff_h
+#endif // forster_ff_h

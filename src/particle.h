@@ -12,6 +12,8 @@
 namespace mc
 {
 
+class free_flight;
+
 class particle
 {
 private:
@@ -41,14 +43,7 @@ public:
 		_scatterer = scatterer;
 		update_ff_time();
 	};
-	inline void fly(const mc::t_float& dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // perform free flight within the simulation domain
-	{
-		_old_pos = _pos;
-		_old_velocity = _velocity;
-
-		_pilot->fly(_pos, _velocity, _eff_mass, dt);
-		_pilot->check_boundary(_pos, _velocity, _old_pos, _old_velocity, _eff_mass, dt, domain);
-	};
+	void fly(const mc::t_float& dt, const std::pair<mc::arr1d, mc::arr1d>& domain); // perform free flight within the simulation domain
 	inline const mc::arr1d& pos() const // get position of the particle
 	{
 		return _pos;
@@ -61,6 +56,10 @@ public:
 	{
 		_pos = pos;
 	};
+	inline void set_pos(const mc::t_uint& i, const mc::t_float& value) // set an element of particle position
+	{
+		_pos[i] = value;
+	};
 	inline const mc::arr1d& velocity() const // get velocity of the particle
 	{
 		return _velocity;
@@ -72,6 +71,10 @@ public:
 	inline void set_velocity(const mc::arr1d& velocity) // set velocity of the particle
 	{
 		_velocity = velocity;
+	};
+	inline void set_velocity(const mc::t_uint& i, const mc::t_float& value) // set an element of particle velocity
+	{
+		_velocity[i] = value;
 	};
 	inline const mc::t_float& kin_energy() // update and return the kinetic energy of the particle
 	{
