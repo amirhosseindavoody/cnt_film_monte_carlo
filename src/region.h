@@ -5,8 +5,10 @@
 #include <array>
 #include <memory>
 
+#include "ff.h"
 #include "utility.h"
 #include "particle.h"
+#include "gas_particle.h"
 
 namespace mc
 {
@@ -22,8 +24,11 @@ private:
 
   mc::t_int _particle_flow_log; // this is the net number of particles flowing in (positive) or out (negative) of the region, the first component is the particle flow, the second number is the history.
 
-  std::list<mc::particle> _particles; // list of particles in the region
-  std::list<mc::particle> _new_particles; // list of particles newly entered the region
+  typedef std::unique_ptr<mc::particle> particle_ptr; // particle pointers
+  typedef std::list<particle_ptr> particle_ptr_list; // list of particle pointers
+
+  particle_ptr_list _particles; // list of particles in the region
+  particle_ptr_list _new_particles; // list of particles newly entered the region
 
 public:
   // region(const mc::t_int& id = static_cast<mc::t_uint>(std::rand()), const mc::arr1d& lower_corner = {0,0,0}, const mc::arr1d& upper_corner = {0,0,0}) // constructor
@@ -69,9 +74,9 @@ public:
   {
     _particle_flow_log = 0;
   }
-  inline bool enlist(std::list<mc::particle>::iterator& particle_iterator, mc::region& other_region) // add a particle to the _particles list if the particle is in the region region
+  inline bool enlist(particle_ptr_list::iterator& particle_iterator, mc::region& other_region) // add a particle to the _particles list if the particle is in the region region
   {
-  	bool is_in_region = in_region(*particle_iterator);
+  	bool is_in_region = in_region(*(*particle_iterator));
   	if (is_in_region)
   	{
   		auto prev_iterator = std::prev(particle_iterator,1); // get the iterator of the previous particle from the other region particle list
@@ -132,7 +137,7 @@ public:
   {
     return _upper_corner;
   };
-  inline void populate(const mc::t_float& beta, const mc::t_uint& number_of_particles, const std::shared_ptr<mc::free_flight>& pilot = std::make_shared<mc::free_flight>(), const std::shared_ptr<mc::scatter>& scatterer = std::make_shared<mc::scatter>()) // populate the region with a certain number of particles
+  inline void populate(const mc::t_float& beta, const mc::t_uint& number_of_particles, const std::shared_ptr<mc::free_flight>& pilot, const std::shared_ptr<mc::scatter>& scatterer) // populate the region with a certain number of particles
   {
   	_number_of_expected_particles = number_of_particles;
 
@@ -162,14 +167,15 @@ public:
 
   		if (it!= _particles.end())
   		{
-  			it->set_pos(pos);
-  			it->set_velocity(velocity);
-  			it->kin_energy();
+  			(*it)->set_pos(pos);
+  			(*it)->set_velocity(velocity);
+  			(*it)->kin_energy();
   			it++;
   		}
   		else
   		{
-  			_particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
+  			// _particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
+        _particles.push_back(std::make_unique<mc::gas_particle>(pos, velocity, eff_mass, pilot, scatterer, id));
   		}
 
   		id++;
@@ -183,7 +189,7 @@ public:
   {
   	_particles.splice(_particles.end(),_new_particles);
   };
-  inline std::list<mc::particle>& particles() // return _particles list
+  inline particle_ptr_list& particles() // return _particles list
   {
   	return _particles;
   };

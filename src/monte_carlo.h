@@ -8,6 +8,7 @@
 #include <map>
 #include <chrono>
 
+#include "ff.h"
 #include "particle.h"
 #include "utility.h"
 #include "region.h"
@@ -37,58 +38,12 @@ private:
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
 	mc::t_uint _number_of_profile_sections; // number of profile sections used for profiling
 	std::pair<mc::t_uint, std::vector<mc::t_uint>> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
-	// mc::t_uint _history_of_population_profiler; // this is the number of steps that the _population_profile have been recorded for considering the running average
 	std::pair<mc::t_uint, std::vector<mc::t_float>> _current_profile; // this is the average current profile along the simulation domain
 	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
-	// std::map<mc::region, mc::t_int> _current; // this is the net current density into each reagion
 
 public:
 
-	inline monte_carlo() // constructor
-	{
-		mc::init_random_number_generator();
-
-		_temperature = 300;
-		_beta = 1./(mc::kB*_temperature);
-		_time = 0.;
-
-		// set simulation geometry parameters, the rest are set automatically
-		mc::t_float contact_length = 100.e-9;
-		mc::t_float bulk_length = 1000.e-9;
-		mc::t_float cross_section_1 = 100.e-9;
-		mc::t_float cross_section_2 = 100.e-9;
-		mc::t_float total_length = 2.*contact_length+bulk_length;
-
-		// set simulation domain for boundary reflection
-		_domain.first = {0., 0., 0.};
-		_domain.second = {cross_section_1, cross_section_2, total_length};
-
-		// upper and lower corners of the contact and bulk
-		mc::arr1d contact_1_lower_corner = {0., 0., 0.};
-		mc::arr1d contact_1_upper_corner = {cross_section_1, cross_section_2, contact_length};
-		mc::arr1d bulk_lower_corner = {0., 0., contact_length};
-		mc::arr1d bulk_upper_corner = {cross_section_1, cross_section_2, contact_length+bulk_length};
-		mc::arr1d contact_2_lower_corner = {0., 0., contact_length+bulk_length};
-		mc::arr1d contact_2_upper_corner = {cross_section_1, cross_section_2, total_length};
-
-		_contacts.emplace_back(contact_1_lower_corner, contact_1_upper_corner);
-		_contacts.emplace_back(contact_2_lower_corner, contact_2_upper_corner);
-		_bulk.set_borders(bulk_lower_corner, bulk_upper_corner);
-
-
-		_pilot = std::make_shared<mc::free_flight>();
-		_scatterer = std::make_shared<mc::scatter>();
-
-		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
-		_contacts[1].populate(_beta, 100, _pilot, _scatterer);
-		_bulk.populate(_beta,0, _pilot, _scatterer);
-
-		_number_of_profile_sections = 10;
-		_population_profile.first = 0;
-		_population_profile.second = std::vector<mc::t_uint>(_number_of_profile_sections, 0);
-		_current_profile.first = 0;
-		_current_profile.second = std::vector<mc::t_float>(_number_of_profile_sections, 0.);
-	};
+	monte_carlo(); // constructor
 	void process_command_line_args(int argc=0, char* argv[]=nullptr) // set the output directory and the output file name
 	{
 		namespace fs = std::experimental::filesystem;
@@ -147,13 +102,13 @@ public:
 		}
 		return number_of_particles;
 	};
-	inline void step(mc::t_float dt = 0.1) // step the simulation in time
+	inline void step(mc::t_float dt) // step the simulation in time
 	{
 		for (auto& contact: _contacts)
 		{
 			for (auto&& it=contact.particles().begin(); it!=contact.particles().end(); ++it)
 			{
-				it->step(dt,_domain);
+				(*it)->step(dt,_domain);
 				_bulk.enlist(it,contact);
 			}
 		}
@@ -161,7 +116,7 @@ public:
 		// move bulk to left_contact and right_contact
 		for (auto&& it=_bulk.particles().begin(); it!=_bulk.particles().end(); ++it)
 		{
-			it->step(dt,_domain);
+			(*it)->step(dt,_domain);
 			for (auto& contact: _contacts)
 			{
 				bool enlisted = contact.enlist(it,_bulk);
@@ -189,14 +144,6 @@ public:
 			file.open(_output_directory.path() / "output.dat", std::ios::out);
 			file << std::showpos << std::scientific;
 		}
-
-		file << _time << " , " << number_of_particles() << " ; ";
-		for (const auto& m_particle: _bulk.particles())
-		{
-			file << m_particle;
-			file << "; ";
-		}
-		file << std::endl;
 	};
 	inline const mc::t_float& time() const // get the mc simulation time
 	{
@@ -223,13 +170,13 @@ public:
 
 			mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_population_profile.second.size());
 			int i;
-			for (const auto& m_particle: _bulk.particles())
+			for (const auto& m_particle_ptr: _bulk.particles())
 			{
-				i = std::floor((m_particle.pos(2)-_bulk.lower_corner(2))/length);
+				i = std::floor((m_particle_ptr->pos(2)-_bulk.lower_corner(2))/length);
 				if ((i >= _population_profile.second.size()) or (i<0))
 				{
 					debug_file << "index out of bound when making population profile\n";
-					debug_file << "particle position = " << m_particle.pos(2) << " , bulk limits = [ " << _bulk.lower_corner(2) << " , " << _bulk.upper_corner(2) << " ]" << std::endl;
+					debug_file << "particle position = " << m_particle_ptr->pos(2) << " , bulk limits = [ " << _bulk.lower_corner(2) << " , " << _bulk.upper_corner(2) << " ]" << std::endl;
 				}
 				else
 				{
@@ -304,10 +251,10 @@ public:
 
 			mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_current_profile.second.size());
 			int i;
-			for (const auto& m_particle: _bulk.particles())
+			for (const auto& m_particle_ptr: _bulk.particles())
 			{
-				i = std::floor((m_particle.pos(2)-_bulk.lower_corner(2))/length);
-				_current_profile.second[i] += m_particle.velocity(2);
+				i = std::floor((m_particle_ptr->pos(2)-_bulk.lower_corner(2))/length);
+				_current_profile.second[i] += m_particle_ptr->velocity(2);
 			}
 		}
 		else
