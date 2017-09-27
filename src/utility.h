@@ -71,6 +71,7 @@ inline T norm(std::array<T, 3> arr) // calculate norm of an array
 	}
 	return std::sqrt(result);
 };
+
 template <typename T>
 inline T norm2(std::array<T, 3> arr) // calculate norm^2 of an array
 {
@@ -81,12 +82,24 @@ inline T norm2(std::array<T, 3> arr) // calculate norm^2 of an array
 	}
 	return result;
 };
+
 inline void hist(std::list<mc::t_float> &mlist, const mc::t_int nbin) // UNFINISHED: calculate histogram with nbins
 {
 	mc::t_float minval = *std::min_element(mlist.begin(), mlist.end());
 	mc::t_float maxval = *std::max_element(mlist.begin(), mlist.end());
 
 	std::cout << "minval = " << minval << " , maxval = " << maxval << std::endl;
+};
+
+inline mc::arr1d rand_velocity(const mc::t_float& beta, const mc::t_float& mass) // get random velocity according to the boltzmann energy distribution
+{
+	// get random energy with correct distribution
+	mc::t_float energy = -(1.5/beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
+	mc::t_float velocity_magnitude = std::sqrt(energy*2./mass);
+	// get uniformly distribution direction
+	mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
+	mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
+	return {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
 };
 
 } // end namespace mc

@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 # define physical constants
 q0 = 1.6e-19
 
-box_size = 500
-steady_state_reached = 2000
+box_size = 10
+steady_state_reached = 100
 
-directory = "/Users/amirhossein/Desktop/new_runs/test_1/"
+# directory = "/Users/amirhossein/Desktop/new_runs/test_1/"
+directory = "/Users/amirhossein/research/test/"
 
 ################################################################################
 # read the current data
@@ -25,6 +26,7 @@ for i in range(0,current.shape[1]):
 
 plt.figure()
 plt.plot(smooth_current, linewidth=3)
+plt.title("smoothed current density vs time step")
 plt.draw()
 
 avg_current = np.mean(current[steady_state_reached:,:],0)
@@ -50,15 +52,17 @@ for i in range(0,population.shape[1]):
 # plt.plot(time, data, linewidth=3)
 plt.figure()
 plt.plot(smooth_population, linewidth=3)
+plt.title("smoothed carrier density profile vs time step")
 plt.draw()
 
 avg_population = np.mean(population[steady_state_reached:,:],0)
 plt.figure()
 plt.plot(distance, avg_population, linewidth=3, marker='o')
+plt.title("average population density vs distance")
 plt.draw()
 
 grad_population = abs((avg_population[0]-avg_population[-1])/(distance[-1]-distance[0]))
 print("gradient of population density [m^-4] = %0.2e" %(grad_population))
-print("diffusion current [m^2/second] = %0.2e" %(avg_current/q0/grad_population))
+print("diffusion coefficient [m^2/second] = %0.2e" %(avg_current/q0/grad_population))
 
 plt.show()

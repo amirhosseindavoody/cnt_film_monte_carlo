@@ -6,10 +6,11 @@
 #include <fstream>
 
 #include "monte_carlo.h"
-// #include "particle.h"
 #include "utility.h"
 #include "gas_ff.h"
 #include "forster_ff.h"
+#include "gas_scatter.h"
+#include "forster_scatter.h"
 
 namespace mc
 {
@@ -44,8 +45,10 @@ namespace mc
 		_contacts.emplace_back(contact_2_lower_corner, contact_2_upper_corner);
 		_bulk.set_borders(bulk_lower_corner, bulk_upper_corner);
 
-    _pilot = std::make_shared<mc::gas_free_flight>();
-		_scatterer = std::make_shared<mc::scatter>();
+    // _pilot = std::make_shared<mc::gas_free_flight>();
+		// _scatterer = std::make_shared<mc::gas_scatter>();
+    _pilot = std::make_shared<mc::forster_free_flight>();
+		_scatterer = std::make_shared<mc::forster_scatter>();
 
 		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
 		_contacts[1].populate(_beta, 100, _pilot, _scatterer);

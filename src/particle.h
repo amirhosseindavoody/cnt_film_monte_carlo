@@ -12,7 +12,7 @@ namespace mc
 {
 
 class free_flight;
-class scatter;
+// class scatter;
 
 class particle
 {
@@ -23,13 +23,18 @@ private:
 	mc::arr1d _old_pos; // position of the particle in the previous time step, this is used for boundary collision detection
 	mc::arr1d _old_velocity; // velocity of the particle in the previous time step, this is used for boundary collision detection
 	mc::t_float _eff_mass; // effective mass of the particle
-	mc::t_float _ff_time; // free flight time until next scattering event
 
 	std::shared_ptr<mc::free_flight> _pilot; // pointer to free_flight object for driving the particle
 	std::shared_ptr<mc::scatter> _scatterer; // pointer to scatter object for scattering the particle
 
 protected:
+	mc::t_float _ff_time; // free flight time until next scattering event
 	mc::t_float _kin_energy; // kinetic energy of the particle
+
+	inline virtual void set_old_pos(const mc::arr1d& value) // set the old_position of the particle
+	{
+		_old_pos = value;
+	}
 
 public:
 	inline virtual void set_id(const mc::t_int& id) // set particle id
@@ -90,6 +95,17 @@ public:
 		_old_pos[i] = _pos[i];
 		_pos[i] = value;
 	};
+	inline virtual void rewind_pos() // rewind the current position to the old_pos and do not update the old_pos
+	{
+		// std::cout << "before rewind pos:\n"
+		// 					<< "... old_pos: " << _old_pos[0] << " , " << _old_pos[1] << " , " << _old_pos[2] << "\n"
+		// 					<< "... pos: " << _pos[0] << " , " << _pos[1] << " , " << _pos[2] << "\n";
+		_pos = _old_pos;
+
+		// std::cout << "after rewind pos:\n"
+		// 					<< "... old_pos: " << _old_pos[0] << " , " << _old_pos[1] << " , " << _old_pos[2] << "\n"
+		// 					<< "... pos: " << _pos[0] << " , " << _pos[1] << " , " << _pos[2] << "\n";
+	};
 	inline virtual const mc::arr1d& velocity() const // get velocity of the particle
 	{
 		return _velocity;
@@ -124,28 +140,28 @@ public:
 	{
 		return _ff_time;
 	};
-	inline virtual const mc::t_float& update_ff_time() // update and return the free flight time until the next scattering
-	{
-		_ff_time = _scatterer->ff_time();
-		return _ff_time;
-	};
+	// inline virtual const mc::t_float& update_ff_time() // update and return the free flight time until the next scattering
+	// {
+	// 	_ff_time = _scatterer->ff_time();
+	// 	return _ff_time;
+	// };
 	inline virtual mc::t_float& get_ff_time() // return the free flight time until the next scattering
 	{
 		return _ff_time;
 	};
-	inline virtual void scatter() // scatter the particle to a new state using the scatterer object
-	{
-		mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
-		_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
-	};
+	// inline virtual void scatter() // scatter the particle to a new state using the scatterer object
+	// {
+	// 	mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
+	// 	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
+	// };
 	inline virtual void step(mc::t_float dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // step particle state for dt in time
 	{
 		while(_ff_time <= dt)
 		{
 			dt -= _ff_time;
 			fly(_ff_time, domain);
-			scatter();
-			update_ff_time();
+			_scatterer->update_state(this);
+			_ff_time = _scatterer->ff_time();
 		}
 
 		fly(dt, domain);

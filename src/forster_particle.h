@@ -1,5 +1,5 @@
-#ifndef gas_particle_h
-#define gas_particle_h
+#ifndef forster_particle_h
+#define forster_particle_h
 
 #include <iostream>
 #include <array>
@@ -10,20 +10,21 @@
 namespace mc
 {
 
-class gas_particle : public particle
+class forster_particle : public particle
 {
 private:
 
 protected:
 
 public:
-	gas_particle(const mc::arr1d& pos, const mc::arr1d& velocity, const mc::t_float& eff_mass,
+	forster_particle(const mc::arr1d& pos, const mc::t_float& eff_mass,
 		const std::shared_ptr<mc::free_flight>& pilot,
 		const std::shared_ptr<mc::scatter>& m_scatterer, const mc::t_int& id = -1) // constructor
 	{
 		set_id(id);
+		set_old_pos(pos);
 		set_pos(pos);
-		set_velocity(velocity);
+		set_velocity({0.,0.,0.});
 		set_mass(eff_mass);
 		set_pilot(pilot);
 		set_scatterer(m_scatterer);
@@ -37,8 +38,8 @@ public:
     pilot()->check_boundary(this, dt, domain);
   };
 
-}; //gas_particle class
+}; //forster_particle class
 
 } //mc namespace
 
-#endif // gas_particle_h
+#endif // forster_particle_h

@@ -11,22 +11,12 @@
 int main(int argc, char *argv[])
 {
 
-	// std::array<float, 3> a = {1,2,3};
-	// for (int i=0; i<10; i++)
-	// {
-	// 	// std::cout << i << " " << a[i] << std::endl;
-	// 	std::cout << i << " " << a.at(i) << std::endl;
-	// }
-	//
-	// std::exit(EXIT_FAILURE);
-
 	// print the start time and start recording the run time
 	std::time_t start_time = std::time(nullptr);
 	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
 
 	mc::monte_carlo mc_simulation;
 	mc_simulation.process_command_line_args(argc, argv);
-
 
 	std::fstream population_file;
 	std::fstream current_profile_file;
@@ -41,7 +31,7 @@ int main(int argc, char *argv[])
 	{
 		mc_simulation.step(time_step);
 		mc_simulation.repopulate_contacts();
-		mc_simulation.population_profiler(1000, population_file, debug_file);
+		mc_simulation.population_profiler(max_history, population_file, debug_file);
 		mc_simulation.save_region_current(max_history, region_current_file, time_step);
 
 		if (int(mc_simulation.time() / time_step) % 1000 == 0)

@@ -9,6 +9,7 @@
 #include "utility.h"
 #include "particle.h"
 #include "gas_particle.h"
+#include "forster_particle.h"
 
 namespace mc
 {
@@ -20,7 +21,6 @@ private:
   mc::arr1d _lower_corner; // coordinate of the lower corner of the region
   mc::arr1d _upper_corner; // coordinate of the upper corner or the region
   mc::t_float _volume; // volume of the region region
-  mc::t_int _number_of_expected_particles; // number of expected particles in the region region
 
   mc::t_int _particle_flow_log; // this is the net number of particles flowing in (positive) or out (negative) of the region, the first component is the particle flow, the second number is the history.
 
@@ -119,7 +119,7 @@ public:
   };
   inline mc::t_uint number_of_particles() // gives the number of particles
   {
-    return _particles.size();
+    return _particles.size() + _new_particles.size();
   };
   inline const mc::t_float& lower_corner(mc::t_uint i) const // gives an element of the _lower_corner
   {
@@ -139,31 +139,21 @@ public:
   };
   inline void populate(const mc::t_float& beta, const mc::t_uint& number_of_particles, const std::shared_ptr<mc::free_flight>& pilot, const std::shared_ptr<mc::scatter>& scatterer) // populate the region with a certain number of particles
   {
-  	_number_of_expected_particles = number_of_particles;
-
-  	mc::t_float eff_mass = mc::elec_mass;
-  	mc::arr1d acceleration = {0., 0., 0.};
-
+    // create the new particles by updating the previous particles and adding new ones or deleting the excess ones
+    dump_new_particles();
   	mc::t_int id = 0;
 
-  	// create the new particles by updating the previous particles and adding new ones or deleting the excess ones
-  	dump_new_particles();
 
   	mc::t_uint count=0;
   	auto it = _particles.begin();
-  	while(count < _number_of_expected_particles)
+  	while(count < number_of_particles)
   	{
-  		mc::arr1d pos;
+      mc::arr1d pos;
   		for (int j=0; j<pos.size(); ++j)
-  			pos[j] = _lower_corner[j]+(_upper_corner[j]-_lower_corner[j])*mc::get_rand_include_zero<mc::t_float>();
-
-  		// get random energy with correct distribution
-  		mc::t_float energy = -(3./2./beta)*std::log(mc::get_rand_include_zero<mc::t_float>());
-  		mc::t_float velocity_magnitude = std::sqrt(energy*2./eff_mass);
-  		// get uniformly distribution direction
-  		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
-  		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
-  		mc::arr1d velocity = {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+      {
+        pos[j] = _lower_corner[j]+(_upper_corner[j]-_lower_corner[j])*mc::get_rand_include_zero<mc::t_float>();
+      }
+  		mc::arr1d velocity = mc::get_rand_velocity(beta, mc::elec_mass);
 
   		if (it!= _particles.end())
   		{
@@ -174,12 +164,12 @@ public:
   		}
   		else
   		{
-  			// _particles.emplace_back(pos, velocity, eff_mass, pilot, scatterer, id);
-        _particles.push_back(std::make_unique<mc::gas_particle>(pos, velocity, eff_mass, pilot, scatterer, id));
+        // _particles.push_back(std::make_unique<mc::gas_particle>(pos, velocity, eff_mass, pilot, scatterer, id));
+        _particles.push_back(std::make_unique<mc::forster_particle>(pos, mc::elec_mass, pilot, scatterer, id));
   		}
 
   		id++;
-  		count ++;
+  		count++;
   	}
 
   	_particles.erase(it, _particles.end());
