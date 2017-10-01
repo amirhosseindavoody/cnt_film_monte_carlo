@@ -4,7 +4,11 @@
 #include <ctime>
 #include <cmath>
 #include <fstream>
+#include <cstring>
 
+#include "../rapidxml/rapidxml.hpp"
+#include "../rapidxml/rapidxml_utils.hpp"
+#include "../rapidxml/rapidxml_print.hpp"
 #include "monte_carlo.h"
 #include "utility.h"
 #include "gas_ff.h"
@@ -12,14 +16,15 @@
 #include "gas_scatter.h"
 #include "forster_scatter.h"
 
+
 namespace mc
 {
-  monte_carlo::monte_carlo() // constructor
+  // constructor
+  monte_carlo::monte_carlo()
 	{
 		mc::init_random_number_generator();
 
-		_temperature = 300;
-		_beta = 1./(mc::kB*_temperature);
+		set_temperature(300);
 		_time = 0.;
 
 		// set simulation geometry parameters, the rest are set automatically
@@ -45,10 +50,8 @@ namespace mc
 		_contacts.emplace_back(contact_2_lower_corner, contact_2_upper_corner);
 		_bulk.set_borders(bulk_lower_corner, bulk_upper_corner);
 
-    // _pilot = std::make_shared<mc::gas_free_flight>();
-		// _scatterer = std::make_shared<mc::gas_scatter>();
-    _pilot = std::make_shared<mc::forster_free_flight>();
-		_scatterer = std::make_shared<mc::forster_scatter>();
+    _pilot = std::make_shared<mc::t_free_flight>();
+    _scatterer = std::make_shared<mc::t_scatter>();
 
 		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
 		_contacts[1].populate(_beta, 100, _pilot, _scatterer);
@@ -60,4 +63,109 @@ namespace mc
 		_current_profile.first = 0;
 		_current_profile.second = std::vector<mc::t_float>(_number_of_profile_sections, 0.);
 	};
+
+  // set the output directory and the output file name
+  void monte_carlo::process_command_line_args(int argc, char* argv[])
+  {
+    namespace fs = std::experimental::filesystem;
+
+    fs::directory_entry xml_file;
+
+    std::cout << "current path is " << fs::current_path() << std::endl;
+
+    if (argc <= 1)
+    {
+      xml_file.assign("input.xml");
+    }
+    else
+    {
+      xml_file.assign(argv[1]);
+    }
+
+    if(fs::exists(xml_file))
+    {
+      std::cout << "input xml file found: " << xml_file.path() << std::endl;
+    }
+    else
+    {
+      std::cout << "input xml file NOT found: " << xml_file.path() << std::endl;
+      std::exit(1);
+    }
+
+    if (!fs::is_regular_file(xml_file))
+    {
+      std::cout << "input xml file NOT found: " << xml_file.path() << std::endl;
+      std::exit(1);
+    }
+    std::cout << std::endl;
+
+    rapidxml::file<> xmlFile(xml_file.path().c_str()); //open file
+    rapidxml::xml_document<> doc; //create xml object
+    doc.parse<0>(xmlFile.data()); //parse contents of file
+    rapidxml::xml_node<>* curr_node = doc.first_node(); //gets the node "Document" or the root node
+
+    // set the output_directory
+    {
+      curr_node = curr_node->first_node("output_directory");
+      std::string attr = curr_node->first_attribute("type")->value();
+      std::string path = mc::trim(curr_node->value());
+      if (attr == "absolute")
+      {
+        std::cout << "absolute directory format used!\n";
+      }
+
+      _output_directory.assign(path);
+      std::cout << "output_directory: " << _output_directory.path() << std::endl;
+
+      if (not fs::exists(_output_directory.path()))
+      {
+        std::cout << "warning: output directory does NOT exist!!!" << std::endl;
+        std::cout << "output directory: " << _output_directory.path() << std::endl;
+        fs::create_directories(_output_directory.path());
+      }
+
+      if (fs::is_directory(_output_directory.path()))
+      {
+        if (not fs::is_empty(_output_directory.path()))
+        {
+          std::cout << "warning: output directory is NOT empty!!!" << std::endl;
+          std::cout << "output directory: " << _output_directory.path() << std::endl;
+          std::cout << "deleting the existing directory!!!" << std::endl;
+          fs::remove_all(_output_directory.path());
+          fs::create_directories(_output_directory.path());
+        }
+      }
+      else
+      {
+        std::cout << "error: output path is NOT a directory!!!" << std::endl;
+        std::cout << "output path: " << _output_directory.path() << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+    }
+
+    // set the temperature
+    {
+      curr_node = curr_node->next_sibling("temperature");
+      std::string attr = curr_node->first_attribute("units")->value();
+
+      if (attr == "Kelvin" or attr == "kelvin" or attr == "K" or attr == "k")
+      {
+        set_temperature(std::atof(curr_node->value()));
+      }
+      else if (attr == "celcius" or attr == "Celcius" or attr == "c" or attr == "C")
+      {
+        set_temperature(273.15 + std::atof(curr_node->value()));
+      }
+      else
+      {
+        std::cout << "error in temperature units!!!" << std::endl;
+        std::exit(1);
+      }
+    }
+
+    // std::exit(0);
+
+  };
+
+
 } // namespace mc

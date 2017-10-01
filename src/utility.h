@@ -9,9 +9,19 @@
 #include <cmath>
 #include <algorithm>
 #include <experimental/filesystem>
+#include <string>
+#include <regex>
 
 namespace mc
 {
+
+class forster_scatter;
+class forster_free_flight;
+class forster_particle;
+
+typedef forster_scatter t_scatter;
+typedef forster_free_flight t_free_flight;
+typedef forster_particle t_particle;
 
 //#################################################################################################
 // custom data types
@@ -100,6 +110,21 @@ inline mc::arr1d rand_velocity(const mc::t_float& beta, const mc::t_float& mass)
 	mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
 	mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
 	return {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+};
+
+//#################################################################################################
+// helper string processing functions
+//#################################################################################################
+inline std::string trim(const std::string input) // trim the leading and trailing whitespaces
+{
+	std::regex tmp("^[ \t\r\n]+|[ \t\r\n]+$");
+	return std::regex_replace(input, tmp, "");
+};
+
+inline std::string trim(const char* c_str_input) // trim the leading and trailing whitespaces
+{
+	std::string input = c_str_input;
+	return trim(input);
 };
 
 } // end namespace mc

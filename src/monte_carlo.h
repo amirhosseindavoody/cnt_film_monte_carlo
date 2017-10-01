@@ -44,55 +44,7 @@ private:
 public:
 
 	monte_carlo(); // constructor
-	void process_command_line_args(int argc=0, char* argv[]=nullptr) // set the output directory and the output file name
-	{
-		namespace fs = std::experimental::filesystem;
-
-		std::cout << "current path is " << fs::current_path() << std::endl;
-
-		if (argc <= 1)
-		{
-			if (fs::exists("/Users"))
-			{
-				_output_directory.assign("/Users/amirhossein/research/test");
-			}
-			else
-			{
-				_output_directory.assign("/home/amirhossein/research/test");
-			}
-		}
-		else
-		{
-			_output_directory.assign(argv[1]);
-		}
-
-		if (not fs::exists(_output_directory.path()))
-		{
-			std::cout << "warning: output directory does NOT exist!!!" << std::endl;
-			std::cout << "output directory: " << _output_directory.path() << std::endl;
-			fs::create_directories(_output_directory.path());
-			// std::exit(EXIT_FAILURE);
-		}
-
-		if (fs::is_directory(_output_directory.path()))
-		{
-			if (not fs::is_empty(_output_directory.path()))
-			{
-				std::cout << "warning: output directory is NOT empty!!!" << std::endl;
-				std::cout << "output directory: " << _output_directory.path() << std::endl;
-				std::cout << "deleting the existing directory!!!" << std::endl;
-				fs::remove_all(_output_directory.path());
-				fs::create_directories(_output_directory.path());
-				// std::exit(EXIT_FAILURE);
-			}
-		}
-		else
-		{
-			std::cout << "error: output path is NOT a directory!!!" << std::endl;
-			std::cout << "output path: " << _output_directory.path() << std::endl;
-			std::exit(EXIT_FAILURE);
-		}
-	};
+	void process_command_line_args(int argc=0, char* argv[]=nullptr); // set the output directory and the output file name
 	inline mc::t_uint number_of_particles() // returns the number of particles
 	{
 		mc::t_uint number_of_particles = _bulk.number_of_particles();
@@ -286,6 +238,12 @@ public:
 
 			_current_profile.first = 0;
 		}
+	};
+	inline void set_temperature(const mc::t_float& value)
+	{
+		_temperature = value;
+		_beta = 1./_temperature/mc::kB;
+		// std::cout << "temperature set to " << _temperature << " Kelvins\n";
 	};
 
 }; // end class monte_carlo

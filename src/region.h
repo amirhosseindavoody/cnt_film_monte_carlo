@@ -141,34 +141,22 @@ public:
   {
     // create the new particles by updating the previous particles and adding new ones or deleting the excess ones
     dump_new_particles();
-  	mc::t_int id = 0;
-
 
   	mc::t_uint count=0;
   	auto it = _particles.begin();
   	while(count < number_of_particles)
   	{
-      mc::arr1d pos;
-  		for (int j=0; j<pos.size(); ++j)
-      {
-        pos[j] = _lower_corner[j]+(_upper_corner[j]-_lower_corner[j])*mc::get_rand_include_zero<mc::t_float>();
-      }
-  		mc::arr1d velocity = mc::get_rand_velocity(beta, mc::elec_mass);
 
   		if (it!= _particles.end())
   		{
-  			(*it)->set_pos(pos);
-  			(*it)->set_velocity(velocity);
-  			(*it)->kin_energy();
+  			(*it)->reinitialize(lower_corner(), upper_corner(), beta, mc::elec_mass, pilot, scatterer);
   			it++;
   		}
   		else
   		{
-        // _particles.push_back(std::make_unique<mc::gas_particle>(pos, velocity, eff_mass, pilot, scatterer, id));
-        _particles.push_back(std::make_unique<mc::forster_particle>(pos, mc::elec_mass, pilot, scatterer, id));
+        // _particles.push_back(std::make_unique<mc::forster_particle>(lower_corner(), upper_corner(), beta, mc::elec_mass, pilot, scatterer));
+        _particles.push_back(std::make_unique<mc::t_particle>(lower_corner(), upper_corner(), beta, mc::elec_mass, pilot, scatterer));
   		}
-
-  		id++;
   		count++;
   	}
 

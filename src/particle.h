@@ -97,14 +97,7 @@ public:
 	};
 	inline virtual void rewind_pos() // rewind the current position to the old_pos and do not update the old_pos
 	{
-		// std::cout << "before rewind pos:\n"
-		// 					<< "... old_pos: " << _old_pos[0] << " , " << _old_pos[1] << " , " << _old_pos[2] << "\n"
-		// 					<< "... pos: " << _pos[0] << " , " << _pos[1] << " , " << _pos[2] << "\n";
 		_pos = _old_pos;
-
-		// std::cout << "after rewind pos:\n"
-		// 					<< "... old_pos: " << _old_pos[0] << " , " << _old_pos[1] << " , " << _old_pos[2] << "\n"
-		// 					<< "... pos: " << _pos[0] << " , " << _pos[1] << " , " << _pos[2] << "\n";
 	};
 	inline virtual const mc::arr1d& velocity() const // get velocity of the particle
 	{
@@ -140,20 +133,10 @@ public:
 	{
 		return _ff_time;
 	};
-	// inline virtual const mc::t_float& update_ff_time() // update and return the free flight time until the next scattering
-	// {
-	// 	_ff_time = _scatterer->ff_time();
-	// 	return _ff_time;
-	// };
 	inline virtual mc::t_float& get_ff_time() // return the free flight time until the next scattering
 	{
 		return _ff_time;
 	};
-	// inline virtual void scatter() // scatter the particle to a new state using the scatterer object
-	// {
-	// 	mc::t_int scat_mechanism = _scatterer->get_scat_mechanism(kin_energy());
-	// 	_scatterer->update_state(scat_mechanism, kin_energy(), _pos, _velocity);
-	// };
 	inline virtual void step(mc::t_float dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // step particle state for dt in time
 	{
 		while(_ff_time <= dt)
@@ -172,10 +155,13 @@ public:
 		_kin_energy = mass()*mc::norm2(velocity())/2.;
 		return _kin_energy;
 	};
+
 	////////////////////////////
 	// abstract member functions
 	////////////////////////////
 	virtual void fly(const mc::t_float& dt, const std::pair<mc::arr1d, mc::arr1d>& domain) = 0; // perform free flight within the simulation domain
+	// reinitialize particle properties instead of creating new particles
+	virtual void reinitialize(const mc::arr1d& lower_corner, const mc::arr1d& upper_corner, const mc::t_float& beta, const mc::t_float& mass, const std::shared_ptr<mc::free_flight>& pilot, const std::shared_ptr<mc::scatter>& m_scatterer) = 0;
 
 }; //particle class
 
