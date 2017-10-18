@@ -5,11 +5,8 @@
 #include <array>
 #include <memory>
 
-#include "ff.h"
 #include "utility.h"
-#include "particle.h"
-#include "gas_particle.h"
-#include "forster_particle.h"
+#include "all_particles.h"
 
 namespace mc
 {

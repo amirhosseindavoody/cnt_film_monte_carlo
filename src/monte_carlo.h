@@ -8,8 +8,8 @@
 #include <map>
 #include <chrono>
 
-#include "ff.h"
-#include "particle.h"
+#include "all_particles.h"
+
 #include "utility.h"
 #include "region.h"
 
@@ -22,9 +22,9 @@ private:
 
 	// simulation parameters
 	mc::t_uint _num_particles; // number of particles
-	mc::t_float _time; // total simulation time that has elapsed
 	mc::t_float _temperature; // temperature of the simulation
 	mc::t_float _beta; // 1/kB*T is the inverse of the thermal energy
+	mc::t_float _time; // total simulation time that has elapsed
 	std::pair<mc::arr1d, mc::arr1d> _domain; // the physical extent of the simulation domain
 
 	std::shared_ptr<mc::free_flight> _pilot; // pilot for the free flight step for particles in the simulation
@@ -36,16 +36,19 @@ private:
 
 	// output files properties
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
+	std::experimental::filesystem::directory_entry _input_directory; // this is the address of the output_directory
 	mc::t_uint _number_of_profile_sections; // number of profile sections used for profiling
 	std::pair<mc::t_uint, std::vector<mc::t_uint>> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
 	std::pair<mc::t_uint, std::vector<mc::t_float>> _current_profile; // this is the average current profile along the simulation domain
 	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
 
+protected:
+
 public:
 
 	monte_carlo(); // constructor
 	void process_command_line_args(int argc=0, char* argv[]=nullptr); // set the output directory and the output file name
-	inline mc::t_uint number_of_particles() // returns the number of particles
+	mc::t_uint number_of_particles() // returns the number of particles
 	{
 		mc::t_uint number_of_particles = _bulk.number_of_particles();
 		for (auto& contact: _contacts)
@@ -54,7 +57,7 @@ public:
 		}
 		return number_of_particles;
 	};
-	inline void step(mc::t_float dt) // step the simulation in time
+	void step(mc::t_float dt) // step the simulation in time
 	{
 		for (auto& contact: _contacts)
 		{
@@ -86,7 +89,7 @@ public:
 			contact.dump_new_particles();
 		}
 
-		_time += dt;
+		increase_time(dt);
 
 	};
 	inline void write_state(std::fstream& file) // write the state of the simulation in the output file
@@ -101,6 +104,10 @@ public:
 	{
 		return _time;
 	};
+	inline void increase_time(const mc::t_float& dt) // increase simulation time by dt
+	{
+		_time += dt;
+	}
 	inline void repopulate_contacts() // repopulate contacts
 	{
 		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
@@ -245,7 +252,14 @@ public:
 		_beta = 1./_temperature/mc::kB;
 		// std::cout << "temperature set to " << _temperature << " Kelvins\n";
 	};
-
+	const std::experimental::filesystem::directory_entry& output_directory() // get constant reference to the output_directory
+	{
+		return _output_directory;
+	};
+	const std::experimental::filesystem::directory_entry& input_directory() // get constant reference to the input_directory
+	{
+		return _input_directory;
+	};
 }; // end class monte_carlo
 
 } // end namespace mc

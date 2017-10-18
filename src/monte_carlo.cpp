@@ -11,10 +11,6 @@
 #include "../rapidxml/rapidxml_print.hpp"
 #include "monte_carlo.h"
 #include "utility.h"
-#include "gas_ff.h"
-#include "forster_ff.h"
-#include "gas_scatter.h"
-#include "forster_scatter.h"
 
 
 namespace mc
@@ -51,6 +47,7 @@ namespace mc
 		_bulk.set_borders(bulk_lower_corner, bulk_upper_corner);
 
     _pilot = std::make_shared<mc::t_free_flight>();
+    // _scatterer = std::make_shared<mc::t_scatter>();
     _scatterer = std::make_shared<mc::t_scatter>();
 
 		_contacts[0].populate(_beta, 1100, _pilot, _scatterer);
@@ -102,7 +99,7 @@ namespace mc
     rapidxml::file<> xmlFile(xml_file.path().c_str()); //open file
     rapidxml::xml_document<> doc; //create xml object
     doc.parse<0>(xmlFile.data()); //parse contents of file
-    rapidxml::xml_node<>* curr_node = doc.first_node(); //gets the node "Document" or the root node
+    rapidxml::xml_node<>* curr_node = doc.first_node(); //gets the node "Document" or the root nodes
 
     // set the output_directory
     {
@@ -145,7 +142,18 @@ namespace mc
 
     // set the temperature
     {
-      curr_node = curr_node->next_sibling("temperature");
+      auto next_node = curr_node->next_sibling("temperature");
+      if (next_node == 0)
+      {
+        next_node = curr_node->previous_sibling("temperature");
+        if (next_node == 0)
+        {
+          std::cout << "temperature not found in XML file!!!" << std::endl;
+          std::exit(1);
+        }
+      }
+      curr_node = next_node;
+
       std::string attr = curr_node->first_attribute("units")->value();
 
       if (attr == "Kelvin" or attr == "kelvin" or attr == "K" or attr == "k")
@@ -160,6 +168,51 @@ namespace mc
       {
         std::cout << "error in temperature units!!!" << std::endl;
         std::exit(1);
+      }
+    }
+
+    // set input directory
+    {
+      auto next_node = curr_node->next_sibling("input_directory");
+      if (next_node == 0)
+      {
+        next_node = curr_node->previous_sibling("input_directory");
+        if (next_node == 0)
+        {
+          std::cout << "input_directory not found in XML file!!!" << std::endl;
+          std::exit(1);
+        }
+      }
+      curr_node = next_node;
+
+      std::string attr = curr_node->first_attribute("type")->value();
+      std::string path = mc::trim(curr_node->value());
+      if (attr == "absolute")
+      {
+        std::cout << "absolute directory format used!\n";
+      }
+      _input_directory.assign(path);
+
+      if (not fs::exists(_input_directory.path()))
+      {
+        std::cout << "\n***\nwarning: input directory does NOT exist!!!\n"
+                  << "input directory: " << _input_directory.path() << "\n***\n\n";
+        std::exit(1);
+      }
+
+      if (fs::is_directory(_input_directory.path()))
+      {
+        if (fs::is_empty(_input_directory.path()))
+        {
+          std::cout << "warning: input directory is empty!!!" << std::endl;
+          std::cout << "input directory: " << _input_directory.path() << std::endl;
+        }
+      }
+      else
+      {
+        std::cout << "\n***\nerror: input path is NOT a directory!!!\n"
+                  << "input path: " << _input_directory.path() << std::endl;
+        std::exit(EXIT_FAILURE);
       }
     }
 

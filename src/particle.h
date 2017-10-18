@@ -146,7 +146,6 @@ public:
 			_scatterer->update_state(this);
 			_ff_time = _scatterer->ff_time();
 		}
-
 		fly(dt, domain);
 		_ff_time -= dt;
 	};

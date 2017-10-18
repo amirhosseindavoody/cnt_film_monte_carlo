@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 # define physical constants
 q0 = 1.6e-19
 
-box_size = 10
-steady_state_reached = 100
+box_size = 50
+steady_state_reached = 0
 
 # directory = "/Users/amirhossein/Desktop/new_runs/test_1/"
 directory = "/Users/amirhossein/research/test/"
