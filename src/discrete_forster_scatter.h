@@ -26,10 +26,10 @@ class discrete_forster_scatter
     std::shared_ptr<mc::discrete_forster_scatter> scatterer;
     mc::t_float distance;
     mc::t_float rate;
-    bool operator <(const neighbor& other)
-    {
-      return distance < other.distance;
-    };
+    // bool operator <(const neighbor& other)
+    // {
+    //   return distance < other.distance;
+    // };
   };
 
 public:
@@ -87,7 +87,11 @@ public:
   // sort neighbors in the ascending order
   void sort_neighbors()
 	{
-    _neighbors.sort();
+    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
+    {
+      return n1.distance < n2.distance;
+    };
+    _neighbors.sort(cmp_neighbor);
 	};
   // make a cumulative scattering rate table
   void make_cumulative_scat_rate()
@@ -123,22 +127,25 @@ public:
   // return closest neighbor distance
   mc::t_float closest_neighbor()
   {
-    return std::min_element(_neighbors.begin(),_neighbors.end())->distance;
+    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
+    {
+      return n1.distance < n2.distance;
+    };
+    return std::min_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
   // return farthest neighbor distance
   mc::t_float farthest_neighbor()
   {
-    return std::max_element(_neighbors.begin(),_neighbors.end())->distance;
+    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
+    {
+      return n1.distance < n2.distance;
+    };
+    return std::max_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
   // return the maximum scattering rate
   const mc::t_float& max_rate() const
   {
     return _max_rate;
-  };
-  // compare scatterer object with respect to their y coordinate.
-  bool operator <(const discrete_forster_scatter& other)
-  {
-    return _pos[1] < other._pos[1];
   };
 
 }; // end class discrete_forster_scatter

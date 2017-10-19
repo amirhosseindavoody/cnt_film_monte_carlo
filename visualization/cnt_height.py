@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-filename = "/Users/amirhossein/research/test/ycoordinates.dat"
+filename = "/Users/amirhossein/research/test/scatter.dat"
 data = np.loadtxt(filename)
 
 plt.figure()

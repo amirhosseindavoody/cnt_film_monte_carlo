@@ -92,9 +92,6 @@ public:
 	void init()
 	{
 		create_scatterers(input_directory().path(), output_directory().path());
-		mc::t_float max_search_radius = 40.e-9;
-		std::cout << "max_hopping_radius = " << _max_hopping_radius << std::endl;
-		find_neighbors(_max_hopping_radius, max_search_radius);
 		_domain = find_minmax_coordinates();
 
 		mc::t_float x_min = _domain.first[0];
@@ -114,6 +111,10 @@ public:
 		mc::arr1d      bulk_upper_corner = {x_max, y_2,   z_max};
 		mc::arr1d contact_2_lower_corner = {x_min, y_2,   z_min};
 		mc::arr1d contact_2_upper_corner = {x_max, y_max, z_max};
+
+		mc::t_float max_search_radius = 40.e-9;
+		std::cout << "max_hopping_radius = " << _max_hopping_radius << std::endl;
+		find_neighbors(_max_hopping_radius, max_search_radius);
 
 		for (int i=0; i<3; i++)
 		{
@@ -215,7 +216,24 @@ public:
 	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
 	{
 
-		// _all_scat_list.sort();
+		// compare function to sort shared_ptr to scatter objects in order of their y coordinates
+		auto cmp_y = [](const std::shared_ptr<t_scatter>& s1, const std::shared_ptr<t_scatter>& s2) -> bool
+		{
+			return s1->pos(1) < s2->pos(1);
+		};
+		_all_scat_list.sort(cmp_y);
+
+		// std::fstream file;
+		// file.open(_output_directory.path() / "scatter.dat", std::ios::out);
+		// file << std::showpos << std::scientific;
+		//
+		// for (const auto& scat : _all_scat_list)
+		// {
+		// 	file << scat->pos(1) << "\n";
+		// }
+		//
+		// file.close();
+		// std::exit(1);
 
 		int counter = 0;
 		mc::t_float avg_max_rate = 0;
@@ -239,11 +257,11 @@ public:
 					(*j)->add_neighbor(*i, distance);
 				}
 
-				// // break the search if the scatterers are getting too far apart to speed up the search process
-				// if (distance > max_search_radius)
-				// {
-				// 	break;
-				// }
+				// break the search if the scatterers are getting too far apart to speed up the search process
+				if (distance > max_search_radius)
+				{
+					break;
+				}
 			}
 			(*i)->sort_neighbors();
 			(*i)->make_cumulative_scat_rate();
@@ -255,7 +273,6 @@ public:
 
 			if (counter %1000 == 0)
 			{
-				// std::cout << "scatterer number: " << counter << "...number of neighbors: " << (*i)->number_of_neighbors() << "...max rate = " << (*i)->max_rate() << "\n";
 				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\n";
 				avg_max_rate = 0;
 				avg_number_of_neighbors = 0;
