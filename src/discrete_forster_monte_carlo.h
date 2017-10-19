@@ -32,7 +32,7 @@ public:
 
 private:
 	mc::t_float _time;
-	mc::t_float _max_hopping_rate;
+	mc::t_float _max_hopping_radius;
 
 	std::vector<t_region> _regions;
 	std::list<std::shared_ptr<t_scatter>> _all_scat_list;
@@ -92,7 +92,9 @@ public:
 	void init()
 	{
 		create_scatterers(input_directory().path(), output_directory().path());
-		find_neighbors(_max_hopping_rate, 40.e-9);
+		mc::t_float max_search_radius = 40.e-9;
+		std::cout << "max_hopping_radius = " << _max_hopping_radius << std::endl;
+		find_neighbors(_max_hopping_radius, max_search_radius);
 		_domain = find_minmax_coordinates();
 
 		mc::t_float x_min = _domain.first[0];
@@ -212,35 +214,52 @@ public:
 	// find the neighbors of each scattering object
 	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
 	{
+
+		// _all_scat_list.sort();
+
 		int counter = 0;
+		mc::t_float avg_max_rate = 0;
+		mc::t_float avg_number_of_neighbors = 0;
+		mc::t_float another_counter = 0;
 
 		for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
 		{
+
 			for (auto j = std::next(i); j!= _all_scat_list.end(); ++j)
 			{
-				// mc::t_float distance = std::hypot((*i)->pos(0)-(*j)->pos(0), (*i)->pos(1)-(*j)->pos(1), (*i)->pos(2)-(*j)->pos(2));
-				mc::t_float distance = std::sqrt(std::pow((*i)->pos(0)-(*j)->pos(0),2)+ std::pow((*i)->pos(1)-(*j)->pos(1),2) + std::pow((*i)->pos(2)-(*j)->pos(2),2));
-				if (distance < max_hopping_radius)
+				mc::t_float dx = (*i)->pos(0)-(*j)->pos(0);
+				mc::t_float dy = (*i)->pos(1)-(*j)->pos(1);
+				mc::t_float dz = (*i)->pos(2)-(*j)->pos(2);
+				mc::t_float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
 				{
-					// std::cout << "found new neighboring: distance = " << distance << "\n";
+					// // std::cout << "found new neighboring: distance = " << distance << "\n";
 					(*i)->add_neighbor(*j, distance);
 					(*j)->add_neighbor(*i, distance);
 				}
 
-				// break the search if the scatterers are getting too far apart to speed up the search process
-				if (distance > max_hopping_radius)
-				{
-					break;
-				}
+				// // break the search if the scatterers are getting too far apart to speed up the search process
+				// if (distance > max_search_radius)
+				// {
+				// 	break;
+				// }
 			}
 			(*i)->sort_neighbors();
 			(*i)->make_cumulative_scat_rate();
 
 			counter ++;
+			avg_number_of_neighbors += (*i)->number_of_neighbors();
+			avg_max_rate += (*i)->max_rate();
+			another_counter += 1.;
+
 			if (counter %1000 == 0)
 			{
-				std::cout << "number of neighbors: " << (*i)->number_of_neighbors() << "\n";
-				std::cout << counter << "\n";
+				// std::cout << "scatterer number: " << counter << "...number of neighbors: " << (*i)->number_of_neighbors() << "...max rate = " << (*i)->max_rate() << "\n";
+				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\n";
+				avg_max_rate = 0;
+				avg_number_of_neighbors = 0;
+				another_counter = 0;
 			}
 
 		}
@@ -538,7 +557,33 @@ public:
 			}
 		}
 
-		// std::exit(0);
+
+		// set the maximum hopping radius
+		{
+			auto next_node = curr_node->next_sibling("max_hopping_radius");
+			if (next_node == 0)
+			{
+				next_node = curr_node->previous_sibling("max_hopping_radius");
+				if (next_node == 0)
+				{
+					std::cout << "Error: cannot read 'max_hopping_radius'" << std::endl;
+					std::exit(1);
+				}
+			}
+			curr_node = next_node;
+
+			std::string attr = curr_node->first_attribute("units")->value();
+			attr = mc::trim(attr);
+			if ((attr == "nanometer") or (attr == "nm"))
+			{
+				_max_hopping_radius = 1.e-9*std::atof(curr_node->value());
+			}
+			else
+			{
+				std::cout << "undefined units for 'max_hopping_radius'\n";
+				std::exit(1);
+			}
+		}
 
 	};
 

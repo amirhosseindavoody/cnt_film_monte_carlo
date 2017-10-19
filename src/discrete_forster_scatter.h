@@ -19,6 +19,19 @@ namespace mc
 
 class discrete_forster_scatter
 {
+  struct neighbor
+  {
+    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, mc::t_float m_distance, mc::t_float m_rate): scatterer(m_scatterer), distance(m_distance), rate(m_rate)
+    {};
+    std::shared_ptr<mc::discrete_forster_scatter> scatterer;
+    mc::t_float distance;
+    mc::t_float rate;
+    bool operator <(const neighbor& other)
+    {
+      return distance < other.distance;
+    };
+  };
+
 public:
   typedef mc::discrete_forster_particle t_particle; // particle type
 
@@ -26,13 +39,7 @@ private:
 	mc::t_float _max_rate; // maximum scattering rate in the scattering table
 	mc::t_float _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	mc::arr1d _pos; // position of the scatterer
-	std::list<std::tuple<std::shared_ptr<mc::discrete_forster_scatter>, mc::t_float, mc::t_float>> _neighbors; // list of pairs containing distance and shared pointer to the neighboring scatterers
-
-	// compare components of neighbors list by measure of their distance
-	static bool _compare_neighbors(const std::tuple<std::shared_ptr<mc::discrete_forster_scatter>, mc::t_float, mc::t_float>& lhs, const std::tuple<std::shared_ptr<mc::discrete_forster_scatter>, mc::t_float, mc::t_float>& rhs)
-	{
-		return std::get<1>(lhs) < std::get<1>(rhs);
-	};
+  std::list<mc::discrete_forster_scatter::neighbor> _neighbors;
 
 public:
 
@@ -69,7 +76,8 @@ public:
 	// add a scattering object and its distance to the neighbors list
 	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr, const mc::t_float& distance)
 	{
-		_neighbors.push_back(std::make_tuple(neighbor_ptr, distance, 1.e12*std::pow(1.e-9,6)/std::pow(distance,6)));
+    mc::t_float rate = 1.e12*std::pow(1.e-9,6)/std::pow(distance,6);
+    _neighbors.emplace_back(neighbor_ptr, distance, rate);
 	};
   // get the number of neighbors
   mc::t_uint number_of_neighbors()
@@ -79,7 +87,7 @@ public:
   // sort neighbors in the ascending order
   void sort_neighbors()
 	{
-		_neighbors.sort(_compare_neighbors);
+    _neighbors.sort();
 	};
   // make a cumulative scattering rate table
   void make_cumulative_scat_rate()
@@ -87,17 +95,10 @@ public:
 		_max_rate = 0;
 		for (auto& neighbor: _neighbors)
 		{
-			_max_rate += std::get<2>(neighbor);
-			std::get<2>(neighbor) = _max_rate;
-
-			// std::cout << "distance = " << std::get<1>(neighbor) << "....rate = " << std::get<2>(neighbor) << std::endl;
-			// std::cin.ignore();
+      _max_rate += neighbor.rate;
+      neighbor.rate = _max_rate;
 		}
 		_inverse_max_rate = 1/_max_rate;
-
-		// std::cout << "number of neighbors = " << _neighbors.size() << std::endl;
-		// std::cout << "max scat rate: " << _max_rate << std::endl;
-		// std::cin.ignore();
 	};
   // print neighbor distances
   void print_neighbor_distances()
@@ -105,10 +106,40 @@ public:
 		std::cout << "...neighbor distances: ";
 		for (const auto& neighbor : _neighbors)
 		{
-			std::cout << std::get<2>(neighbor) << " , ";
+      std::cout << neighbor.distance << " , ";
 		}
 		std::cout << std::endl;
 	};
+  // print neighbor rates
+  void print_neighbor_rates()
+	{
+		std::cout << "...neighbor rates: ";
+		for (const auto& neighbor : _neighbors)
+		{
+      std::cout << neighbor.rate << " , ";
+		}
+		std::cout << std::endl;
+	};
+  // return closest neighbor distance
+  mc::t_float closest_neighbor()
+  {
+    return std::min_element(_neighbors.begin(),_neighbors.end())->distance;
+  };
+  // return farthest neighbor distance
+  mc::t_float farthest_neighbor()
+  {
+    return std::max_element(_neighbors.begin(),_neighbors.end())->distance;
+  };
+  // return the maximum scattering rate
+  const mc::t_float& max_rate() const
+  {
+    return _max_rate;
+  };
+  // compare scatterer object with respect to their y coordinate.
+  bool operator <(const discrete_forster_scatter& other)
+  {
+    return _pos[1] < other._pos[1];
+  };
 
 }; // end class discrete_forster_scatter
 

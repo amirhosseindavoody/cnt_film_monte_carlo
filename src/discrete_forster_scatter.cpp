@@ -11,12 +11,13 @@ namespace mc
 		mc::t_float dice = _max_rate*mc::get_rand_include_zero<mc::t_float>();
 		auto it = _neighbors.begin();
 		auto last = std::prev(_neighbors.end());
-		while ((std::get<2>(*it) <= dice) and (it!=last))
+
+		while ((it->rate <= dice) and (it!=last))
 		{
 			it++;
 		}
 
-		p->set_pos(std::get<0>(*it)->pos());
-		p->set_scatterer(std::get<0>(*it));
+		p->set_pos(it->scatterer->pos());
+		p->set_scatterer(it->scatterer);
 	};
 } // mc namespace

@@ -5,6 +5,6 @@
 		300
 	</temperature>
 	<max_hopping_radius units="nanometer">
-		10
+		1.5
 	</max_hopping_radius>
 </Document>

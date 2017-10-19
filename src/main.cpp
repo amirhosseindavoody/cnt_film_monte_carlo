@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
 	sim.process_command_line_args(argc, argv);
 	sim.init();
 
+	// std::exit(1);
+
 
 	std::fstream population_file;
 	std::fstream current_profile_file;
