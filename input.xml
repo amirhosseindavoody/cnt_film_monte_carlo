@@ -1,0 +1,10 @@
+﻿<Document type="Monte Carlo Configuration">
+	<output_directory type="absolute"> /Users/amirhossein/research/test </output_directory>
+	<input_directory type="absolute"> /Users/amirhossein/research/cnt_mesh_1 </input_directory>
+	<temperature units="kelvin">
+		300
+	</temperature>
+	<max_hopping_radius units="nanometer">
+		1.5
+	</max_hopping_radius>
+</Document>
