@@ -92,9 +92,7 @@ public:
 	void init()
 	{
 		create_scatterers_with_orientation(input_directory().path(), output_directory().path());
-		// std::exit(1);
 
-		// create_scatterers(input_directory().path(), output_directory().path());
 		_domain = find_minmax_coordinates();
 
 		mc::t_float x_min = _domain.first[0];
@@ -148,73 +146,6 @@ public:
 		std::get<3>(_population_profile) = bulk.volume()/mc::t_float(number_of_profile_sections); // volume of each segment in population profiler
 
 	};
-	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
-	void create_scatterers_without_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
-	{
-		std::cout << "this is the input path: " << input_path << std::endl;
-		std::ifstream file;
-		std::string line;
-
-		int num = 1;
-		int max_num = 3;
-		std::string base = "tube";
-		std::string extension = ".dat";
-		std::string filename = input_path / (base+std::to_string(num)+extension);
-
-		file.open(filename);
-		std::regex tube_rgx("tube");
-
-		// loop over files
-		while ((file.is_open()) and (num<max_num))
-		{
-			std::cout << "reading data from file..." << filename << "...\n";
-
-			while(std::getline(file, line, ';'))
-			{
-
-				// find the new tube coordinates by finding the keywork "tube"
-				if (!std::regex_search(line,tube_rgx))
-				{
-					try
-					{
-						std::istringstream iss(line);
-						mc::arr1d pos;
-						std::string token;
-						int i = 0;
-						while(std::getline(iss,token,','))
-						{
-							pos[i] = 1.e-9*std::stod(token);
-							i++;
-						}
-						if (i!= 3)
-						{
-							throw std::range_error("Could not read compelete set of coordinates!");
-						}
-						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-						_all_scat_list.back()->set_pos(pos);
-					}
-					catch(const std::invalid_argument& e)
-					{
-						std::cout << e.what() << std::endl;
-					}
-					catch(const std::range_error& e)
-					{
-						std::cout << e.what() << std::endl;
-					}
-
-				}
-			}
-
-			file.close();
-			num++;
-			filename = input_path / (base+std::to_string(num)+extension);
-			file.open(filename);
-
-		}
-
-		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
-
-	};
 	// find the neighbors of each scattering object
 	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
 	{
@@ -225,18 +156,6 @@ public:
 			return s1->pos(1) < s2->pos(1);
 		};
 		_all_scat_list.sort(cmp_y);
-
-		// std::fstream file;
-		// file.open(_output_directory.path() / "scatter.dat", std::ios::out);
-		// file << std::showpos << std::scientific;
-		//
-		// for (const auto& scat : _all_scat_list)
-		// {
-		// 	file << scat->pos(1) << "\n";
-		// }
-		//
-		// file.close();
-		// std::exit(1);
 
 		int counter = 0;
 		mc::t_float avg_max_rate = 0;
@@ -256,8 +175,8 @@ public:
 				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
 				{
 					// // std::cout << "found new neighboring: distance = " << distance << "\n";
-					(*i)->add_neighbor(*j, distance);
-					(*j)->add_neighbor(*i, distance);
+					(*i)->add_neighbor(*j);
+					(*j)->add_neighbor(*i);
 				}
 
 				// break the search if the scatterers are getting too far apart to speed up the search process
@@ -606,7 +525,73 @@ public:
 		}
 
 	};
+	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
+	void create_scatterers_without_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
+	{
+		std::cout << "this is the input path: " << input_path << std::endl;
+		std::ifstream file;
+		std::string line;
 
+		int num = 1;
+		int max_num = 3;
+		std::string base = "tube";
+		std::string extension = ".dat";
+		std::string filename = input_path / (base+std::to_string(num)+extension);
+
+		file.open(filename);
+		std::regex tube_rgx("tube");
+
+		// loop over files
+		while ((file.is_open()) and (num<max_num))
+		{
+			std::cout << "reading data from file..." << filename << "...\n";
+
+			while(std::getline(file, line, ';'))
+			{
+
+				// find the new tube coordinates by finding the keywork "tube"
+				if (!std::regex_search(line,tube_rgx))
+				{
+					try
+					{
+						std::istringstream iss(line);
+						mc::arr1d pos;
+						std::string token;
+						int i = 0;
+						while(std::getline(iss,token,','))
+						{
+							pos[i] = 1.e-9*std::stod(token);
+							i++;
+						}
+						if (i!= 3)
+						{
+							throw std::range_error("Could not read compelete set of coordinates!");
+						}
+						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
+						_all_scat_list.back()->set_pos(pos);
+					}
+					catch(const std::invalid_argument& e)
+					{
+						std::cout << e.what() << std::endl;
+					}
+					catch(const std::range_error& e)
+					{
+						std::cout << e.what() << std::endl;
+					}
+
+				}
+			}
+
+			file.close();
+			num++;
+			filename = input_path / (base+std::to_string(num)+extension);
+			file.open(filename);
+
+		}
+
+		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
+
+	};
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
 	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
 	{
@@ -682,18 +667,13 @@ public:
 				if (std::regex_search(line,tube_rgx))
 				{
 					auto nodes = get_nodes(line);
-					// for (const auto& node: nodes)
-					// {
-					// 	_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-					// 	_all_scat_list.back()->set_pos(get_position(node));
-					// }
 
 					std::vector<mc::arr1d> tube_coordinates;
 					for (const auto& node: nodes)
 					{
 						tube_coordinates.push_back(get_position(node));
 					}
-					mc::arr1d orientation;
+
 					for (int i=0; i<tube_coordinates.size(); i++)
 					{
 						mc::arr1d pos1;

@@ -103,6 +103,18 @@ inline T norm2(std::array<T, 3> arr) // calculate norm^2 of an array
 	return result;
 };
 
+// calculate dot_product of two arrays
+template <typename T>
+inline T dot_product(std::array<T, 3> arr1, std::array<T,3> arr2) // calculate norm^2 of an array
+{
+	T result = 0.;
+	for (int i = 0; i < 3; ++i)
+	{
+		result += arr1[i] * arr2[i];
+	}
+	return result;
+};
+
 inline void hist(std::list<mc::t_float> &mlist, const mc::t_int nbin) // UNFINISHED: calculate histogram with nbins
 {
 	mc::t_float minval = *std::min_element(mlist.begin(), mlist.end());
@@ -119,7 +131,14 @@ inline mc::arr1d rand_velocity(const mc::t_float& beta, const mc::t_float& mass)
 	// get uniformly distribution direction
 	mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
 	mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
-	return {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+
+	// return {velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)};
+
+	mc::arr1d velocity;
+	velocity[0] = velocity_magnitude*std::sin(theta)*std::cos(phi);
+	velocity[1] = velocity_magnitude*std::sin(theta)*std::sin(phi);
+	velocity[2] = velocity_magnitude*std::cos(theta);
+	return velocity;
 };
 
 //#################################################################################################
