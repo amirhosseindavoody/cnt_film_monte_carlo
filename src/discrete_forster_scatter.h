@@ -39,6 +39,7 @@ private:
 	mc::t_float _max_rate; // maximum scattering rate in the scattering table
 	mc::t_float _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	mc::arr1d _pos; // position of the scatterer
+  mc::arr1d _orientation; // orientation of the scattering object site
   std::list<mc::discrete_forster_scatter::neighbor> _neighbors;
 
 public:
@@ -66,6 +67,26 @@ public:
 	{
 		return _pos[i];
 	};
+  // set the orientation of the scatterer object
+  void set_orientation(const mc::arr1d& m_orientation)
+  {
+    _orientation = m_orientation;
+  };
+  // set the i'th element of the orientation of the scatterer object
+  void set_orientation(const mc::t_uint& i, const mc::t_float& value)
+  {
+    _orientation[i] = value;
+  };
+  // get the orientation of the scatterer object
+  const mc::arr1d& orientation() const
+  {
+    return _orientation;
+  };
+  // get the i'th element of the orientation of the scatterer object
+  const mc::t_float& orientation(const mc::t_uint& i) const
+  {
+    return _orientation[i];
+  };
   // get random free flight time
   mc::t_float ff_time() const
 	{

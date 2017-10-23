@@ -91,7 +91,10 @@ public:
 	//initialize the simulation condition
 	void init()
 	{
-		create_scatterers(input_directory().path(), output_directory().path());
+		create_scatterers_with_orientation(input_directory().path(), output_directory().path());
+		// std::exit(1);
+
+		// create_scatterers(input_directory().path(), output_directory().path());
 		_domain = find_minmax_coordinates();
 
 		mc::t_float x_min = _domain.first[0];
@@ -146,7 +149,7 @@ public:
 
 	};
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
-	void create_scatterers(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
+	void create_scatterers_without_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
 	{
 		std::cout << "this is the input path: " << input_path << std::endl;
 		std::ifstream file;
@@ -604,6 +607,141 @@ public:
 
 	};
 
+	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
+	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
+	{
+
+		std::cout << "\n\n...you are using the new_create_scatterers function!!!...\n\n";
+
+		std::cout << "this is the input path: " << input_path << std::endl;
+		std::ifstream file;
+		std::string line;
+
+		int num = 1;
+		int max_num = 3;
+		std::string base = "tube";
+		std::string extension = ".dat";
+		std::string filename = input_path / (base+std::to_string(num)+extension);
+
+		file.open(filename);
+		std::regex tube_rgx("tube");
+
+		// convert a long string in the form of " text ; num0 , num1 , num2 ; num0 , num1 , num2 ;text" into a list of strings with form "num0 , num1 , num2"
+		auto get_nodes = [](std::string str) -> std::list<std::string>
+		{
+			std::list<std::string> output;
+			std::istringstream iss(str);
+			std::string token;
+			while (std::getline(iss, token, ';'))
+			{
+				int count = 0;
+				for (auto t : token)
+				{
+					if (t == ',')	count ++;
+				}
+				if (count == 2)
+				{
+					output.emplace_back(token);
+				}
+			}
+			return output;
+		};
+
+		// convert a string in the form of "num0 , num1 , num2" into an array of numbers
+		auto get_position = [](std::string str) -> mc::arr1d
+		{
+			int count = 0;
+			for (auto s : str)
+			{
+				if (s == ',')	count ++;
+			}
+			mc::arr1d pos;
+			if (count == 2)
+			{
+				std::istringstream iss(str);
+				std::string token;
+				std::getline(iss,token,',');
+				pos[0] = 1.e-9*std::stod(token);
+				std::getline(iss,token,',');
+				pos[1] = 1.e-9*std::stod(token);
+				std::getline(iss,token);
+				pos[2] = 1.e-9*std::stod(token);
+			}
+			return pos;
+		};
+
+		// loop over files
+		while ((file.is_open()) and (num<max_num))
+		{
+			std::cout << "reading data from file..." << filename << "...\n";
+
+			while(std::getline(file, line, '\n'))
+			{
+
+				// find the new tube coordinates by finding the keywork "tube"
+				if (std::regex_search(line,tube_rgx))
+				{
+					auto nodes = get_nodes(line);
+					// for (const auto& node: nodes)
+					// {
+					// 	_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
+					// 	_all_scat_list.back()->set_pos(get_position(node));
+					// }
+
+					std::vector<mc::arr1d> tube_coordinates;
+					for (const auto& node: nodes)
+					{
+						tube_coordinates.push_back(get_position(node));
+					}
+					mc::arr1d orientation;
+					for (int i=0; i<tube_coordinates.size(); i++)
+					{
+						mc::arr1d pos1;
+						mc::arr1d pos2;
+						if (i==0)
+						{
+							pos1 = tube_coordinates[i];
+							pos2 = tube_coordinates[i+1];
+						}
+						else if(i==(tube_coordinates.size()-1))
+						{
+							pos1 = tube_coordinates[i-1];
+							pos2 = tube_coordinates[i];
+						}
+						else
+						{
+							pos1 = tube_coordinates[i-1];
+							pos2 = tube_coordinates[i+1];
+						}
+
+						mc::arr1d orientation;
+						for (int i=0; i<orientation.size(); i++)
+						{
+							orientation[i] = pos2[i]-pos1[i];
+						}
+						mc::t_float norm = std::sqrt(orientation[0]*orientation[0] + orientation[1]*orientation[1] + orientation[2]*orientation[2]);
+						for (auto& elem: orientation)
+						{
+							elem = elem/norm;
+						}
+
+						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
+						_all_scat_list.back()->set_pos(tube_coordinates[i]);
+						_all_scat_list.back()->set_orientation(orientation);
+					}
+
+				}
+			}
+
+			file.close();
+			num++;
+			filename = input_path / (base+std::to_string(num)+extension);
+			file.open(filename);
+
+		}
+
+		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
+	};
 }; // end class discrete_forster_monte_carlo
 
 } // end namespace mc
