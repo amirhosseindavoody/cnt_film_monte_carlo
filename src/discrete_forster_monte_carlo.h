@@ -31,6 +31,17 @@ public:
 	typedef mc::discrete_forster_region t_region;
 
 private:
+
+	struct population_profile
+	{
+		std::vector<mc::t_uint> profile; // number of particles in each segment
+		mc::t_uint number_of_sections; // number of sections in the profiler
+		mc::t_uint history; // history of the population_profiler
+		mc::t_float dL; // length of each segment in population profiler
+		mc::t_float dV; // volume of each segment in population profiler
+		mc::t_uint dim; // this is the dimension along which the population profiler is working
+	};
+
 	mc::t_float _time;
 	mc::t_float _max_hopping_radius;
 
@@ -42,8 +53,8 @@ private:
 
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
 	std::experimental::filesystem::directory_entry _input_directory; // this is the address of the output_directory
-	std::tuple<std::vector<mc::t_uint>, mc::t_uint, mc::t_float, mc::t_float> _population_profile; // this is the population profile of particles through the simulation domain along the z-axis
 	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
+	population_profile _population_probe; // this is the population profile of particles through the simulation domain along the z-axis
 
 public:
 
@@ -139,11 +150,13 @@ public:
 		_regions.back().populate(_number_of_contact2_particles);
 
 		t_region& bulk = _regions[1];
-		mc::t_uint number_of_profile_sections = 10;
-		std::get<0>(_population_profile) = std::vector<mc::t_uint>(number_of_profile_sections, 0);
-		std::get<1>(_population_profile) = 0; // history of the population_profiler
-		std::get<2>(_population_profile) = (bulk.upper_corner(1)-bulk.lower_corner(1))/mc::t_float(number_of_profile_sections); // length of each segment in population profiler
-		std::get<3>(_population_profile) = bulk.volume()/mc::t_float(number_of_profile_sections); // volume of each segment in population profiler
+
+		_population_probe.number_of_sections = 10;
+		_population_probe.dim = 1;
+		_population_probe.profile = std::vector<mc::t_uint>(_population_probe.number_of_sections, 0);
+		_population_probe.history = 0;
+		_population_probe.dL = (bulk.upper_corner(_population_probe.dim)-bulk.lower_corner(_population_probe.dim))/mc::t_float(_population_probe.number_of_sections);
+		_population_probe.dV = bulk.volume()/(_population_probe.number_of_sections);
 
 	};
 	// find the neighbors of each scattering object
@@ -283,7 +296,7 @@ public:
 	void population_profiler(const mc::t_uint& max_history, std::fstream& file, std::fstream& debug_file)
 	{
 
-		if (std::get<1>(_population_profile) < max_history)
+		if (_population_probe.history < max_history)
 		{
 			// open the debug file
 			if (! debug_file.is_open())
@@ -294,20 +307,20 @@ public:
 
 			t_region& bulk = _regions[1];
 
-			std::get<1>(_population_profile) += 1;
+			_population_probe.history += 1;
 
 			int i;
 			for (const auto& m_particle_ptr: bulk.particles())
 			{
-				i = std::floor((m_particle_ptr->pos(1) - bulk.lower_corner(1))/std::get<2>(_population_profile));
-				if ((i >= std::get<0>(_population_profile).size()) or (i<0))
+				i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk.lower_corner(_population_probe.dim))/_population_probe.dL);
+				if ((i >= _population_probe.number_of_sections) or (i<0))
 				{
 					debug_file << "index out of bound when making population profile\n";
-					debug_file << "particle position = " << m_particle_ptr->pos(1) << " , bulk limits = [ " << bulk.lower_corner(1) << " , " << bulk.upper_corner(1) << " ]" << std::endl;
+					debug_file << "particle position = " << m_particle_ptr->pos(1) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(1) << " ]" << std::endl;
 				}
 				else
 				{
-					(std::get<0>(_population_profile))[i] += 1;
+					_population_probe.profile[i] += 1;
 				}
 			}
 		}
@@ -320,22 +333,22 @@ public:
 
 				// store the position of the middle point of each section
 				file << time() << " ";
-				for (int i=0; i < std::get<0>(_population_profile).size(); ++i)
+				for (int i=0; i < _population_probe.number_of_sections; ++i)
 				{
-					file << mc::t_float(i)*std::get<2>(_population_profile) << " ";
+					file << mc::t_float(i)*_population_probe.dL << " ";
 				}
 				file << std::endl;
 			}
 
 			file << time() << " ";
-			for (auto& element: std::get<0>(_population_profile))
+			for (auto& element: _population_probe.profile)
 			{
-				file << mc::t_float(element)/mc::t_float(std::get<1>(_population_profile))/std::get<3>(_population_profile) << " ";
+				file << mc::t_float(element)/mc::t_float(_population_probe.history)/_population_probe.dV << " ";
 				element = 0;
 			}
 			file << std::endl;
 
-			std::get<1>(_population_profile) = 0;
+			_population_probe.history = 0;
 		}
 	};
 	// save the net currents for each region calculated by counting in and out flow of particles in each contact
@@ -603,7 +616,7 @@ public:
 		std::string line;
 
 		int num = 1;
-		int max_num = 3;
+		int max_num = 5;
 		std::string base = "tube";
 		std::string extension = ".dat";
 		std::string filename = input_path / (base+std::to_string(num)+extension);

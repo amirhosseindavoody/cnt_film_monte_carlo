@@ -4,10 +4,9 @@ import matplotlib.pyplot as plt
 # define physical constants
 q0 = 1.6e-19
 
-box_size = 50
-steady_state_reached = 100
+box_size = 200
+steady_state_reached = 4000
 
-# directory = "/Users/amirhossein/Desktop/new_runs/test_1/"
 directory = "/Users/amirhossein/research/test/"
 
 ################################################################################
@@ -26,13 +25,13 @@ for i in range(0,current.shape[1]):
 
 plt.figure()
 plt.plot(smooth_current, linewidth=3)
-plt.title("smoothed current density vs time step")
+plt.title("smoothed particle current density vs time step")
 plt.draw()
 
 avg_current = np.mean(current[steady_state_reached:,:],0)
 avg_current = np.mean([abs(avg_current[0]), abs(avg_current[-1])])
 
-print("current density[Coulomb*m^-2*second^-1] = %0.2e" % (avg_current))
+print("particle current density[m^-2*second^-1] = %0.2e" % (avg_current))
 
 
 ################################################################################
@@ -63,6 +62,6 @@ plt.draw()
 
 grad_population = abs((avg_population[0]-avg_population[-1])/(distance[-1]-distance[0]))
 print("gradient of population density [m^-4] = %0.2e" %(grad_population))
-print("diffusion coefficient [m^2/second] = %0.2e" %(avg_current/q0/grad_population))
+print("diffusion coefficient [m^2/second] = %0.2e" %(avg_current/grad_population))
 
 plt.show()

@@ -99,11 +99,12 @@ public:
 	{
     mc::arr1d R_hat = {pos(0)-neighbor_ptr->pos(0), pos(1)-neighbor_ptr->pos(1), pos(2)-neighbor_ptr->pos(2)};
     mc::t_float distance = mc::norm(R_hat);
-    for (auto& elem : R_hat)
-    {
-      elem = elem/distance;
-    }
-    mc::t_float angle_factor = mc::dot_product(orientation(),neighbor_ptr->orientation()) - 3.*mc::dot_product(orientation(),R_hat)*mc::dot_product(neighbor_ptr->orientation(),R_hat);
+    // for (auto& elem : R_hat)
+    // {
+    //   elem = elem/distance;
+    // }
+    // mc::t_float angle_factor = mc::dot_product(orientation(),neighbor_ptr->orientation()) - 3.*mc::dot_product(orientation(),R_hat)*mc::dot_product(neighbor_ptr->orientation(),R_hat);
+    mc::t_float angle_factor = 1.0;
 
     mc::t_float rate = 1.e12*std::pow(angle_factor,2)*std::pow(1.e-9/distance,6);
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
