@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "scatter.h"
-#include "utility.h"
+#include "../helper/utility.h"
 
 namespace mc
 {

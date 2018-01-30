@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "all_particles.h"
 
 namespace mc

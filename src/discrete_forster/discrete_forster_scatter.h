@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <tuple>
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "discrete_forster_particle.h"
 
 namespace mc
@@ -21,15 +21,12 @@ class discrete_forster_scatter
 {
   struct neighbor
   {
-    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, mc::t_float m_distance, mc::t_float m_rate): scatterer(m_scatterer), distance(m_distance), rate(m_rate)
+    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, mc::t_float m_distance, mc::t_float m_rate):
+      scatterer(m_scatterer), distance(m_distance), rate(m_rate)
     {};
     std::shared_ptr<mc::discrete_forster_scatter> scatterer;
     mc::t_float distance;
     mc::t_float rate;
-    // bool operator <(const neighbor& other)
-    // {
-    //   return distance < other.distance;
-    // };
   };
 
 public:
@@ -92,8 +89,10 @@ public:
 	{
 		return -_inverse_max_rate*std::log(mc::get_rand_exclude_zero<mc::t_float>());
 	};
+
 	// update the final state of the particle
 	void update_state(t_particle* p);
+
 	// add a scattering object and its distance to the neighbors list
 	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr)
 	{
@@ -109,11 +108,13 @@ public:
     mc::t_float rate = 1.e12*std::pow(angle_factor,2)*std::pow(1.e-9/distance,6);
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
 	};
+
   // get the number of neighbors
   mc::t_uint number_of_neighbors()
 	{
 		return _neighbors.size();
 	};
+
   // sort neighbors in the ascending order
   void sort_neighbors()
 	{
@@ -123,6 +124,7 @@ public:
     };
     _neighbors.sort(cmp_neighbor);
 	};
+
   // make a cumulative scattering rate table
   void make_cumulative_scat_rate()
 	{
@@ -134,6 +136,7 @@ public:
 		}
 		_inverse_max_rate = 1/_max_rate;
 	};
+
   // print neighbor distances
   void print_neighbor_distances()
 	{

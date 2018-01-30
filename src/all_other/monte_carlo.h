@@ -10,7 +10,7 @@
 
 #include "all_particles.h"
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "region.h"
 
 namespace mc

@@ -4,9 +4,8 @@
 #include <chrono>
 #include <ctime>
 
-#include "utility.h"
-#include "monte_carlo.h"
-#include "discrete_forster_monte_carlo.h"
+#include "./helper/utility.h"
+#include "./discrete_forster/discrete_forster_monte_carlo.h"
 
 int main(int argc, char *argv[])
 {
@@ -38,7 +37,7 @@ int main(int argc, char *argv[])
 
 		if (int(sim.time() / time_step) % 10 == 0)
 		{
-			std::cout << "simulation time [seconds]: " << sim.time() << " .... number of particles: " << sim.number_of_particles() << std::endl;
+			std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... number of particles: " << sim.number_of_particles() <<"\r" << std::flush;
 		}
 	}
 

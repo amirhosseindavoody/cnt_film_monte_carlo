@@ -6,9 +6,9 @@
 #include <fstream>
 #include <cstring>
 
-#include "../rapidxml/rapidxml.hpp"
-#include "../rapidxml/rapidxml_utils.hpp"
-#include "../rapidxml/rapidxml_print.hpp"
+#include "../lib/rapidxml/rapidxml.hpp"
+#include "../lib/rapidxml/rapidxml_utils.hpp"
+#include "../lib/rapidxml/rapidxml_print.hpp"
 #include "monte_carlo.h"
 #include "utility.h"
 

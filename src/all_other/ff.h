@@ -1,7 +1,7 @@
 #ifndef ff_h
 #define ff_h
 
-#include "utility.h"
+#include "../helper/utility.h"
 
 namespace mc
 {

@@ -8,14 +8,15 @@
 #include <map>
 #include <chrono>
 #include <cmath>
+#include <iomanip>
 
-#include "../rapidxml/rapidxml.hpp"
-#include "../rapidxml/rapidxml_utils.hpp"
-#include "../rapidxml/rapidxml_print.hpp"
+#include "../lib/rapidxml/rapidxml.hpp"
+#include "../lib/rapidxml/rapidxml_utils.hpp"
+#include "../lib/rapidxml/rapidxml_print.hpp"
 
-#include "all_particles.h"
-#include "utility.h"
-#include "region.h"
+// #include "all_particles.h"
+#include "../helper/utility.h"
+// #include "region.h"
 #include "discrete_forster_region.h"
 
 namespace mc
@@ -46,7 +47,7 @@ private:
 	mc::t_float _max_hopping_radius;
 
 	std::vector<t_region> _regions;
-	std::list<std::shared_ptr<t_scatter>> _all_scat_list;
+	std::list<std::shared_ptr<t_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
 	std::pair<mc::arr1d, mc::arr1d> _domain;
 
 	mc::t_uint _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
@@ -70,27 +71,27 @@ public:
 		_time += dt;
 	};
 	// get constant reference to the output_directory
-	const std::experimental::filesystem::directory_entry& output_directory()
+	const std::experimental::filesystem::directory_entry& output_directory() const
 	{
 		return _output_directory;
 	};
 	// get constant reference to the input_directory
-	const std::experimental::filesystem::directory_entry& input_directory()
+	const std::experimental::filesystem::directory_entry& input_directory() const
 	{
 		return _input_directory;
 	};
 	// get constant reference to the output_directory
-	const std::experimental::filesystem::path& output_path()
+	const std::experimental::filesystem::path& output_path() const
 	{
 		return _output_directory.path();
 	};
 	// get constant reference to the input_directory
-	const std::experimental::filesystem::path& input_path()
+	const std::experimental::filesystem::path& input_path() const
 	{
 		return _input_directory.path();
 	};
 	// returns the number of particles
-	mc::t_uint number_of_particles()
+	mc::t_uint number_of_particles() const
 	{
 		mc::t_uint number_of_particles = 0;
 		for (const auto& m_region: _regions)
@@ -162,13 +163,10 @@ public:
 	// find the neighbors of each scattering object
 	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
 	{
-
-		// compare function to sort shared_ptr to scatter objects in order of their y coordinates
-		auto cmp_y = [](const std::shared_ptr<t_scatter>& s1, const std::shared_ptr<t_scatter>& s2) -> bool
-		{
+		// sort scattering objects to have better performance
+		_all_scat_list.sort([](const auto& s1, const auto& s2){
 			return s1->pos(1) < s2->pos(1);
-		};
-		_all_scat_list.sort(cmp_y);
+		});
 
 		int counter = 0;
 		mc::t_float avg_max_rate = 0;
@@ -208,7 +206,7 @@ public:
 
 			if (counter %1000 == 0)
 			{
-				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\n";
+				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\r" << std::flush;
 				avg_max_rate = 0;
 				avg_number_of_neighbors = 0;
 				another_counter = 0;
@@ -218,6 +216,7 @@ public:
 
 		std::cout << "finished finding neighbors" << std::endl;
 	};
+
 	// find minimum of the minimum coordinates of the scattering objects
 	std::pair<mc::arr1d, mc::arr1d> find_minmax_coordinates()
 	{
@@ -244,13 +243,18 @@ public:
 			}
 		}
 
-		for (int i=0; i<3; i++)
-		{
-			std::cout << "min coordinate: " << minmax_coordinates.first[i] << "  ,  max coordinate: " << minmax_coordinates.second[i] << std::endl;
-		}
+		std::ios::fmtflags f(std::cout.flags());
+
+		std::cout << "\n simulation domain:\n";
+		std::cout << "    x (" << std::fixed << std::showpos << minmax_coordinates.first[0]*1e9 << " , " << minmax_coordinates.second[0]*1e9 << ") [nm]\n";
+		std::cout << "    y (" << std::fixed << minmax_coordinates.first[1]*1e9 << " , " << minmax_coordinates.second[1]*1e9 << ") [nm]\n";
+		std::cout << "    z (" << std::fixed << minmax_coordinates.first[2]*1e9 << " , " << minmax_coordinates.second[2]*1e9 << ") [nm]\n";
+
+		std::cout.flags(f);
 
 		return minmax_coordinates;
 	}
+
 	// step the simulation in time
 	void step(mc::t_float dt)
 	{
@@ -605,6 +609,7 @@ public:
 		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 
 	};
+
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
 	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
 	{
@@ -671,7 +676,7 @@ public:
 		// loop over files
 		while ((file.is_open()) and (num<max_num))
 		{
-			std::cout << "reading data from file..." << filename << "...\n";
+			std::cout << "reading data from file: \"" << filename << "\"\r" << std::flush;
 
 			while(std::getline(file, line, '\n'))
 			{
@@ -733,7 +738,7 @@ public:
 
 		}
 
-		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
+		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 	};
 }; // end class discrete_forster_monte_carlo
 

@@ -6,7 +6,7 @@
 #include <memory>
 #include <list>
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "discrete_forster_particle.h"
 
 namespace mc

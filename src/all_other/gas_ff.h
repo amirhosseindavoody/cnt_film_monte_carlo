@@ -6,7 +6,7 @@
 
 #include "particle.h"
 #include "ff.h"
-#include "utility.h"
+#include "../helper/utility.h"
 
 namespace mc
 {

@@ -1,7 +1,7 @@
 #ifndef all_particles_h
 #define all_particles_h
 
-#include "utility.h"
+#include "../helper/utility.h"
 
 #include "particle.h"
 #include "ff.h"

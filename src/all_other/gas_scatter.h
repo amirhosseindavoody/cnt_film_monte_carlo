@@ -4,7 +4,7 @@
 #include <iostream>
 #include <array>
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "scatter.h"
 
 namespace mc

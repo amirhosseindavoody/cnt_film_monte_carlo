@@ -4,8 +4,8 @@
 #include <iostream>
 #include <array>
 
-#include "utility.h"
-#include "discrete_forster_particle.h"
+#include "../helper/utility.h"
+#include "./discrete_forster_particle.h"
 
 namespace mc
 {
