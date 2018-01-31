@@ -6,6 +6,9 @@
 
 #include "./helper/utility.h"
 #include "./discrete_forster/discrete_forster_monte_carlo.h"
+#include "./lib/json.hpp"
+
+#include "./exciton_transfer/cnt.h"
 
 int main(int argc, char *argv[])
 {
@@ -15,9 +18,54 @@ int main(int argc, char *argv[])
 	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
 
 
+	using json = nlohmann::json;
+
+	std::string filename;
+	if (argc <= 1){
+		filename = "input.json";
+	} else {
+		filename = argv[1];
+	}
+
+	// read a JSON file
+	std::ifstream input_file(filename.c_str());
+	json j;
+	input_file >> j;
+
+	//***********************************************************************************************
+	// create cnts and calculate their exciton states
+	//***********************************************************************************************
+	
+	// get the parent directory for cnts
+	std::string parent_directory = j["cnts"]["directory"];
+	j["cnts"].erase("directory");
+
+	// create excitons and calculate exciton dispersions
+	std::vector<cnt> cnts;
+	cnts.reserve(j["cnts"].size()); // this is reservation of space is crucial to ensure we do not move cnts, since the move constructor is not implemented yet
+	for (const auto& j_cnt: j["cnts"])
+	{
+		cnts.emplace_back(cnt(j_cnt,parent_directory));
+		cnts.back().calculate_exciton_dispersion();
+	};
+
+	//***********************************************************************************************
+	// create monte carlo object and run the MC simulation
+	//***********************************************************************************************
+
+	if (j.count("exciton monte carlo")==0){
+		throw std::invalid_argument("input.json should contain \"exciton monte carlo\" property.");
+	}
+	
+	mc::discrete_forster_monte_carlo sim(j["exciton monte carlo"]);
+	sim.create_scatt_table(cnts[0],cnts[0]);
+
+	std::exit(0);
+
+
 	// initialize and run simulation for the exciton hopping
-	mc::discrete_forster_monte_carlo sim;
-	sim.process_command_line_args(argc, argv);
+	// mc::discrete_forster_monte_carlo sim;
+	// sim.process_command_line_args(argc, argv);
 	sim.init();
 
 	std::fstream population_file;
@@ -40,32 +88,6 @@ int main(int argc, char *argv[])
 			std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... number of particles: " << sim.number_of_particles() <<"\r" << std::flush;
 		}
 	}
-
-	// // // initialize and run simulation for the particle diffusion model
-	// mc::monte_carlo sim;
-	// sim.process_command_line_args(argc, argv);
-	//
-	// std::fstream population_file;
-	// std::fstream current_profile_file;
-	// std::fstream region_current_file;
-	// std::fstream debug_file;
-	//
-	// mc::t_float time_step = 1.e-14;
-	// mc::t_uint max_history = 1000;
-	//
-	// // while (sim.time() < 5.e-10)
-	// while (true)
-	// {
-	// 	sim.step(time_step);
-	// 	sim.repopulate_contacts();
-	// 	sim.population_profiler(max_history, population_file, debug_file);
-	// 	sim.save_region_current(max_history, region_current_file, time_step);
-	//
-	// 	if (int(sim.time() / time_step) % 1000 == 0)
-	// 	{
-	// 		std::cout << "simulation time [seconds]: " << sim.time() << " .... number of particles: " << sim.number_of_particles() << std::endl;
-	// 	}
-	// }
 
 	// print the end time and the runtime
 	std::time_t end_time = std::time(nullptr);

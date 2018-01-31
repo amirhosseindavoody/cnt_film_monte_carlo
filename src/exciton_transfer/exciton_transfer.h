@@ -24,7 +24,7 @@ private:
   enum simulation_mode {ex_trans_vs_angle, ex_trans_vs_zshift, ex_trans_vs_axis_shift_1, ex_trans_vs_axis_shift_2};
   simulation_mode _sim_mode;
 
-  nlohmann::json _j_prop;
+  nlohmann::json _j_prop; // json data structure to hold properties of the simulation
 
   // function to return the lorentzian based on the broadening factor
   const double lorentzian(const double& energy)

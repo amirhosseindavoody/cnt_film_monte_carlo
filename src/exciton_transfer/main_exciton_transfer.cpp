@@ -7,7 +7,7 @@
 #include "constants.h"
 #include "../lib/json.hpp"
 
-int main(int argc, char *argv[])
+int main_exciton_transfer(int argc, char *argv[])
 {
 	std::time_t start_time = std::time(nullptr);
 	std::cout << "\nstart time:" << std::endl << std::asctime(std::localtime(&start_time)) << std::endl;

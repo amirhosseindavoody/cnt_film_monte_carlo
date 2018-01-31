@@ -3,14 +3,20 @@ CC+= -O3
 # CC+= -g
 
 CFLAGS = -I./ -I./eigen/ -std=c++17
-LFLAGS = -lm -lstdc++fs -std=c++17
+LFLAGS = -lm -larmadillo -lstdc++fs -std=c++17
 
-SRCDIR = ./src
+SRCDIR = ./src/*.cpp ./src/*/*.cpp #./src/exciton_transfer/*.cpp ./src/discrete_forster
+# SRCDIR = ./src
 OBJDIR = ./obj
+
+# object:
+# 	@mkdir -p $(OBJDIR)
+# 	$(CC) $(CFLAGS) -c $(SRCDIR)/*.cpp
+# 	@mv -f ./*.o $(OBJDIR)
 
 object:
 	@mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) -c $(SRCDIR)/*.cpp
+	$(CC) $(CFLAGS) -c $(SRCDIR)
 	@mv -f ./*.o $(OBJDIR)
 
 main: object

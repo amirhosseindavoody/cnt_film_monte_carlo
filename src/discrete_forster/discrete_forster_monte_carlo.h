@@ -9,15 +9,22 @@
 #include <chrono>
 #include <cmath>
 #include <iomanip>
+#include <armadillo>
 
 #include "../lib/rapidxml/rapidxml.hpp"
 #include "../lib/rapidxml/rapidxml_utils.hpp"
 #include "../lib/rapidxml/rapidxml_print.hpp"
+#include "../lib/json.hpp"
 
-// #include "all_particles.h"
 #include "../helper/utility.h"
-// #include "region.h"
-#include "discrete_forster_region.h"
+#include "../helper/prepare_directory.hpp"
+#include "../helper/constants.h"
+#include "../helper/progress.hpp"
+
+#include "./discrete_forster_region.h"
+
+#include "../exciton_transfer/cnt.h"
+#include "../exciton_transfer/exciton_transfer.h"
 
 namespace mc
 {
@@ -46,6 +53,12 @@ private:
 	mc::t_float _time;
 	mc::t_float _max_hopping_radius;
 
+	nlohmann::json _json_prop; // input properties of the simulation in json format
+	
+	enum rate_type {davoody, forster, wong}; // enumerated type to specify type of transfer rate
+	rate_type _rate_t;
+
+
 	std::vector<t_region> _regions;
 	std::list<std::shared_ptr<t_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
 	std::pair<mc::arr1d, mc::arr1d> _domain;
@@ -53,43 +66,84 @@ private:
 	mc::t_uint _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
 
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
-	std::experimental::filesystem::directory_entry _input_directory; // this is the address of the output_directory
+	std::experimental::filesystem::directory_entry _input_directory; // this is the address of the input_directory
 	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
 	population_profile _population_probe; // this is the population profile of particles through the simulation domain along the z-axis
 
 public:
-
+	// default constructor
 	discrete_forster_monte_carlo() {};
+	
+	// constructure with json input file
+	discrete_forster_monte_carlo(const nlohmann::json& j)
+	{
+		// store the json properties for use in other methods
+		_json_prop = j;
+
+		// set the output directory
+		std::string directory_path = j["output directory"];
+		bool keep_old_data = true;
+		if (j.count("keep old results")==1){
+			keep_old_data = j["keep old results"];
+		}
+		_output_directory = prepare_directory(directory_path,keep_old_data);
+
+		// set the input directory for mesh information
+		directory_path = j["mesh input directory"];
+		_input_directory = check_directory(directory_path,false);
+
+		// specify type of transfer rate that is going to be used
+		if (j.count("rate type") == 0){
+			throw std::invalid_argument("\"rate type\" must be specifieced and must be one of the following: \"davoody\", \"forster\", \"wong\"");
+		}
+		if (std::string(j["rate type"]) == "davoody"){
+			_rate_t = davoody;
+		}
+		else if (std::string(j["rate type"]) == "forster"){
+			_rate_t = forster;
+		}
+		else if (std::string(j["rate type"]) == "wong"){
+			_rate_t = wong;
+		}
+
+	};
+
 	// get the mc simulation time
 	const mc::t_float& time() const
 	{
 		return _time;
 	};
+
 	// increase simulation time by dt
 	void increase_time(const mc::t_float& dt)
 	{
 		_time += dt;
 	};
+
 	// get constant reference to the output_directory
 	const std::experimental::filesystem::directory_entry& output_directory() const
 	{
 		return _output_directory;
 	};
+
 	// get constant reference to the input_directory
 	const std::experimental::filesystem::directory_entry& input_directory() const
 	{
 		return _input_directory;
 	};
+
 	// get constant reference to the output_directory
 	const std::experimental::filesystem::path& output_path() const
 	{
 		return _output_directory.path();
 	};
+
 	// get constant reference to the input_directory
 	const std::experimental::filesystem::path& input_path() const
 	{
 		return _input_directory.path();
 	};
+
 	// returns the number of particles
 	mc::t_uint number_of_particles() const
 	{
@@ -100,6 +154,7 @@ public:
 		}
 		return number_of_particles;
 	};
+
 	//initialize the simulation condition
 	void init()
 	{
@@ -160,6 +215,54 @@ public:
 		_population_probe.dV = bulk.volume()/(_population_probe.number_of_sections);
 
 	};
+
+	arma::field<arma::cube> create_scatt_table(const cnt& d_cnt, const cnt& a_cnt)
+	{
+		auto zshift_prop = _json_prop["zshift [m]"];
+		arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
+
+		auto axis_shift_prop_1 = _json_prop["axis shift 1 [m]"];
+		arma::vec axis_shift_1 = arma::linspace<arma::vec>(axis_shift_prop_1[0], axis_shift_prop_1[1], axis_shift_prop_1[2]);
+
+		auto axis_shift_prop_2 = _json_prop["axis shift 2 [m]"];
+		arma::vec axis_shift_2 = arma::linspace<arma::vec>(axis_shift_prop_2[0], axis_shift_prop_2[1], axis_shift_prop_2[2]);
+
+		auto theta_prop = _json_prop["theta [degrees]"];
+		arma::vec theta = arma::linspace<arma::vec>(theta_prop[0], theta_prop[1], theta_prop[2])*(constants::pi/180);
+		
+		arma::field<arma::cube> scat_table(theta.n_elem);
+		scat_table.for_each([&](arma::cube& c){c.zeros(z_shift.n_elem, axis_shift_1.n_elem, axis_shift_2.n_elem);});
+
+		exciton_transfer ex_transfer(d_cnt, a_cnt);
+
+		progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create scattering table");
+
+		unsigned i_th=0;
+		for (const auto& th: theta)
+		{
+			unsigned i_zsh=0;
+			for (const auto& zsh: z_shift)
+			{
+				unsigned i_ash1=0;
+				for (const auto& ash1: axis_shift_1)
+				{
+					unsigned i_ash2=0;
+					for (const auto& ash2: axis_shift_2)
+					{
+						prog.step();
+						scat_table(i_th)(i_zsh,i_ash1,i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+						i_ash2++;
+					}
+					i_ash1++;
+				}
+				i_zsh++;
+			}
+			i_th++;
+		}
+
+		return scat_table;
+	};
+
 	// find the neighbors of each scattering object
 	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
 	{
@@ -185,7 +288,6 @@ public:
 
 				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
 				{
-					// // std::cout << "found new neighboring: distance = " << distance << "\n";
 					(*i)->add_neighbor(*j);
 					(*j)->add_neighbor(*i);
 				}

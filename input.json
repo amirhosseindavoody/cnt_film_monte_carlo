@@ -1,0 +1,49 @@
+{
+    "cnts":{
+        "directory": "/Users/amirhossein/research/exciton_energy/",
+        "1": {
+            "keep old results": false,
+            "chirality": [4,2],
+            "length": [10,"cnt unit cells"]
+        }
+    },
+
+    "exciton transfer":{
+        "directory": "/Users/amirhossein/research/exciton_transfer",
+        "1":{
+            "keep old results": false,
+            "skip": true,
+            "cnt 1":"42",
+            "cnt 2":"42",
+            "angle": [0,90,100,"degrees"],
+            "zshift": [1.9,"nm"],
+            "axis shift 1": [0,"nm"],
+            "axis shift 2": [0,"nm"],
+            "temperature": [300,"Kelvin"],
+            "broadening factor": [4,"meV"]
+        },
+        "2":{
+            "keep old results": false,
+            "skip": false,
+            "cnt 1":"42",
+            "cnt 2":"65",
+            "angle": [0,90,10,"degrees"],
+            "zshift": [1.9,"nm"],
+            "axis shift 1": [0,"nm"],
+            "axis shift 2": [0,"nm"],
+            "temperature": [300,"Kelvin"],
+            "broadening factor": [4,"meV"]
+        }
+    },
+
+    "exciton monte carlo":{
+        "mesh input directory": "/Users/amirhossein/research/cnt_mesh_1",
+        "output directory": "/Users/amirhossein/research/exciton_monte_carlo",
+        "keep old results":true,
+        "rate type":"davoody",
+        "zshift [m]": [1e-9, 20e-9, 10],
+        "axis shift 1 [m]": [1e-9, 20e-9, 10],
+        "axis shift 2 [m]": [1e-9, 20e-9, 10],
+        "theta [degrees]": [0, 90, 10]
+    }
+}

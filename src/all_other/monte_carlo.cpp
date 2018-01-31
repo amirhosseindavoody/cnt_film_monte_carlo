@@ -10,7 +10,7 @@
 #include "../lib/rapidxml/rapidxml_utils.hpp"
 #include "../lib/rapidxml/rapidxml_print.hpp"
 #include "monte_carlo.h"
-#include "utility.h"
+#include "../helper/utility.h"
 
 
 namespace mc

@@ -3,7 +3,7 @@
 
 #include "energy_dispersion.h"
 
-#include "utility.h"
+#include "../helper/utility.h"
 
 namespace mc
 {

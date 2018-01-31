@@ -10,6 +10,7 @@
 #include <exception>
 #include <stdexcept>
 #include <tuple>
+#include <armadillo>
 
 #include "../helper/utility.h"
 #include "discrete_forster_particle.h"
@@ -96,14 +97,17 @@ public:
 	// add a scattering object and its distance to the neighbors list
 	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr)
 	{
-    mc::arr1d R_hat = {pos(0)-neighbor_ptr->pos(0), pos(1)-neighbor_ptr->pos(1), pos(2)-neighbor_ptr->pos(2)};
-    mc::t_float distance = mc::norm(R_hat);
-    // for (auto& elem : R_hat)
-    // {
-    //   elem = elem/distance;
-    // }
-    // mc::t_float angle_factor = mc::dot_product(orientation(),neighbor_ptr->orientation()) - 3.*mc::dot_product(orientation(),R_hat)*mc::dot_product(neighbor_ptr->orientation(),R_hat);
-    mc::t_float angle_factor = 1.0;
+    arma::vec dR = {pos(0)-neighbor_ptr->pos(0), pos(1)-neighbor_ptr->pos(1), pos(2)-neighbor_ptr->pos(2)};
+    double distance = arma::norm(dR);
+    arma::vec a1 = {orientation()[0],orientation()[1],orientation()[2]};
+    arma::vec a2 = {neighbor_ptr->orientation()[0],neighbor_ptr->orientation()[1],neighbor_ptr->orientation()[2]};
+    double cosTheta = arma::dot(a1,a2);
+    double y1 = arma::dot(a1,dR);
+    double y2 = arma::dot(a2,dR);
+    
+    
+    double angle_factor = arma::dot(a1,a2)-3*arma::dot(a1,dR/distance)*arma::dot(a2,dR/distance);
+    angle_factor = 1.0;
 
     mc::t_float rate = 1.e12*std::pow(angle_factor,2)*std::pow(1.e-9/distance,6);
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
@@ -115,14 +119,10 @@ public:
 		return _neighbors.size();
 	};
 
-  // sort neighbors in the ascending order
+  // sort neighbors in the ascending order of distances
   void sort_neighbors()
 	{
-    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
-    {
-      return n1.distance < n2.distance;
-    };
-    _neighbors.sort(cmp_neighbor);
+    _neighbors.sort([](const auto& n1, const auto& n2){return n1.distance < n2.distance;});
 	};
 
   // make a cumulative scattering rate table

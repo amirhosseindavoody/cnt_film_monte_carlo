@@ -1,7 +1,7 @@
 #include <iostream>
 #include <array>
 
-#include "utility.h"
+#include "../helper/utility.h"
 #include "discrete_forster_ff.h"
 
 namespace mc
