@@ -96,10 +96,16 @@ private:
 		// Right now this equation only gets the closes point on the mesh but I should implement some sort of interpolation
 		double get_rate(const double& m_theta, const double& m_z_shift, const double& m_axis_shift_1, const double& m_axis_shift_2) const
 		{
-			unsigned i_th = (arma::abs(theta-m_theta)).index_min();
-			unsigned i_zsh = (arma::abs(z_shift-m_z_shift)).index_min();
-			unsigned i_ash1 = (arma::abs(axis_shift_1-m_axis_shift_1)).index_min();
-			unsigned i_ash2 = (arma::abs(axis_shift_2-m_axis_shift_2)).index_min();
+			arma::vec tmp;
+			tmp = arma::abs(theta-m_theta);
+			unsigned i_th = tmp.index_min();
+			tmp = arma::abs(z_shift-m_z_shift);
+			unsigned i_zsh = tmp.index_min();
+			tmp = arma::abs(axis_shift_1-m_axis_shift_1);
+			unsigned i_ash1 = tmp.index_min();
+			tmp = arma::abs(axis_shift_2-m_axis_shift_2);
+			unsigned i_ash2 = tmp.index_min();
+
 			return rate(i_th)(i_zsh,i_ash1,i_ash2);
 		}
 	};
@@ -134,7 +140,7 @@ public:
 		_json_scat.erase("keep old results");
 
 		// set maximum hopping radius
-		_max_hopping_radius = _json_scat["max hopping radius"];
+		_max_hopping_radius = double(_json_scat["max hopping radius [m]"]);
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 
 		// specify type of transfer rate that is going to be used
@@ -211,16 +217,16 @@ public:
 
 		_domain = find_minmax_coordinates();
 
-		double x_min = _domain.first[0];
-		double x_max = _domain.second[0];
+		double x_min = (_domain.first)(0);
+		double x_max = (_domain.second)(0);
 
-		double y_min = _domain.first[1];
-		double y_1   = _domain.first[1]+0.1*(_domain.second[1]-_domain.first[1]);
-		double y_2   = _domain.first[1]+0.9*(_domain.second[1]-_domain.first[1]);
-		double y_max = _domain.second[1];
+		double y_min = (_domain.first)(1);
+		double y_1   = (_domain.first)(1)+0.1*((_domain.second)(1)-(_domain.first)(1));
+		double y_2   = (_domain.first)(1)+0.9*((_domain.second)(1)-(_domain.first)(1));
+		double y_max = (_domain.second)(1);
 
-		double z_min = _domain.first[2];
-		double z_max = _domain.second[2];
+		double z_min = (_domain.first)(2);
+		double z_max = (_domain.second)(2);
 
 		arma::vec contact_1_lower_corner = {x_min, y_min, z_min};
 		arma::vec contact_1_upper_corner = {x_max, y_1,   z_max};
@@ -228,6 +234,8 @@ public:
 		arma::vec      bulk_upper_corner = {x_max, y_2,   z_max};
 		arma::vec contact_2_lower_corner = {x_min, y_2,   z_min};
 		arma::vec contact_2_upper_corner = {x_max, y_max, z_max};
+
+		initialize_scattering_table();
 
 		double max_search_radius = 40.e-9;
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
@@ -264,15 +272,20 @@ public:
 	void find_neighbors(const double& max_hopping_radius, const double& max_search_radius);
 
 	// find minimum of the minimum coordinates of the scattering objects
+	// this function will effectively give us the simulation domain
 	std::pair<arma::vec, arma::vec> find_minmax_coordinates()
 	{
 		std::pair<arma::vec, arma::vec> minmax_coordinates;
 
+		auto it = _all_scat_list.begin();
+		minmax_coordinates.first = _all_scat_list.front()->pos();
+		minmax_coordinates.second = _all_scat_list.front()->pos();
+
 		for (int i=0; i<3; i++)
 		{
-			auto it = _all_scat_list.begin();
-			(minmax_coordinates.first)(i) = (*it)->pos(i);
-			(minmax_coordinates.second)(i) = (*it)->pos(i);
+			// auto it = _all_scat_list.begin();
+			// (minmax_coordinates.first)(i) = (*it)->pos(i);
+			// (minmax_coordinates.second)(i) = (*it)->pos(i);
 
 			while(it != _all_scat_list.end())
 			{
@@ -435,80 +448,10 @@ public:
 			_history_of_region_currents = 0;
 		}
 	};
-	
-	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
-	void create_scatterers_without_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
-	{
-		std::cout << "this is the input path: " << input_path << std::endl;
-		std::ifstream file;
-		std::string line;
-
-		int num = 1;
-		int max_num = 3;
-		std::string base = "tube";
-		std::string extension = ".dat";
-		std::string filename = input_path / (base+std::to_string(num)+extension);
-
-		file.open(filename);
-		std::regex tube_rgx("tube");
-
-		// loop over files
-		while ((file.is_open()) and (num<max_num))
-		{
-			std::cout << "reading data from file..." << filename << "...\n";
-
-			while(std::getline(file, line, ';'))
-			{
-
-				// find the new tube coordinates by finding the keywork "tube"
-				if (!std::regex_search(line,tube_rgx))
-				{
-					try
-					{
-						std::istringstream iss(line);
-						arma::vec pos;
-						std::string token;
-						int i = 0;
-						while(std::getline(iss,token,','))
-						{
-							pos(i) = 1.e-9*std::stod(token);
-							i++;
-						}
-						if (i!= 3)
-						{
-							throw std::range_error("Could not read compelete set of coordinates!");
-						}
-						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-						_all_scat_list.back()->set_pos(pos);
-					}
-					catch(const std::invalid_argument& e)
-					{
-						std::cout << e.what() << std::endl;
-					}
-					catch(const std::range_error& e)
-					{
-						std::cout << e.what() << std::endl;
-					}
-
-				}
-			}
-
-			file.close();
-			num++;
-			filename = input_path / (base+std::to_string(num)+extension);
-			file.open(filename);
-
-		}
-
-		std::cout << "total number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
-
-	};
 
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
 	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
 	{
-
-		std::cout << "\n\n...you are using the new_create_scatterers function!!!...\n\n";
 
 		std::cout << "this is the input path: " << input_path << std::endl;
 		std::ifstream file;
@@ -606,12 +549,11 @@ public:
 							pos1 = tube_coordinates.row(i-1);
 							pos2 = tube_coordinates.row(i+1);
 						}
-
 						arma::rowvec orientation = arma::normalise(pos2-pos1);
 
 						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-						_all_scat_list.back()->set_pos(tube_coordinates.row(i));
-						_all_scat_list.back()->set_orientation(orientation);
+						_all_scat_list.back()->set_pos(tube_coordinates.row(i).t());
+						_all_scat_list.back()->set_orientation(orientation.t());
 					}
 
 				}

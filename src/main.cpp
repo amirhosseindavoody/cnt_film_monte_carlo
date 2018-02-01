@@ -43,26 +43,22 @@ int main(int argc, char *argv[])
 		json_mc["cnts"] = j["cnts"];
 	}
 
-	std::cout << std::setw(4) << json_mc << std::endl;
-
-	throw std::out_of_range("check to see if json_mc is printed correctly before moving on");
-
 	//***********************************************************************************************
 	// create cnts and calculate their exciton states
 	//***********************************************************************************************
 	
-	std::vector<cnt> cnts;
-	// get the parent directory for cnts
-	std::string parent_directory = j["cnts"]["directory"];
-	j["cnts"].erase("directory");
+	// std::vector<cnt> cnts;
+	// // get the parent directory for cnts
+	// std::string parent_directory = j["cnts"]["directory"];
+	// j["cnts"].erase("directory");
 
-	// create excitons and calculate exciton dispersions
-	cnts.reserve(j["cnts"].size()); // this is reservation of space is crucial to ensure we do not move cnts, since the move constructor is not implemented yet
-	for (const auto& j_cnt: j["cnts"])
-	{
-		cnts.emplace_back(cnt(j_cnt,parent_directory));
-		cnts.back().calculate_exciton_dispersion();
-	};
+	// // create excitons and calculate exciton dispersions
+	// cnts.reserve(j["cnts"].size()); // this is reservation of space is crucial to ensure we do not move cnts, since the move constructor is not implemented yet
+	// for (const auto& j_cnt: j["cnts"])
+	// {
+	// 	cnts.emplace_back(cnt(j_cnt,parent_directory));
+	// 	cnts.back().calculate_exciton_dispersion();
+	// };
 
 	//***********************************************************************************************
 	// create monte carlo object and run the MC simulation
