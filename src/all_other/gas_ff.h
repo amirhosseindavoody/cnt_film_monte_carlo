@@ -31,7 +31,7 @@ public:
 			}
 		}
 
-		for (int i=0; i<accel.size(); ++i)
+		for (unsigned i=0; i<accel.size(); ++i)
 		{
 			_acceleration[i] = accel[i];
 			_inv_acceleration[i] = 1./accel[i];
@@ -47,7 +47,7 @@ public:
 		mc::t_float t_collision;
 		mc::t_float temp_expr;
 
-		for (int i=0; i<p->pos().size(); ++i)
+		for (unsigned i=0; i<p->pos().size(); ++i)
 		{
 			if (p->pos(i) > domain.second[i])
 			{

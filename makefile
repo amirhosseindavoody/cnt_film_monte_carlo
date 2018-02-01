@@ -1,11 +1,12 @@
 CC=g++-7
-CC+= -O3
+CC+= -O3 -Wall -Wno-comment
 # CC+= -g
 
 CFLAGS = -I./ -I./eigen/ -std=c++17
 LFLAGS = -lm -larmadillo -lstdc++fs -std=c++17
 
-SRCDIR = ./src/*.cpp ./src/*/*.cpp #./src/exciton_transfer/*.cpp ./src/discrete_forster
+SRCDIR = ./src/*.cpp ./src/*/*.cpp
+# SRCDIR = ./src/*.cpp ./src/exciton_transfer/*.cpp ./src/discrete_forster/*.cpp ./src/helper/*.cpp
 # SRCDIR = ./src
 OBJDIR = ./obj
 

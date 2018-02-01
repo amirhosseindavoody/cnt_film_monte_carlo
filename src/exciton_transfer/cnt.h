@@ -159,7 +159,6 @@ public:
   cnt(const nlohmann::json j, const std::string parent_directory)
   {
     namespace fs = std::experimental::filesystem;
-    using json = nlohmann::json;
 
     _json_input = j;
 

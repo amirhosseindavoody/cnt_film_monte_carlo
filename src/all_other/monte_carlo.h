@@ -128,7 +128,7 @@ public:
 			_population_profile.first += 1;
 
 			mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_population_profile.second.size());
-			int i;
+			unsigned i;
 			for (const auto& m_particle_ptr: _bulk.particles())
 			{
 				i = std::floor((m_particle_ptr->pos(2)-_bulk.lower_corner(2))/length);
@@ -155,7 +155,7 @@ public:
 				// store the position of the middle point of each section
 				file << time() << " ";
 				mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_population_profile.second.size());
-				for (int i=0; i<_population_profile.second.size(); ++i)
+				for (unsigned i=0; i<_population_profile.second.size(); ++i)
 				{
 					file << mc::t_float(i)*length << " ";
 				}
@@ -227,7 +227,7 @@ public:
 
 				// store the position of the middle point of each section
 				file << time() << " ";
-				for (int i=0; i<_current_profile.second.size(); ++i)
+				for (unsigned i=0; i<_current_profile.second.size(); ++i)
 				{
 					mc::t_float length = (_bulk.upper_corner(2)-_bulk.lower_corner(2))/mc::t_float(_current_profile.second.size());
 					file << mc::t_float(i)*length << " ";

@@ -39,7 +39,7 @@ public:
   	_lower_corner = lower_corner;
   	_upper_corner = upper_corner;
 
-  	for (int i=0; i<_lower_corner.size(); ++i)
+  	for (unsigned i=0; i<_lower_corner.size(); ++i)
   	{
   		if (_lower_corner[i] > _upper_corner[i])
   		{
@@ -50,7 +50,7 @@ public:
   	}
 
   	_volume = 1.0;
-  	for (int i=0; i<_lower_corner.size(); ++i)
+  	for (unsigned i=0; i<_lower_corner.size(); ++i)
   	{
   		_volume = _volume*(_upper_corner[i]-_lower_corner[i]);
   	}
@@ -86,7 +86,7 @@ public:
   };
   inline bool in_region(const mc::arr1d& pos) // checks if a coordinate is inside the region
   {
-  	for (int i=0; i<_lower_corner.size(); ++i)
+  	for (unsigned i=0; i<_lower_corner.size(); ++i)
   	{
   		if (pos[i] < _lower_corner[i])
   		{
@@ -101,7 +101,7 @@ public:
   };
   inline bool in_region(const mc::particle& p) // checks if a particle is inside the region
   {
-  	for (int i=0; i<_lower_corner.size(); ++i)
+  	for (unsigned i=0; i<_lower_corner.size(); ++i)
   	{
   		if (p.pos(i) < _lower_corner[i])
   		{

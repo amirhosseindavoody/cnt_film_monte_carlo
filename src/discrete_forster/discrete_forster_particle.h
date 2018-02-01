@@ -4,8 +4,8 @@
 #include <iostream>
 #include <array>
 #include <memory>
+#include <armadillo>
 
-// #include "all_particles.h"
 #include "discrete_forster_scatter.h"
 #include "discrete_forster_ff.h"
 
@@ -21,88 +21,115 @@ public:
 	typedef mc::discrete_forster_scatter t_scatter; // scatter
 
 private:
-	mc::arr1d _pos; // position of the particle
-	mc::arr1d _old_pos; // position of the particle in the previous time step, this is used for boundary collision detection
+	arma::vec _pos; // position of the particle
+	arma::vec _old_pos; // position of the particle in the previous time step, this is used for boundary collision detection
 
 	std::shared_ptr<t_ff> _pilot; // pointer to free_flight object for driving the particle
 	std::shared_ptr<t_scatter> _scatterer; // pointer to scatter object for scattering the particle
 
-	mc::t_float _ff_time; // free flight time until next scattering event
+	double _ff_time; // free flight time until next scattering event
 
 public:
 	//constructor
-	discrete_forster_particle(const mc::arr1d& pos, const std::shared_ptr<t_ff>& pilot, const std::shared_ptr<t_scatter>& m_scatterer); // constructor
+	discrete_forster_particle(const arma::vec& pos, const std::shared_ptr<t_ff>& pilot, const std::shared_ptr<t_scatter>& m_scatterer); // constructor
 
 	// reinitialize particle properties instead of creating new particles
-	void reinitialize(const mc::arr1d& lower_corner, const mc::arr1d& upper_corner, const mc::t_float& beta, const mc::t_float& mass, const std::shared_ptr<t_ff>& pilot, const std::shared_ptr<t_scatter>& m_scatterer);
+	void reinitialize(const arma::vec& lower_corner, const arma::vec& upper_corner, const double& beta, const double& mass, const std::shared_ptr<t_ff>& pilot, const std::shared_ptr<t_scatter>& m_scatterer);
 
 	// perform free flight within the simulation domain
-	void fly(const mc::t_float& dt, const std::pair<mc::arr1d, mc::arr1d>& domain); // perform free flight within the simulation domain
+	void fly(const double& dt, const std::pair<arma::vec, arma::vec>& domain); // perform free flight within the simulation domain
 
-	void set_pilot(const std::shared_ptr<t_ff>& pilot) // set the pilot free_flight pointer object
+	// set the pilot free_flight pointer object
+	void set_pilot(const std::shared_ptr<t_ff>& pilot) 
 	{
 		_pilot = pilot;
 	};
-	const std::shared_ptr<t_ff>& pilot() const // get the pilot free_flight pointer
+
+	// get the pilot free_flight pointer
+	const std::shared_ptr<t_ff>& pilot() const 
 	{
 		return _pilot;
 	};
-	void set_scatterer(const std::shared_ptr<t_scatter>& scatterer) // set the pointer to the scatterer object
+
+	// set the pointer to the scatterer object
+	void set_scatterer(const std::shared_ptr<t_scatter>& scatterer) 
 	{
 		_scatterer = scatterer;
 	};
-	const std::shared_ptr<t_scatter>& scatterer() const // return the pointer to the scatterer object
+
+	// return the pointer to the scatterer object
+	const std::shared_ptr<t_scatter>& scatterer() const 
 	{
 		return _scatterer;
 	};
-	const mc::arr1d& pos() const // get position of the particle
+
+	// get position of the particle
+	const arma::vec& pos() const 
 	{
 		return _pos;
 	};
-	const mc::t_float& pos(const mc::t_int& i) const // get position of the particle
+
+	// get position of the particle
+	const double& pos(const double& i) const 
 	{
-		return _pos[i];
+		return _pos(i);
 	};
-	const mc::arr1d& old_pos() const // get old position of the particle
+
+	// get old position of the particle
+	const arma::vec& old_pos() const 
 	{
 		return _old_pos;
 	};
-	const mc::t_float& old_pos(const mc::t_int& i) const // get old position of the particle
+
+	// get old position of the particle
+	const double& old_pos(const int& i) const 
 	{
-		return _old_pos[i];
+		return _old_pos(i);
 	};
-	void set_pos(const mc::arr1d& pos) // set position of the particle and set the old position into _old_pos
+
+	// set position of the particle and set the old position into _old_pos
+	void set_pos(const arma::vec& pos)
 	{
 		_old_pos = _pos;
 		_pos = pos;
 	};
-	void set_pos(const mc::t_uint& i, const mc::t_float& value) // set an element of particle position and set the old position into _old_pos
+
+	// set an element of particle position and set the old position into _old_pos
+	void set_pos(const int& i, const double& value) 
 	{
-		_old_pos[i] = _pos[i];
-		_pos[i] = value;
+		_old_pos(i) = _pos(i);
+		_pos(i) = value;
 	};
-	void rewind_pos() // rewind the current position to the old_pos and do not update the old_pos
+	
+	// rewind the current position to the old_pos and do not update the old_pos
+	void rewind_pos()
 	{
 		_pos = _old_pos;
 	};
+
 	// set the old position of the particle.
-	void set_old_pos(const mc::arr1d& old_pos)
+	void set_old_pos(const arma::vec& old_pos)
 	{
 		_old_pos = old_pos;
 	};
-	const mc::t_float& ff_time() const // return the free flight time until the next scattering
+
+	// return the free flight time until the next scattering
+	const double& ff_time() const 
 	{
 		return _ff_time;
 	};
-	void set_ff_time(const mc::t_float& value) // return the free flight time until the next scattering
+
+	// return the free flight time until the next scattering
+	void set_ff_time(const double& value) 
 	{
 		_ff_time = value;
 	};
+
 	// update the _ff_time by calling the underlying scatterer
 	void get_ff_time();
-	// step particle state for dt in time
-	void step(mc::t_float dt, const std::pair<mc::arr1d, mc::arr1d>& domain);
 
+	// step particle state for dt in time
+	void step(double dt, const std::pair<arma::vec, arma::vec>& domain);
 
 }; //discrete_forster_particle class
 

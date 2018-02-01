@@ -10,19 +10,20 @@
 #include <cmath>
 #include <iomanip>
 #include <armadillo>
-
-#include "../lib/rapidxml/rapidxml.hpp"
-#include "../lib/rapidxml/rapidxml_utils.hpp"
-#include "../lib/rapidxml/rapidxml_print.hpp"
-#include "../lib/json.hpp"
+#include <algorithm>
 
 #include "../helper/utility.h"
 #include "../helper/prepare_directory.hpp"
 #include "../helper/constants.h"
 #include "../helper/progress.hpp"
 
-#include "./discrete_forster_region.h"
+#include "../lib/rapidxml/rapidxml.hpp"
+#include "../lib/rapidxml/rapidxml_utils.hpp"
+#include "../lib/rapidxml/rapidxml_print.hpp"
+#include "../lib/json.hpp"
 
+
+#include "./discrete_forster_region.h"
 #include "../exciton_transfer/cnt.h"
 #include "../exciton_transfer/exciton_transfer.h"
 
@@ -42,33 +43,56 @@ private:
 
 	struct population_profile
 	{
-		std::vector<mc::t_uint> profile; // number of particles in each segment
-		mc::t_uint number_of_sections; // number of sections in the profiler
-		mc::t_uint history; // history of the population_profiler
-		mc::t_float dL; // length of each segment in population profiler
-		mc::t_float dV; // volume of each segment in population profiler
-		mc::t_uint dim; // this is the dimension along which the population profiler is working
+		std::vector<unsigned> profile; // number of particles in each segment
+		unsigned number_of_sections; // number of sections in the profiler
+		unsigned history; // history of the population_profiler
+		double dL; // length of each segment in population profiler
+		double dV; // volume of each segment in population profiler
+		unsigned dim; // this is the dimension along which the population profiler is working
 	};
 
-	mc::t_float _time;
-	mc::t_float _max_hopping_radius;
+	double _time;
+	double _max_hopping_radius;
 
-	nlohmann::json _json_prop; // input properties of the simulation in json format
-	
-	enum rate_type {davoody, forster, wong}; // enumerated type to specify type of transfer rate
-	rate_type _rate_t;
+	nlohmann::json _json_prop; // input properties of the whole mc simulation in json format
+	nlohmann::json _json_scat; // input properties of the scattering mechanism in json format
 
+	enum scattering_type {davoody, forster, wong}; // enumerated type to specify type of transfer rate
+	scattering_type _scat_t;
 
-	std::vector<t_region> _regions;
+	std::array<t_region,3> _regions; // simulation regions: contacts and bulk. Since t_region data type has unique_ptr as data members, we can't use vectors and dynamically push_back new regions. If we want to do that we need to implement the move and copy constructors explicitly.
 	std::list<std::shared_ptr<t_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
-	std::pair<mc::arr1d, mc::arr1d> _domain;
+	std::pair<arma::vec, arma::vec> _domain;
 
-	mc::t_uint _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
+	unsigned _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
 
 	std::experimental::filesystem::directory_entry _output_directory; // this is the address of the output_directory
 	std::experimental::filesystem::directory_entry _input_directory; // this is the address of the input_directory
-	mc::t_uint _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
+	unsigned _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
 	population_profile _population_probe; // this is the population profile of particles through the simulation domain along the z-axis
+
+	// struct to bundle information related to different scattering mechanisms
+	struct scattering_struct
+	{
+		// default constructor
+		scattering_struct() {};
+
+		// constructor
+		scattering_struct(const arma::field<arma::cube>& m_rate, const arma::vec& m_theta, const arma::vec& m_z_shift, const arma::vec& m_axis_shift_1, const arma::vec& m_axis_shift_2)
+		{
+			rate = m_rate;
+			theta = m_theta;
+			z_shift = m_z_shift;
+			axis_shift_1 = m_axis_shift_1;
+			axis_shift_2 = m_axis_shift_2;
+		};
+		arma::field<arma::cube> rate;
+		arma::vec theta;
+		arma::vec z_shift;
+		arma::vec axis_shift_1;
+		arma::vec axis_shift_2;
+	};
+	scattering_struct _scat_table;
 
 public:
 	// default constructor
@@ -92,30 +116,43 @@ public:
 		directory_path = j["mesh input directory"];
 		_input_directory = check_directory(directory_path,false);
 
+		// set json info about scattering mechanism
+		_json_scat = j;
+		_json_scat.erase("mesh input directory");
+		_json_scat.erase("output directory");
+		_json_scat.erase("keep old results");
+
+		// set maximum hopping radius
+		_max_hopping_radius = _json_scat["max hopping radius"];
+		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
+
 		// specify type of transfer rate that is going to be used
 		if (j.count("rate type") == 0){
 			throw std::invalid_argument("\"rate type\" must be specifieced and must be one of the following: \"davoody\", \"forster\", \"wong\"");
 		}
 		if (std::string(j["rate type"]) == "davoody"){
-			_rate_t = davoody;
+			_scat_t = davoody;
 		}
 		else if (std::string(j["rate type"]) == "forster"){
-			_rate_t = forster;
+			_scat_t = forster;
 		}
 		else if (std::string(j["rate type"]) == "wong"){
-			_rate_t = wong;
+			_scat_t = wong;
+		}
+		else{
+			throw std::invalid_argument("\"rate type\" must be specifieced and must be one of the following: \"davoody\", \"forster\", \"wong\"");
 		}
 
 	};
 
 	// get the mc simulation time
-	const mc::t_float& time() const
+	const double& time() const
 	{
 		return _time;
 	};
 
 	// increase simulation time by dt
-	void increase_time(const mc::t_float& dt)
+	void increase_time(const double& dt)
 	{
 		_time += dt;
 	};
@@ -145,9 +182,9 @@ public:
 	};
 
 	// returns the number of particles
-	mc::t_uint number_of_particles() const
+	unsigned number_of_particles() const
 	{
-		mc::t_uint number_of_particles = 0;
+		unsigned number_of_particles = 0;
 		for (const auto& m_region: _regions)
 		{
 			number_of_particles += m_region.number_of_particles();
@@ -158,36 +195,32 @@ public:
 	//initialize the simulation condition
 	void init()
 	{
+		// read the information of cnt mesh and create a list of all discerete_forster_scatter objects that manage all scattering objects
 		create_scatterers_with_orientation(input_directory().path(), output_directory().path());
 
 		_domain = find_minmax_coordinates();
 
-		mc::t_float x_min = _domain.first[0];
-		mc::t_float x_max = _domain.second[0];
+		double x_min = _domain.first[0];
+		double x_max = _domain.second[0];
 
-		mc::t_float y_min = _domain.first[1];
-		mc::t_float y_1   = _domain.first[1]+0.1*(_domain.second[1]-_domain.first[1]);
-		mc::t_float y_2   = _domain.first[1]+0.9*(_domain.second[1]-_domain.first[1]);
-		mc::t_float y_max = _domain.second[1];
+		double y_min = _domain.first[1];
+		double y_1   = _domain.first[1]+0.1*(_domain.second[1]-_domain.first[1]);
+		double y_2   = _domain.first[1]+0.9*(_domain.second[1]-_domain.first[1]);
+		double y_max = _domain.second[1];
 
-		mc::t_float z_min = _domain.first[2];
-		mc::t_float z_max = _domain.second[2];
+		double z_min = _domain.first[2];
+		double z_max = _domain.second[2];
 
-		mc::arr1d contact_1_lower_corner = {x_min, y_min, z_min};
-		mc::arr1d contact_1_upper_corner = {x_max, y_1,   z_max};
-		mc::arr1d      bulk_lower_corner = {x_min, y_1,   z_min};
-		mc::arr1d      bulk_upper_corner = {x_max, y_2,   z_max};
-		mc::arr1d contact_2_lower_corner = {x_min, y_2,   z_min};
-		mc::arr1d contact_2_upper_corner = {x_max, y_max, z_max};
+		arma::vec contact_1_lower_corner = {x_min, y_min, z_min};
+		arma::vec contact_1_upper_corner = {x_max, y_1,   z_max};
+		arma::vec      bulk_lower_corner = {x_min, y_1,   z_min};
+		arma::vec      bulk_upper_corner = {x_max, y_2,   z_max};
+		arma::vec contact_2_lower_corner = {x_min, y_2,   z_min};
+		arma::vec contact_2_upper_corner = {x_max, y_max, z_max};
 
-		mc::t_float max_search_radius = 40.e-9;
-		std::cout << "max_hopping_radius = " << _max_hopping_radius << std::endl;
+		double max_search_radius = 40.e-9;
+		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 		find_neighbors(_max_hopping_radius, max_search_radius);
-
-		for (int i=0; i<3; i++)
-		{
-			_regions.push_back(mc::discrete_forster_region());
-		}
 
 		_regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
@@ -209,137 +242,37 @@ public:
 
 		_population_probe.number_of_sections = 10;
 		_population_probe.dim = 1;
-		_population_probe.profile = std::vector<mc::t_uint>(_population_probe.number_of_sections, 0);
+		_population_probe.profile = std::vector<unsigned>(_population_probe.number_of_sections, 0);
 		_population_probe.history = 0;
-		_population_probe.dL = (bulk.upper_corner(_population_probe.dim)-bulk.lower_corner(_population_probe.dim))/mc::t_float(_population_probe.number_of_sections);
+		_population_probe.dL = (bulk.upper_corner(_population_probe.dim)-bulk.lower_corner(_population_probe.dim))/double(_population_probe.number_of_sections);
 		_population_probe.dV = bulk.volume()/(_population_probe.number_of_sections);
 
 	};
 
-	arma::field<arma::cube> create_scatt_table(const cnt& d_cnt, const cnt& a_cnt)
-	{
-		auto zshift_prop = _json_prop["zshift [m]"];
-		arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
-
-		auto axis_shift_prop_1 = _json_prop["axis shift 1 [m]"];
-		arma::vec axis_shift_1 = arma::linspace<arma::vec>(axis_shift_prop_1[0], axis_shift_prop_1[1], axis_shift_prop_1[2]);
-
-		auto axis_shift_prop_2 = _json_prop["axis shift 2 [m]"];
-		arma::vec axis_shift_2 = arma::linspace<arma::vec>(axis_shift_prop_2[0], axis_shift_prop_2[1], axis_shift_prop_2[2]);
-
-		auto theta_prop = _json_prop["theta [degrees]"];
-		arma::vec theta = arma::linspace<arma::vec>(theta_prop[0], theta_prop[1], theta_prop[2])*(constants::pi/180);
-		
-		arma::field<arma::cube> scat_table(theta.n_elem);
-		scat_table.for_each([&](arma::cube& c){c.zeros(z_shift.n_elem, axis_shift_1.n_elem, axis_shift_2.n_elem);});
-
-		exciton_transfer ex_transfer(d_cnt, a_cnt);
-
-		progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create scattering table");
-
-		unsigned i_th=0;
-		for (const auto& th: theta)
-		{
-			unsigned i_zsh=0;
-			for (const auto& zsh: z_shift)
-			{
-				unsigned i_ash1=0;
-				for (const auto& ash1: axis_shift_1)
-				{
-					unsigned i_ash2=0;
-					for (const auto& ash2: axis_shift_2)
-					{
-						prog.step();
-						scat_table(i_th)(i_zsh,i_ash1,i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
-						i_ash2++;
-					}
-					i_ash1++;
-				}
-				i_zsh++;
-			}
-			i_th++;
-		}
-
-		return scat_table;
-	};
-
 	// find the neighbors of each scattering object
-	void find_neighbors(const mc::t_float& max_hopping_radius, const mc::t_float& max_search_radius)
-	{
-		// sort scattering objects to have better performance
-		_all_scat_list.sort([](const auto& s1, const auto& s2){
-			return s1->pos(1) < s2->pos(1);
-		});
-
-		int counter = 0;
-		mc::t_float avg_max_rate = 0;
-		mc::t_float avg_number_of_neighbors = 0;
-		mc::t_float another_counter = 0;
-
-		for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
-		{
-
-			for (auto j = std::next(i); j!= _all_scat_list.end(); ++j)
-			{
-				mc::t_float dx = (*i)->pos(0)-(*j)->pos(0);
-				mc::t_float dy = (*i)->pos(1)-(*j)->pos(1);
-				mc::t_float dz = (*i)->pos(2)-(*j)->pos(2);
-				mc::t_float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-
-				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
-				{
-					(*i)->add_neighbor(*j);
-					(*j)->add_neighbor(*i);
-				}
-
-				// break the search if the scatterers are getting too far apart to speed up the search process
-				if (distance > max_search_radius)
-				{
-					break;
-				}
-			}
-			(*i)->sort_neighbors();
-			(*i)->make_cumulative_scat_rate();
-
-			counter ++;
-			avg_number_of_neighbors += (*i)->number_of_neighbors();
-			avg_max_rate += (*i)->max_rate();
-			another_counter += 1.;
-
-			if (counter %1000 == 0)
-			{
-				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\r" << std::flush;
-				avg_max_rate = 0;
-				avg_number_of_neighbors = 0;
-				another_counter = 0;
-			}
-
-		}
-
-		std::cout << "finished finding neighbors" << std::endl;
-	};
+	void find_neighbors(const double& max_hopping_radius, const double& max_search_radius);
 
 	// find minimum of the minimum coordinates of the scattering objects
-	std::pair<mc::arr1d, mc::arr1d> find_minmax_coordinates()
+	std::pair<arma::vec, arma::vec> find_minmax_coordinates()
 	{
-		std::pair<mc::arr1d, mc::arr1d> minmax_coordinates;
+		std::pair<arma::vec, arma::vec> minmax_coordinates;
 
 		for (int i=0; i<3; i++)
 		{
 			auto it = _all_scat_list.begin();
-			minmax_coordinates.first[i] = (*it)->pos(i);
-			minmax_coordinates.second[i] = (*it)->pos(i);
+			(minmax_coordinates.first)(i) = (*it)->pos(i);
+			(minmax_coordinates.second)(i) = (*it)->pos(i);
 
 			while(it != _all_scat_list.end())
 			{
-				if (minmax_coordinates.first[i] > (*it)->pos(i))
+				if ((minmax_coordinates.first)(i) > (*it)->pos(i))
 				{
-					minmax_coordinates.first[i] = (*it)->pos(i);
+					(minmax_coordinates.first)(i) = (*it)->pos(i);
 				}
 
-				if (minmax_coordinates.second[i] < (*it)->pos(i))
+				if ((minmax_coordinates.second)(i) < (*it)->pos(i))
 				{
-					minmax_coordinates.second[i] = (*it)->pos(i);
+					(minmax_coordinates.second)(i) = (*it)->pos(i);
 				}
 				it++;
 			}
@@ -348,17 +281,17 @@ public:
 		std::ios::fmtflags f(std::cout.flags());
 
 		std::cout << "\n simulation domain:\n";
-		std::cout << "    x (" << std::fixed << std::showpos << minmax_coordinates.first[0]*1e9 << " , " << minmax_coordinates.second[0]*1e9 << ") [nm]\n";
-		std::cout << "    y (" << std::fixed << minmax_coordinates.first[1]*1e9 << " , " << minmax_coordinates.second[1]*1e9 << ") [nm]\n";
-		std::cout << "    z (" << std::fixed << minmax_coordinates.first[2]*1e9 << " , " << minmax_coordinates.second[2]*1e9 << ") [nm]\n";
+		std::cout << "    x (" << std::fixed << std::showpos << minmax_coordinates.first[0]*1e9 << " , " << (minmax_coordinates.second)(0)*1e9 << ") [nm]\n";
+		std::cout << "    y (" << std::fixed << (minmax_coordinates.first)(1)*1e9 << " , " << (minmax_coordinates.second)(1)*1e9 << ") [nm]\n";
+		std::cout << "    z (" << std::fixed << (minmax_coordinates.first)(2)*1e9 << " , " << (minmax_coordinates.second)(2)*1e9 << ") [nm]\n";
 
 		std::cout.flags(f);
 
 		return minmax_coordinates;
-	}
+	};
 
 	// step the simulation in time
-	void step(mc::t_float dt)
+	void step(double dt)
 	{
 
 		for (auto&& it=_regions[0].particles().begin(); it!=_regions[0].particles().end(); ++it)
@@ -392,14 +325,16 @@ public:
 		increase_time(dt);
 
 	};
+
 	// repopulate contacts
 	void repopulate_contacts()
 	{
 		_regions.front().populate(_number_of_contact1_particles);
 		_regions.back().populate(_number_of_contact2_particles);
 	};
+
 	// calculate and save the population profile
-	void population_profiler(const mc::t_uint& max_history, std::fstream& file, std::fstream& debug_file)
+	void population_profiler(const unsigned& max_history, std::fstream& file, std::fstream& debug_file)
 	{
 
 		if (_population_probe.history < max_history)
@@ -415,7 +350,7 @@ public:
 
 			_population_probe.history += 1;
 
-			int i;
+			unsigned i;
 			for (const auto& m_particle_ptr: bulk.particles())
 			{
 				i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk.lower_corner(_population_probe.dim))/_population_probe.dL);
@@ -439,9 +374,9 @@ public:
 
 				// store the position of the middle point of each section
 				file << time() << " ";
-				for (int i=0; i < _population_probe.number_of_sections; ++i)
+				for (unsigned i=0; i < _population_probe.number_of_sections; ++i)
 				{
-					file << mc::t_float(i)*_population_probe.dL << " ";
+					file << double(i)*_population_probe.dL << " ";
 				}
 				file << std::endl;
 			}
@@ -449,7 +384,7 @@ public:
 			file << time() << " ";
 			for (auto& element: _population_probe.profile)
 			{
-				file << mc::t_float(element)/mc::t_float(_population_probe.history)/_population_probe.dV << " ";
+				file << double(element)/double(_population_probe.history)/_population_probe.dV << " ";
 				element = 0;
 			}
 			file << std::endl;
@@ -457,8 +392,9 @@ public:
 			_population_probe.history = 0;
 		}
 	};
+
 	// save the net currents for each region calculated by counting in and out flow of particles in each contact
-	void save_region_current(const mc::t_uint& max_history, std::fstream& current_file, const mc::t_float& time_step)
+	void save_region_current(const unsigned& max_history, std::fstream& current_file, const double& time_step)
 	{
 		if ( _history_of_region_currents < max_history)
 		{
@@ -473,13 +409,13 @@ public:
 			}
 
 			t_region& bulk = _regions[1];
-			mc::t_float cross_section = (bulk.upper_corner(0)-bulk.lower_corner(0)) * (bulk.upper_corner(2)-bulk.lower_corner(2));
-			mc::t_float elapsed_time = mc::t_float(_history_of_region_currents)*time_step;
+			double cross_section = (bulk.upper_corner(0)-bulk.lower_corner(0)) * (bulk.upper_corner(2)-bulk.lower_corner(2));
+			double elapsed_time = double(_history_of_region_currents)*time_step;
 
 			current_file << time() << " ";
 			for (auto&& m_region: _regions)
 			{
-				current_file << mc::t_float(m_region.particle_flow())/elapsed_time/cross_section;
+				current_file << double(m_region.particle_flow())/elapsed_time/cross_section;
 				current_file << " ";
 				m_region.reset_particle_flow();
 			}
@@ -488,162 +424,7 @@ public:
 			_history_of_region_currents = 0;
 		}
 	};
-	// set the output directory and the output file name
-	void process_command_line_args(int argc, char* argv[])
-	{
-		namespace fs = std::experimental::filesystem;
-
-
-		// first find the xml input file and open it
-
-		fs::directory_entry xml_file;
-
-		std::cout << "current path is " << fs::current_path() << std::endl;
-
-		if (argc <= 1)
-		{
-			xml_file.assign("input.xml");
-		}
-		else
-		{
-			xml_file.assign(argv[1]);
-		}
-
-		if(fs::exists(xml_file))
-		{
-			std::cout << "input xml file found: " << xml_file.path() << std::endl;
-		}
-		else
-		{
-			std::cout << "input xml file NOT found: " << xml_file.path() << std::endl;
-			std::exit(1);
-		}
-
-		if (!fs::is_regular_file(xml_file))
-		{
-			std::cout << "input xml file NOT found: " << xml_file.path() << std::endl;
-			std::exit(1);
-		}
-		std::cout << std::endl;
-
-		rapidxml::file<> xmlFile(xml_file.path().c_str()); //open file
-		rapidxml::xml_document<> doc; //create xml object
-		doc.parse<0>(xmlFile.data()); //parse contents of file
-		rapidxml::xml_node<>* curr_node = doc.first_node(); //gets the node "Document" or the root nodes
-
-		// set the output_directory
-		{
-			curr_node = curr_node->first_node("output_directory");
-			std::string attr = curr_node->first_attribute("type")->value();
-			std::string path = mc::trim(curr_node->value());
-			if (attr == "absolute")
-			{
-				std::cout << "absolute directory format used!\n";
-			}
-
-			_output_directory.assign(path);
-			std::cout << "output_directory: " << _output_directory.path() << std::endl;
-
-			if (not fs::exists(_output_directory.path()))
-			{
-				std::cout << "warning: output directory does NOT exist!!!" << std::endl;
-				std::cout << "output directory: " << _output_directory.path() << std::endl;
-				fs::create_directories(_output_directory.path());
-			}
-
-			if (fs::is_directory(_output_directory.path()))
-			{
-				if (not fs::is_empty(_output_directory.path()))
-				{
-					std::cout << "warning: output directory is NOT empty!!!" << std::endl;
-					std::cout << "output directory: " << _output_directory.path() << std::endl;
-					std::cout << "deleting the existing directory!!!" << std::endl;
-					fs::remove_all(_output_directory.path());
-					fs::create_directories(_output_directory.path());
-				}
-			}
-			else
-			{
-				std::cout << "error: output path is NOT a directory!!!" << std::endl;
-				std::cout << "output path: " << _output_directory.path() << std::endl;
-				std::exit(EXIT_FAILURE);
-			}
-		}
-
-		// set input directory
-		{
-			auto next_node = curr_node->next_sibling("input_directory");
-			if (next_node == 0)
-			{
-				next_node = curr_node->previous_sibling("input_directory");
-				if (next_node == 0)
-				{
-					std::cout << "input_directory not found in XML file!!!" << std::endl;
-					std::exit(1);
-				}
-			}
-			curr_node = next_node;
-
-			std::string attr = curr_node->first_attribute("type")->value();
-			std::string path = mc::trim(curr_node->value());
-			if (attr == "absolute")
-			{
-				std::cout << "absolute directory format used!\n";
-			}
-			_input_directory.assign(path);
-
-			if (not fs::exists(_input_directory.path()))
-			{
-				std::cout << "\n***\nwarning: input directory does NOT exist!!!\n"
-									<< "input directory: " << _input_directory.path() << "\n***\n\n";
-				std::exit(1);
-			}
-
-			if (fs::is_directory(_input_directory.path()))
-			{
-				if (fs::is_empty(_input_directory.path()))
-				{
-					std::cout << "warning: input directory is empty!!!" << std::endl;
-					std::cout << "input directory: " << _input_directory.path() << std::endl;
-				}
-			}
-			else
-			{
-				std::cout << "\n***\nerror: input path is NOT a directory!!!\n"
-									<< "input path: " << _input_directory.path() << std::endl;
-				std::exit(EXIT_FAILURE);
-			}
-		}
-
-
-		// set the maximum hopping radius
-		{
-			auto next_node = curr_node->next_sibling("max_hopping_radius");
-			if (next_node == 0)
-			{
-				next_node = curr_node->previous_sibling("max_hopping_radius");
-				if (next_node == 0)
-				{
-					std::cout << "Error: cannot read 'max_hopping_radius'" << std::endl;
-					std::exit(1);
-				}
-			}
-			curr_node = next_node;
-
-			std::string attr = curr_node->first_attribute("units")->value();
-			attr = mc::trim(attr);
-			if ((attr == "nanometer") or (attr == "nm"))
-			{
-				_max_hopping_radius = 1.e-9*std::atof(curr_node->value());
-			}
-			else
-			{
-				std::cout << "undefined units for 'max_hopping_radius'\n";
-				std::exit(1);
-			}
-		}
-
-	};
+	
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
 	void create_scatterers_without_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
 	{
@@ -674,12 +455,12 @@ public:
 					try
 					{
 						std::istringstream iss(line);
-						mc::arr1d pos;
+						arma::vec pos;
 						std::string token;
 						int i = 0;
 						while(std::getline(iss,token,','))
 						{
-							pos[i] = 1.e-9*std::stod(token);
+							pos(i) = 1.e-9*std::stod(token);
 							i++;
 						}
 						if (i!= 3)
@@ -732,8 +513,7 @@ public:
 		std::regex tube_rgx("tube");
 
 		// convert a long string in the form of " text ; num0 , num1 , num2 ; num0 , num1 , num2 ;text" into a list of strings with form "num0 , num1 , num2"
-		auto get_nodes = [](std::string str) -> std::list<std::string>
-		{
+		auto get_nodes = [](std::string str) -> std::list<std::string> {
 			std::list<std::string> output;
 			std::istringstream iss(str);
 			std::string token;
@@ -753,25 +533,25 @@ public:
 		};
 
 		// convert a string in the form of "num0 , num1 , num2" into an array of numbers
-		auto get_position = [](std::string str) -> mc::arr1d
-		{
+		auto get_position = [](std::string str) {
 			int count = 0;
 			for (auto s : str)
 			{
 				if (s == ',')	count ++;
 			}
-			mc::arr1d pos;
+			arma::rowvec pos(3);
 			if (count == 2)
 			{
 				std::istringstream iss(str);
 				std::string token;
 				std::getline(iss,token,',');
-				pos[0] = 1.e-9*std::stod(token);
+				pos(0) = std::stod(token);
 				std::getline(iss,token,',');
-				pos[1] = 1.e-9*std::stod(token);
+				pos(1) = std::stod(token);
 				std::getline(iss,token);
-				pos[2] = 1.e-9*std::stod(token);
+				pos(2) = std::stod(token);
 			}
+			pos = pos*1.e-9;
 			return pos;
 		};
 
@@ -788,45 +568,38 @@ public:
 				{
 					auto nodes = get_nodes(line);
 
-					std::vector<mc::arr1d> tube_coordinates;
+					arma::mat tube_coordinates(nodes.size(),3);
+					unsigned i=0;
 					for (const auto& node: nodes)
 					{
-						tube_coordinates.push_back(get_position(node));
+						tube_coordinates.row(i) = get_position(node);
+						i++;
 					}
 
-					for (int i=0; i<tube_coordinates.size(); i++)
+					for (unsigned i=0; i<tube_coordinates.n_rows; i++)
 					{
-						mc::arr1d pos1;
-						mc::arr1d pos2;
+						arma::rowvec pos1;
+						arma::rowvec pos2;
 						if (i==0)
 						{
-							pos1 = tube_coordinates[i];
-							pos2 = tube_coordinates[i+1];
+							pos1 = tube_coordinates.row(i);
+							pos2 = tube_coordinates.row(i+1);
 						}
-						else if(i==(tube_coordinates.size()-1))
+						else if(i==(tube_coordinates.n_rows-1))
 						{
-							pos1 = tube_coordinates[i-1];
-							pos2 = tube_coordinates[i];
+							pos1 = tube_coordinates.row(i-1);
+							pos2 = tube_coordinates.row(i);
 						}
 						else
 						{
-							pos1 = tube_coordinates[i-1];
-							pos2 = tube_coordinates[i+1];
+							pos1 = tube_coordinates.row(i-1);
+							pos2 = tube_coordinates.row(i+1);
 						}
 
-						mc::arr1d orientation;
-						for (int i=0; i<orientation.size(); i++)
-						{
-							orientation[i] = pos2[i]-pos1[i];
-						}
-						mc::t_float norm = std::sqrt(orientation[0]*orientation[0] + orientation[1]*orientation[1] + orientation[2]*orientation[2]);
-						for (auto& elem: orientation)
-						{
-							elem = elem/norm;
-						}
+						arma::rowvec orientation = arma::normalise(pos2-pos1);
 
 						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-						_all_scat_list.back()->set_pos(tube_coordinates[i]);
+						_all_scat_list.back()->set_pos(tube_coordinates.row(i));
 						_all_scat_list.back()->set_orientation(orientation);
 					}
 
@@ -842,6 +615,17 @@ public:
 
 		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 	};
+
+  // high level method to calculate proper scattering table
+	void initialize_scattering_table();
+
+	// method to calculate scattering rate via forster method
+	scattering_struct create_forster_scatt_table(double gamma_0, double r_0);
+
+	// method to calculate scattering rate via davoody et al. method
+	scattering_struct create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt);
+
+
 }; // end class discrete_forster_monte_carlo
 
 } // end namespace mc

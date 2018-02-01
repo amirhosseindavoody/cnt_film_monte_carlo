@@ -40,7 +40,7 @@ public:
 	{
 		// set_id(id);
 
-		for (int i=0; i<lower_corner.size(); ++i)
+		for (unsigned i=0; i<lower_corner.size(); ++i)
 		{
 			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*mc::get_rand_include_zero<mc::t_float>());
 		}
@@ -56,7 +56,7 @@ public:
 	// reinitialize particle properties instead of creating new particles
 	void reinitialize(const mc::arr1d& lower_corner, const mc::arr1d& upper_corner, const mc::t_float& beta, const mc::t_float& mass, const std::shared_ptr<mc::free_flight>& pilot, const std::shared_ptr<mc::scatter>& m_scatterer)
 	{
-		for (int i=0; i<lower_corner.size(); ++i)
+		for (unsigned i=0; i<lower_corner.size(); ++i)
 		{
 			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*mc::get_rand_include_zero<mc::t_float>());
 		}

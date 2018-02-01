@@ -18,7 +18,7 @@ public:
 	void fly(mc::particle* p, const mc::t_float &dt) {}; // perform free_flight
 	void check_boundary(mc::particle* p, const mc::t_float &dt, const std::pair<mc::arr1d, mc::arr1d>& domain) // check for collision to boundaries
 	{
-		for (int i=0; i<domain.first.size(); ++i)
+		for (unsigned i=0; i<domain.first.size(); ++i)
 		{
 			if (p->pos(i) < domain.first[i])
 			{

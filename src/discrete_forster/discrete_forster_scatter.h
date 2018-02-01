@@ -13,6 +13,7 @@
 #include <armadillo>
 
 #include "../helper/utility.h"
+
 #include "discrete_forster_particle.h"
 
 namespace mc
@@ -22,94 +23,88 @@ class discrete_forster_scatter
 {
   struct neighbor
   {
-    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, mc::t_float m_distance, mc::t_float m_rate):
+    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, double m_distance, double m_rate):
       scatterer(m_scatterer), distance(m_distance), rate(m_rate)
     {};
     std::shared_ptr<mc::discrete_forster_scatter> scatterer;
-    mc::t_float distance;
-    mc::t_float rate;
+    double distance;
+    double rate;
   };
 
 public:
   typedef mc::discrete_forster_particle t_particle; // particle type
 
 private:
-	mc::t_float _max_rate; // maximum scattering rate in the scattering table
-	mc::t_float _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
-	mc::arr1d _pos; // position of the scatterer
-  mc::arr1d _orientation; // orientation of the scattering object site
+	double _max_rate; // maximum scattering rate in the scattering table
+	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
+	arma::vec _pos; // position of the scatterer
+  arma::vec _orientation; // orientation of the scattering object site
   std::list<mc::discrete_forster_scatter::neighbor> _neighbors;
 
 public:
 
-	// constructor
+	// default constructor
 	discrete_forster_scatter()
   {};
+
   // set position of the scatterer
-  void set_pos(const mc::arr1d& position)
+  void set_pos(const arma::vec& position)
 	{
 		_pos = position;
 	};
+
   // set a component of the scatterer position
-  void set_pos(const mc::t_uint& i, const mc::t_float& value)
+  void set_pos(const unsigned& i, const double& value)
 	{
-		_pos[i] = value;
-	}
+		_pos(i) = value;
+	};
+
   // get position of the scatterer
-  const mc::arr1d& pos() const
+  const arma::vec& pos() const
 	{
 		return _pos;
 	};
   // get i'th component of position of the scatterer
-  const mc::t_float& pos(const mc::t_uint& i) const
+  const double& pos(const unsigned& i) const
 	{
-		return _pos[i];
+		return _pos(i);
 	};
   // set the orientation of the scatterer object
-  void set_orientation(const mc::arr1d& m_orientation)
+  void set_orientation(const arma::vec& m_orientation)
   {
     _orientation = m_orientation;
   };
+
   // set the i'th element of the orientation of the scatterer object
-  void set_orientation(const mc::t_uint& i, const mc::t_float& value)
+  void set_orientation(const mc::t_uint& i, const double& value)
   {
-    _orientation[i] = value;
+    _orientation(i) = value;
   };
+
   // get the orientation of the scatterer object
-  const mc::arr1d& orientation() const
+  const arma::vec& orientation() const
   {
     return _orientation;
   };
+
   // get the i'th element of the orientation of the scatterer object
-  const mc::t_float& orientation(const mc::t_uint& i) const
+  const double& orientation(const unsigned& i) const
   {
-    return _orientation[i];
+    return _orientation(i);
   };
+
   // get random free flight time
-  mc::t_float ff_time() const
+  double ff_time() const
 	{
-		return -_inverse_max_rate*std::log(mc::get_rand_exclude_zero<mc::t_float>());
+		return -_inverse_max_rate*std::log(mc::get_rand_exclude_zero<double>());
 	};
 
 	// update the final state of the particle
 	void update_state(t_particle* p);
 
 	// add a scattering object and its distance to the neighbors list
-	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr)
+	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr, const double& distance, const double& rate)
 	{
-    arma::vec dR = {pos(0)-neighbor_ptr->pos(0), pos(1)-neighbor_ptr->pos(1), pos(2)-neighbor_ptr->pos(2)};
-    double distance = arma::norm(dR);
-    arma::vec a1 = {orientation()[0],orientation()[1],orientation()[2]};
-    arma::vec a2 = {neighbor_ptr->orientation()[0],neighbor_ptr->orientation()[1],neighbor_ptr->orientation()[2]};
-    double cosTheta = arma::dot(a1,a2);
-    double y1 = arma::dot(a1,dR);
-    double y2 = arma::dot(a2,dR);
-    
-    
-    double angle_factor = arma::dot(a1,a2)-3*arma::dot(a1,dR/distance)*arma::dot(a2,dR/distance);
-    angle_factor = 1.0;
-
-    mc::t_float rate = 1.e12*std::pow(angle_factor,2)*std::pow(1.e-9/distance,6);
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
 	};
 
@@ -147,6 +142,7 @@ public:
 		}
 		std::cout << std::endl;
 	};
+
   // print neighbor rates
   void print_neighbor_rates()
 	{
@@ -157,8 +153,9 @@ public:
 		}
 		std::cout << std::endl;
 	};
+
   // return closest neighbor distance
-  mc::t_float closest_neighbor()
+  double closest_neighbor()
   {
     auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
     {
@@ -166,8 +163,9 @@ public:
     };
     return std::min_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
+
   // return farthest neighbor distance
-  mc::t_float farthest_neighbor()
+  double farthest_neighbor()
   {
     auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
     {
@@ -175,8 +173,9 @@ public:
     };
     return std::max_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
+
   // return the maximum scattering rate
-  const mc::t_float& max_rate() const
+  const double& max_rate() const
   {
     return _max_rate;
   };

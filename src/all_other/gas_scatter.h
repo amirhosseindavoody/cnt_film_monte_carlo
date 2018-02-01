@@ -30,7 +30,7 @@ private:
 		for (int i=0; i<_num_states; ++i)
 		{
 			temp_element[0] = mc::get_rand_include_zero<mc::t_float>();
-			for (int j=1; j<temp_element.size(); ++j)
+			for (unsigned j=1; j<temp_element.size(); ++j)
 			{
 				temp_element[j] = temp_element[j-1] + mc::get_rand_include_zero<mc::t_float>();
 			}

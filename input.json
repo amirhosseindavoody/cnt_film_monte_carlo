@@ -44,6 +44,8 @@
         "zshift [m]": [1e-9, 20e-9, 10],
         "axis shift 1 [m]": [1e-9, 20e-9, 10],
         "axis shift 2 [m]": [1e-9, 20e-9, 10],
-        "theta [degrees]": [0, 90, 10]
+        "theta [degrees]": [0, 90, 10],
+        "max hopping radius [m]": 1.5e-9,
+        "temperature [kelvin]": 300
     }
 }

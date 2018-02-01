@@ -32,16 +32,31 @@ int main(int argc, char *argv[])
 	json j;
 	input_file >> j;
 
+	// get the json part related to exciton mc simulation
+	if (j.count("exciton monte carlo")==0){
+		throw std::invalid_argument("json input file does not contain \"exciton monte carlo\"");
+	}
+	nlohmann::json json_mc = j["exciton monte carlo"];
+
+	// if exciton transfer type is davoody get cnt json information and add it to json_mc
+	if (std::string(j["exciton monte carlo"]["rate type"]) == "davoody"){
+		json_mc["cnts"] = j["cnts"];
+	}
+
+	std::cout << std::setw(4) << json_mc << std::endl;
+
+	throw std::out_of_range("check to see if json_mc is printed correctly before moving on");
+
 	//***********************************************************************************************
 	// create cnts and calculate their exciton states
 	//***********************************************************************************************
 	
+	std::vector<cnt> cnts;
 	// get the parent directory for cnts
 	std::string parent_directory = j["cnts"]["directory"];
 	j["cnts"].erase("directory");
 
 	// create excitons and calculate exciton dispersions
-	std::vector<cnt> cnts;
 	cnts.reserve(j["cnts"].size()); // this is reservation of space is crucial to ensure we do not move cnts, since the move constructor is not implemented yet
 	for (const auto& j_cnt: j["cnts"])
 	{
@@ -57,15 +72,11 @@ int main(int argc, char *argv[])
 		throw std::invalid_argument("input.json should contain \"exciton monte carlo\" property.");
 	}
 	
-	mc::discrete_forster_monte_carlo sim(j["exciton monte carlo"]);
-	sim.create_scatt_table(cnts[0],cnts[0]);
-
-	std::exit(0);
+	mc::discrete_forster_monte_carlo sim(json_mc);
+	// sim.initialize_scattering_table(cnts[0],cnts[0]);
 
 
 	// initialize and run simulation for the exciton hopping
-	// mc::discrete_forster_monte_carlo sim;
-	// sim.process_command_line_args(argc, argv);
 	sim.init();
 
 	std::fstream population_file;

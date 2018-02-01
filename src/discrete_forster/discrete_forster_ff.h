@@ -21,8 +21,8 @@ private:
 
 public:
 	discrete_forster_free_flight() {}; // constructor
-	void fly(t_particle* p, const mc::t_float &dt) {}; // perform free_flight
-	void check_boundary(t_particle* p, const mc::t_float &dt, const std::pair<mc::arr1d, mc::arr1d>& domain); // check for collision to boundaries
+	void fly(t_particle* p, const double &dt) {}; // perform free_flight
+	void check_boundary(t_particle* p, const double &dt, const std::pair<arma::vec, arma::vec>& domain); // check for collision to boundaries
 }; // end class discrete_forster_free_flight
 
 } // end namespace mc
