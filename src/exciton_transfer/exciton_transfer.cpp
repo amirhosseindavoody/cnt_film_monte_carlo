@@ -262,7 +262,7 @@ std::vector<exciton_transfer::ex_state> exciton_transfer::get_relevant_states(co
   // for (const auto& state: relevant_states)
   // {
   //   double delta_e = (state.energy-min_energy);
-  //   std::cout << "[" << state.ik_cm_idx << "," << state.i_principal <<"] --> energy:" << delta_e/constants::eV \
+  //   std::cout << "[" << state.ik_cm_idx << "," << state.i_principal <<"] --> energy:" << delta_e/constants::eV 
   //             << " , population:" << std::exp(-delta_e/(constants::kb*_temperature))/normalization_factor << "\n";
   // }
   

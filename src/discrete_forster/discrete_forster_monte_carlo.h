@@ -71,7 +71,7 @@ private:
 	unsigned _history_of_region_currents; // this is the number of steps that the net _current in the regions have been recorded
 	population_profile _population_probe; // this is the population profile of particles through the simulation domain along the z-axis
 
-	// struct to bundle information related to different scattering mechanisms
+	// struct to bundle information about scattering rate on discrete mesh points that are calculated through an arbitrary scattering mechanism
 	struct scattering_struct
 	{
 		// default constructor
@@ -91,8 +91,19 @@ private:
 		arma::vec z_shift;
 		arma::vec axis_shift_1;
 		arma::vec axis_shift_2;
+
+		// get the scattering rate based on the precalculated rates for discrete mesh points.
+		// Right now this equation only gets the closes point on the mesh but I should implement some sort of interpolation
+		double get_rate(const double& m_theta, const double& m_z_shift, const double& m_axis_shift_1, const double& m_axis_shift_2) const
+		{
+			unsigned i_th = (arma::abs(theta-m_theta)).index_min();
+			unsigned i_zsh = (arma::abs(z_shift-m_z_shift)).index_min();
+			unsigned i_ash1 = (arma::abs(axis_shift_1-m_axis_shift_1)).index_min();
+			unsigned i_ash2 = (arma::abs(axis_shift_2-m_axis_shift_2)).index_min();
+			return rate(i_th)(i_zsh,i_ash1,i_ash2);
+		}
 	};
-	scattering_struct _scat_table;
+	scattering_struct _scat_table; // instantiation of the scattering table for discrete mesh points
 
 public:
 	// default constructor

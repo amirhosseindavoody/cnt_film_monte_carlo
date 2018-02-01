@@ -40,20 +40,28 @@ namespace mc
 
 				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
 				{
-          // arma::vec a1 = {orientation()[0],orientation()[1],orientation()[2]};
-          // arma::vec a2 = {neighbor_ptr->orientation()[0],neighbor_ptr->orientation()[1],neighbor_ptr->orientation()[2]};
-          // double cosTheta = arma::dot(a1,a2);
-          // double y1 = arma::dot(a1,dR);
-          // double y2 = arma::dot(a2,dR);
-          
+          arma::vec a1 = (*i)->orientation();
+          arma::vec a2 = (*j)->orientation();
+          double cosTheta = arma::dot(a1,a2);
+          double theta = std::acos(cosTheta);
+          double y1 = arma::dot(a1,dR);
+          double y2 = arma::dot(a2,dR);
+          double sin2Theta = 1-std::pow(cosTheta,2);
+          double axis_shift_1 = (y1+y2*cosTheta)/sin2Theta;
+          double axis_shift_2 = (y2+y1*cosTheta)/sin2Theta;
+          double z_shift = arma::norm((axis_shift_1*a1+(*i)->pos())-(axis_shift_2*a2+(*j)->pos()));
+          // check if parallel case has happend
+          if (cosTheta == 1){
+            axis_shift_1=0;
+            axis_shift_2 = arma::dot(dR,a1);
+            theta = 0;
+            z_shift = arma::norm(dR-arma::dot(dR,a1)*a1);
+          }
 
-          // double angle_factor = arma::dot(a1,a2)-3*arma::dot(a1,dR/distance)*arma::dot(a2,dR/distance);
-          // angle_factor = 1.0;
+          double rate = _scat_table.get_rate(theta,z_shift,axis_shift_1,axis_shift_2);
 
-          // double rate = 1.e12*std::pow(angle_factor,2)*std::pow(1.e-9/distance,6);
-
-					(*i)->add_neighbor(*j,distance,0.);
-					(*j)->add_neighbor(*i,distance,0.);
+					(*i)->add_neighbor(*j,distance,rate);
+					(*j)->add_neighbor(*i,distance,rate);
 				}
 
 				// break the search if the scatterers are getting too far apart to speed up the search process
