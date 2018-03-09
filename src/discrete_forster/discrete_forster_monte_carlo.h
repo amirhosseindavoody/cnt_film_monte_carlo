@@ -239,7 +239,10 @@ public:
 
 		double max_search_radius = 40.e-9;
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
+
+		std::cout << "\n...finding neighbors!!!\n";
 		find_neighbors(_max_hopping_radius, max_search_radius);
+		std::cout << "...found neighbors!!!\n";
 
 		_regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
@@ -275,19 +278,14 @@ public:
 	// this function will effectively give us the simulation domain
 	std::pair<arma::vec, arma::vec> find_minmax_coordinates()
 	{
-		std::pair<arma::vec, arma::vec> minmax_coordinates;
+		std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front()->pos(),
+																											 _all_scat_list.front()->pos());
 
-		auto it = _all_scat_list.begin();
-		minmax_coordinates.first = _all_scat_list.front()->pos();
-		minmax_coordinates.second = _all_scat_list.front()->pos();
-
-		for (int i=0; i<3; i++)
+		for (auto it=_all_scat_list.begin(); it != _all_scat_list.end(); ++it)
 		{
-			// auto it = _all_scat_list.begin();
-			// (minmax_coordinates.first)(i) = (*it)->pos(i);
-			// (minmax_coordinates.second)(i) = (*it)->pos(i);
 
-			while(it != _all_scat_list.end())
+
+			for (int i=0; i<3; ++i)
 			{
 				if ((minmax_coordinates.first)(i) > (*it)->pos(i))
 				{
@@ -298,18 +296,17 @@ public:
 				{
 					(minmax_coordinates.second)(i) = (*it)->pos(i);
 				}
-				it++;
 			}
 		}
 
-		std::ios::fmtflags f(std::cout.flags());
+		std::ios::fmtflags f(std::cout.flags()); // save cout flags to be reset after printing
 
 		std::cout << "\n simulation domain:\n";
-		std::cout << "    x (" << std::fixed << std::showpos << minmax_coordinates.first[0]*1e9 << " , " << (minmax_coordinates.second)(0)*1e9 << ") [nm]\n";
+		std::cout << "    x (" << std::fixed << std::showpos << (minmax_coordinates.first)(0)*1e9 << " , " << (minmax_coordinates.second)(0)*1e9 << ") [nm]\n";
 		std::cout << "    y (" << std::fixed << (minmax_coordinates.first)(1)*1e9 << " , " << (minmax_coordinates.second)(1)*1e9 << ") [nm]\n";
 		std::cout << "    z (" << std::fixed << (minmax_coordinates.first)(2)*1e9 << " , " << (minmax_coordinates.second)(2)*1e9 << ") [nm]\n";
 
-		std::cout.flags(f);
+		std::cout.flags(f); // reset the cout flags
 
 		return minmax_coordinates;
 	};
@@ -317,6 +314,12 @@ public:
 	// step the simulation in time
 	void step(double dt)
 	{
+
+		// std::cout << std::endl;
+		// std::cout << "_region[0] number of particles: " << _regions[0].number_of_particles() << std::endl;
+		// std::cout << "_region[1] number of particles: " << _regions[1].number_of_particles() << std::endl;
+		// std::cout << "_region[2] number of particles: " << _regions[2].number_of_particles() << std::endl;
+		// std::cin.ignore();
 
 		for (auto&& it=_regions[0].particles().begin(); it!=_regions[0].particles().end(); ++it)
 		{
@@ -363,14 +366,14 @@ public:
 
 		if (_population_probe.history < max_history)
 		{
-			// open the debug file
-			if (! debug_file.is_open())
-			{
-				debug_file.open(_output_directory.path() / "debug.dat", std::ios::out);
-				file << std::showpos << std::scientific;
-			}
+			// // open the debug file
+			// if (! debug_file.is_open())
+			// {
+			// 	debug_file.open(_output_directory.path() / "debug.dat", std::ios::out);
+			// 	file << std::showpos << std::scientific;
+			// }
 
-			t_region& bulk = _regions[1];
+			mc::discrete_forster_region& bulk = _regions[1];
 
 			_population_probe.history += 1;
 
@@ -380,8 +383,11 @@ public:
 				i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk.lower_corner(_population_probe.dim))/_population_probe.dL);
 				if ((i >= _population_probe.number_of_sections) or (i<0))
 				{
-					debug_file << "index out of bound when making population profile\n";
-					debug_file << "particle position = " << m_particle_ptr->pos(1) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(1) << " ]" << std::endl;
+					// debug_file << "index out of bound when making population profile\n";
+					// debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
+
+					std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
+					throw std::range_error("particle is out of bound when calculating population profile");
 				}
 				else
 				{
@@ -458,7 +464,7 @@ public:
 		std::string line;
 
 		int num = 1;
-		int max_num = 5;
+		int max_num = 5; // maximum number of files to read
 		std::string base = "tube";
 		std::string extension = ".dat";
 		std::string filename = input_path / (base+std::to_string(num)+extension);
@@ -510,7 +516,7 @@ public:
 		};
 
 		// loop over files
-		while ((file.is_open()) and (num<max_num))
+		while ((file.is_open()) and (num<=max_num))
 		{
 			std::cout << "reading data from file: \"" << filename << "\"\r" << std::flush;
 

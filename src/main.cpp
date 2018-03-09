@@ -17,9 +17,7 @@ int main(int argc, char *argv[])
 	std::time_t start_time = std::time(nullptr);
 	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
 
-
-	using json = nlohmann::json;
-
+	// get the input JSON filename
 	std::string filename;
 	if (argc <= 1){
 		filename = "input.json";
@@ -27,9 +25,9 @@ int main(int argc, char *argv[])
 		filename = argv[1];
 	}
 
-	// read a JSON file
+	// read the input JSON file
 	std::ifstream input_file(filename.c_str());
-	json j;
+	nlohmann::json j;
 	input_file >> j;
 
 	// get the json part related to exciton mc simulation

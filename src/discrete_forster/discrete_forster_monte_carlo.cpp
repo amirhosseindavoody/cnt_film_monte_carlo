@@ -164,12 +164,6 @@ namespace mc
 			return s1->pos(1) < s2->pos(1);
 		});
 
-    // progress_bar prog3(100,"dummy progress bar");
-    // for (int i=0; i<100; i++)
-    // {
-    //   prog3.step();
-    // }
-
     // unsigned max_count = std::pow(_all_scat_list.size(),2)/2;
     // progress_bar prog2(int(max_count),"counting number of neighbors");
 
@@ -202,21 +196,16 @@ namespace mc
 		double avg_number_of_neighbors = 0;
 		double another_counter = 0;
 
-    // progress_bar prog1(number_of_neighbors, "making neighbors");
-
 		for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
 		{
 
 			for (auto j = std::next(i); j!= _all_scat_list.end(); ++j)
 			{
-        // arma::vec dR = {(*i)->pos(0)-(*j)->pos(0), (*i)->pos(1)-(*j)->pos(1), (*i)->pos(2)-(*j)->pos(2)};
         arma::vec dR = (*i)->pos()-(*j)->pos();
         double distance = arma::norm(dR);
 
 				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
 				{
-          // prog1.step();
-
           arma::vec a1 = (*i)->orientation();
           arma::vec a2 = (*j)->orientation();
           double cosTheta = arma::dot(a1,a2);
@@ -257,7 +246,7 @@ namespace mc
 
 			if (counter %1000 == 0)
 			{
-				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << avg_number_of_neighbors/another_counter << "...average max rate = " << avg_max_rate/another_counter << "\r" << std::flush;
+				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << (avg_number_of_neighbors/another_counter) << "...average max rate = " << avg_max_rate/another_counter << "                     \r" << std::flush;
 				avg_max_rate = 0;
 				avg_number_of_neighbors = 0;
 				another_counter = 0;
@@ -267,4 +256,5 @@ namespace mc
 
 		std::cout << "finished finding neighbors" << std::endl;
 	};
+
 } // end of namespace mc

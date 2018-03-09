@@ -4,6 +4,7 @@
 #include <experimental/filesystem>
 #include <stdexcept>
 
+// prepare a directory given by an input string and return the directory_entry object
 inline std::experimental::filesystem::directory_entry prepare_directory(const std::string path, const bool keep_old_files=true)
 {
   std::cout << "\n..." << std::endl;
