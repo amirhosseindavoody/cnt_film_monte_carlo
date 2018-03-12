@@ -33,12 +33,6 @@ namespace mc
 class discrete_forster_monte_carlo
 {
 
-public:
-	typedef mc::discrete_forster_particle t_particle;
-	typedef mc::discrete_forster_free_flight t_ff;
-	typedef mc::discrete_forster_scatter t_scatter;
-	typedef mc::discrete_forster_region t_region;
-
 private:
 
 	struct population_profile
@@ -60,8 +54,8 @@ private:
 	enum scattering_type {davoody, forster, wong}; // enumerated type to specify type of transfer rate
 	scattering_type _scat_t;
 
-	std::array<t_region,3> _regions; // simulation regions: contacts and bulk. Since t_region data type has unique_ptr as data members, we can't use vectors and dynamically push_back new regions. If we want to do that we need to implement the move and copy constructors explicitly.
-	std::list<std::shared_ptr<t_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
+	std::array<discrete_forster_region,3> _regions; // simulation regions: contacts and bulk. Since discrete_forster_region data type has unique_ptr as data members, we can't use vectors and dynamically push_back new regions. If we want to do that we need to implement the move and copy constructors explicitly.
+	std::list<std::shared_ptr<discrete_forster_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
 	std::pair<arma::vec, arma::vec> _domain;
 
 	unsigned _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
@@ -113,7 +107,7 @@ private:
 
 public:
 	// default constructor
-	discrete_forster_monte_carlo() {};
+	discrete_forster_monte_carlo()=delete;
 	
 	// constructure with json input file
 	discrete_forster_monte_carlo(const nlohmann::json& j)
@@ -212,8 +206,23 @@ public:
 	//initialize the simulation condition
 	void init()
 	{
-		// read the information of cnt mesh and create a list of all discerete_forster_scatter objects that manage all scattering objects
-		create_scatterers_with_orientation(input_directory().path(), output_directory().path());
+		// depending on the mesh type create the scatterer objects that determine the all particles
+		if (_json_prop.count("mesh type")){
+			std::string mesh_type = _json_prop["mesh type"];
+			if (_json_prop["mesh type"] == "crystalline"){
+				_all_scat_list = create_crystalline_structure();
+			}
+			else if (_json_prop["mesh type"] == "realistic"){
+				create_scatterers_with_orientation(input_directory().path(), output_directory().path());
+			}
+			else {
+				throw std::invalid_argument("specify mesh type in input json");
+			}
+		} else {
+			throw std::invalid_argument("specify mesh type in input json");
+		}
+
+		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 
 		_domain = find_minmax_coordinates();
 
@@ -240,9 +249,7 @@ public:
 		double max_search_radius = 40.e-9;
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 
-		std::cout << "\n...finding neighbors!!!\n";
 		find_neighbors(_max_hopping_radius, max_search_radius);
-		std::cout << "...found neighbors!!!\n";
 
 		_regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
@@ -260,7 +267,7 @@ public:
 		_regions.front().populate(_number_of_contact1_particles);
 		_regions.back().populate(_number_of_contact2_particles);
 
-		t_region& bulk = _regions[1];
+		discrete_forster_region& bulk = _regions[1];
 
 		_population_probe.number_of_sections = 10;
 		_population_probe.dim = 1;
@@ -386,8 +393,12 @@ public:
 					// debug_file << "index out of bound when making population profile\n";
 					// debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
 
-					std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
-					throw std::range_error("particle is out of bound when calculating population profile");
+					// std::cout << "_population_probe.number_of_sections = " << _population_probe.number_of_sections << "\ni = " << i << "\n";
+
+					// std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << "\n"
+					// 				  << "bulk limits = [" << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << "]\n"
+					// 					<< "bulk limits - particle position = [" << bulk.lower_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << "]\n";
+					// throw std::range_error("particle is out of bound when calculating population profile");
 				}
 				else
 				{
@@ -438,7 +449,7 @@ public:
 				current_file << std::showpos << std::scientific;
 			}
 
-			t_region& bulk = _regions[1];
+			discrete_forster_region& bulk = _regions[1];
 			double cross_section = (bulk.upper_corner(0)-bulk.lower_corner(0)) * (bulk.upper_corner(2)-bulk.lower_corner(2));
 			double elapsed_time = double(_history_of_region_currents)*time_step;
 
@@ -572,8 +583,10 @@ public:
 
 		}
 
-		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 	};
+
+	// create a crystalline mesh structure
+	std::list<std::shared_ptr<discrete_forster_scatter>> create_crystalline_structure();
 
   // high level method to calculate proper scattering table
 	void initialize_scattering_table();

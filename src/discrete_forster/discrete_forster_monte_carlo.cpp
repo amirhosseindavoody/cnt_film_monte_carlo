@@ -21,6 +21,8 @@ namespace mc
   // high level method to calculate proper scattering table
   void discrete_forster_monte_carlo::initialize_scattering_table()
   {
+    std::cout << "\ninitializing scattering table...\n";
+
     switch(_scat_t) {
       case davoody:
         {
@@ -41,11 +43,11 @@ namespace mc
         break;
 
       case forster:
-        _scat_table = create_forster_scatt_table(1.e13, 1.4e9);
+        _scat_table = create_forster_scatt_table(1.e15, 1.4e9);
         break;
 
       case wong:
-        throw std::invalid_argument("scattering table for wong method is not yet implemented!!!");
+        _scat_table = create_forster_scatt_table(1.e13, 1.4e9);
         break;
 
       default:
@@ -170,9 +172,12 @@ namespace mc
     return scat_table;
   };
 
-    // find the neighbors of each scattering object
+  // find the neighbors of each scattering object
 	void discrete_forster_monte_carlo::find_neighbors(const double& max_hopping_radius, const double& max_search_radius)
 	{
+
+    std::cout << "finding neighbors in scatterers list:\n";
+
 		// sort scattering objects to have better performance
 		_all_scat_list.sort([](const auto& s1, const auto& s2){
 			return s1->pos(1) < s2->pos(1);
@@ -209,6 +214,7 @@ namespace mc
 		double avg_max_rate = 0;
 		double avg_number_of_neighbors = 0;
 		double another_counter = 0;
+    long total_number_of_neighbors=0;
 
 		for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
 		{
@@ -242,6 +248,7 @@ namespace mc
 
 					(*i)->add_neighbor(*j,distance,rate);
 					(*j)->add_neighbor(*i,distance,rate);
+          total_number_of_neighbors++;
 				}
 
 				// break the search if the scatterers are getting too far apart to speed up the search process
@@ -260,7 +267,7 @@ namespace mc
 
 			if (counter %1000 == 0)
 			{
-				std::cout << "scatterer number: " << counter << "...average number of neighbors: " << (avg_number_of_neighbors/another_counter) << "...average max rate = " << avg_max_rate/another_counter << "                     \r" << std::flush;
+				std::cout << "scatterer number:" << counter << " ... average number of neighbors:" << (avg_number_of_neighbors/another_counter) << " ... average max rate = " << avg_max_rate/another_counter << "                     \r" << std::flush;
 				avg_max_rate = 0;
 				avg_number_of_neighbors = 0;
 				another_counter = 0;
@@ -268,7 +275,62 @@ namespace mc
 
 		}
 
-		std::cout << "finished finding neighbors" << std::endl;
+		std::cout << "\n\nfinished finding neighbors:\n" 
+              << "total number of neighbor pairs: " << total_number_of_neighbors << "\n"
+              << "average number of neighbors per scatterer: " << (2*total_number_of_neighbors)/_all_scat_list.size() << "\n\n";
 	};
+
+  // create a crystalline mesh structure
+	std::list<std::shared_ptr<discrete_forster_scatter>> discrete_forster_monte_carlo::create_crystalline_structure()
+  {
+    std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
+
+    std::list<std::shared_ptr<discrete_forster_scatter>> scatterer_list;
+
+    arma::vec domain_length = {10e-9,100e-9,10e-9};
+    
+    arma::vec orientation = {1,0,0};
+    double cnt_length = 10e-9;
+    double cnt_spacing = 0.5e-9;
+
+    orientation = arma::normalise(orientation);
+
+    int dim = 0;
+    for (;dim<3;dim++){
+      if (orientation(dim)!=0){
+        break;
+      }
+    }
+    std::cout << "orientation of the tubes are along " << dim << "'th axis\n";
+
+    arma::uvec n_tubes = {0,0,0};
+    arma::vec dr = {0,0,0};
+    for (int i=0; i<3; i++){
+      if (i==dim){
+        n_tubes(i) = unsigned(domain_length(i)/cnt_length);
+        dr(i) = cnt_length;
+      } else {
+        n_tubes(i) = unsigned(domain_length(i)/cnt_spacing);
+        dr(i) = cnt_spacing;
+      }
+    }
+    n_tubes.print("number of tubes along each dimension:");
+
+    for (unsigned ix=0; ix<=n_tubes(0); ix++){
+      double x = ix*dr(0);
+      for (unsigned iy=0; iy<=n_tubes(1); iy++){
+        double y = iy*dr(1);
+        for (unsigned iz=0; iz<=n_tubes(2); iz++){
+          double z = iz*dr(2);
+
+          scatterer_list.push_back(std::make_shared<discrete_forster_scatter>());
+          scatterer_list.back()->set_pos({x,y,z});
+          scatterer_list.back()->set_orientation(orientation);
+        }
+      }
+    }
+
+    return scatterer_list;
+  };
 
 } // end of namespace mc

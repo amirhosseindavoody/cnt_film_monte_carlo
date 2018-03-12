@@ -37,8 +37,9 @@
     },
 
     "exciton monte carlo":{
+        "mesh type": "crystalline",
         "mesh input directory": "/Users/amirhossein/research/cnt_mesh_1",
-        "output directory": "/Users/amirhossein/research/exciton_monte_carlo_wong",
+        "output directory": "/Users/amirhossein/research/exciton_monte_carlo",
         "keep old results":true,
         "rate type":"forster",
         "zshift [m]": [1.5e-9, 10e-9, 10],

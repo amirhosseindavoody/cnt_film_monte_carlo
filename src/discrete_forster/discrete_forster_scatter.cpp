@@ -6,7 +6,7 @@
 
 namespace mc
 {
-	void discrete_forster_scatter::update_state(discrete_forster_scatter::t_particle* p) // update the final state of the particle
+	void discrete_forster_scatter::update_state(discrete_forster_particle* p) // update the final state of the particle
 	{
 		mc::t_float dice = _max_rate*mc::get_rand_include_zero<mc::t_float>();
 		auto it = _neighbors.begin();

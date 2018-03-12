@@ -23,23 +23,20 @@ class discrete_forster_scatter
 {
   struct neighbor
   {
-    neighbor(std::shared_ptr<mc::discrete_forster_scatter> m_scatterer, double m_distance, double m_rate):
+    neighbor(std::shared_ptr<discrete_forster_scatter> m_scatterer, double m_distance, double m_rate):
       scatterer(m_scatterer), distance(m_distance), rate(m_rate)
     {};
-    std::shared_ptr<mc::discrete_forster_scatter> scatterer;
+    std::shared_ptr<discrete_forster_scatter> scatterer;
     double distance;
     double rate;
   };
-
-public:
-  typedef mc::discrete_forster_particle t_particle; // particle type
 
 private:
 	double _max_rate; // maximum scattering rate in the scattering table
 	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	arma::vec _pos; // position of the scatterer
   arma::vec _orientation; // orientation of the scattering object site
-  std::list<mc::discrete_forster_scatter::neighbor> _neighbors;
+  std::list<discrete_forster_scatter::neighbor> _neighbors;
 
 public:
 
@@ -100,7 +97,7 @@ public:
 	};
 
 	// update the final state of the particle
-	void update_state(t_particle* p);
+	void update_state(discrete_forster_particle* p);
 
 	// add a scattering object and its distance to the neighbors list
 	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr, const double& distance, const double& rate)
