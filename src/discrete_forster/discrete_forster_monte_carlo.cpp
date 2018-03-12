@@ -41,7 +41,7 @@ namespace mc
         break;
 
       case forster:
-        _scat_table = create_forster_scatt_table(1.e12, 1.e9);
+        _scat_table = create_forster_scatt_table(1.e13, 1.4e9);
         break;
 
       case wong:
@@ -76,6 +76,9 @@ namespace mc
 
     progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create davoody scattering table");
 
+    double max_rate = 0;
+    double min_rate = 10e15;
+
     unsigned i_th=0;
     for (const auto& th: theta)
     {
@@ -90,6 +93,14 @@ namespace mc
           {
             prog.step();
             rate(i_th)(i_zsh,i_ash1,i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+            
+            if (rate(i_th)(i_zsh,i_ash1,i_ash2) > max_rate) {
+              max_rate = rate(i_th)(i_zsh,i_ash1,i_ash2);
+            }
+            if (rate(i_th)(i_zsh,i_ash1,i_ash2) < min_rate) {
+              min_rate = rate(i_th)(i_zsh,i_ash1,i_ash2);
+            }
+
             i_ash2++;
           }
           i_ash1++;
@@ -100,6 +111,9 @@ namespace mc
     }
 
     scattering_struct scat_table(rate,theta,z_shift,axis_shift_1,axis_shift_2);
+
+    std::cout << "\nmax rate in davoody scattering table: " << max_rate << " [1/s]\n";
+    std::cout << "min rate in davoody scattering table: " << min_rate << " [1/s]\n\n";
 
     return scat_table;
   };

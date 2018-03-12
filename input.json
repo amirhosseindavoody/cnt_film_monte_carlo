@@ -38,14 +38,14 @@
 
     "exciton monte carlo":{
         "mesh input directory": "/Users/amirhossein/research/cnt_mesh_1",
-        "output directory": "/Users/amirhossein/research/exciton_monte_carlo",
+        "output directory": "/Users/amirhossein/research/exciton_monte_carlo_wong",
         "keep old results":true,
-        "rate type":"davoody",
-        "zshift [m]": [1e-9, 20e-9, 10],
-        "axis shift 1 [m]": [1e-9, 20e-9, 10],
-        "axis shift 2 [m]": [1e-9, 20e-9, 10],
+        "rate type":"forster",
+        "zshift [m]": [1.5e-9, 10e-9, 10],
+        "axis shift 1 [m]": [-10e-9, 10e-9, 21],
+        "axis shift 2 [m]": [-10e-9, 10e-9, 21],
         "theta [degrees]": [0, 180, 10],
-        "max hopping radius [m]": 1.5e-9,
+        "max hopping radius [m]": 2e-9,
         "temperature [kelvin]": 300
     }
 }
