@@ -173,41 +173,15 @@ namespace mc
   };
 
   // find the neighbors of each scattering object
-	void discrete_forster_monte_carlo::find_neighbors(const double& max_hopping_radius, const double& max_search_radius)
+	void discrete_forster_monte_carlo::find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius)
 	{
 
     std::cout << "finding neighbors in scatterers list:\n";
 
 		// sort scattering objects to have better performance
-		_all_scat_list.sort([](const auto& s1, const auto& s2){
+		scat_list.sort([](const auto& s1, const auto& s2){
 			return s1->pos(1) < s2->pos(1);
 		});
-
-    // unsigned max_count = std::pow(_all_scat_list.size(),2)/2;
-    // progress_bar prog2(int(max_count),"counting number of neighbors");
-
-    // unsigned number_of_neighbors=0;
-    // for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
-		// {
-
-		// 	for (auto j = std::next(i); j!= _all_scat_list.end(); ++j)
-		// 	{
-    //     prog.step();
-    //     double distance = arma::norm((*i)->pos()-(*j)->pos());
-
-		// 		if ((distance < max_hopping_radius) and (distance > 0.4e-9))
-		// 		{
-    //       number_of_neighbors++;
-		// 		}
-		// 		else if (distance > max_search_radius)
-		// 		{
-    //       // break the search if the scatterers are getting too far apart to speed up the search process
-		// 			break;
-		// 		}
-		// 	}
-		// }
-
-    // std::cout << "\nnumber of neighbors is " << number_of_neighbors << "\n";
 
 
 		int counter = 0;
@@ -216,10 +190,10 @@ namespace mc
 		double another_counter = 0;
     long total_number_of_neighbors=0;
 
-		for (auto i = _all_scat_list.begin(); i != _all_scat_list.end(); ++i)
+		for (auto i = scat_list.begin(); i != scat_list.end(); ++i)
 		{
 
-			for (auto j = std::next(i); j!= _all_scat_list.end(); ++j)
+			for (auto j = std::next(i); j!= scat_list.end(); ++j)
 			{
         arma::vec dR = (*i)->pos()-(*j)->pos();
         double distance = arma::norm(dR);
@@ -277,7 +251,7 @@ namespace mc
 
 		std::cout << "\n\nfinished finding neighbors:\n" 
               << "total number of neighbor pairs: " << total_number_of_neighbors << "\n"
-              << "average number of neighbors per scatterer: " << (2*total_number_of_neighbors)/_all_scat_list.size() << "\n\n";
+              << "average number of neighbors per scatterer: " << (2*total_number_of_neighbors)/scat_list.size() << "\n\n";
 	};
 
   // create a crystalline mesh structure
@@ -287,11 +261,23 @@ namespace mc
 
     std::list<std::shared_ptr<discrete_forster_scatter>> scatterer_list;
 
-    arma::vec domain_length = {10e-9,100e-9,10e-9};
-    
-    arma::vec orientation = {1,0,0};
-    double cnt_length = 10e-9;
-    double cnt_spacing = 0.5e-9;
+    arma::vec domain_length;
+    arma::vec orientation;
+    double cnt_length;
+    double cnt_spacing;
+
+    if (_json_prop.count("crystall mesh properties")){
+      cnt_length = _json_prop["crystall mesh properties"]["cnt length [m]"];
+      cnt_spacing = _json_prop["crystall mesh properties"]["cnt spacing [m]"];
+      
+      std::vector<double> tmp1 = _json_prop["crystall mesh properties"]["cnt orientation"];
+      orientation = tmp1;
+
+      std::vector<double> tmp2 = _json_prop["crystall mesh properties"]["simulation domain dimensions [m]"];
+      domain_length = tmp2;
+    } else {
+      throw std::invalid_argument("must specify \"crystall mesh properties\" in input.json");
+    }
 
     orientation = arma::normalise(orientation);
 

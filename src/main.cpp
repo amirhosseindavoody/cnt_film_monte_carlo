@@ -50,11 +50,10 @@ int main(int argc, char *argv[])
 	}
 	
 	mc::discrete_forster_monte_carlo sim(json_mc);
-	// sim.initialize_scattering_table(cnts[0],cnts[0]);
-
 
 	// initialize and run simulation for the exciton hopping
 	sim.init();
+	sim.save_json_properties();
 
 	std::fstream population_file;
 	std::fstream current_profile_file;

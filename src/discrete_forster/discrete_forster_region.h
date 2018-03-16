@@ -188,8 +188,12 @@ public:
       }
     }
     _number_of_scatterers = _scatterer_vector.size();
-    // std::cout << "scatter list size: " << _scatterer_vector.size() << std::endl;
   };
+
+  // get number of scatterers in the region
+  unsigned number_of_scatterers(){
+    return unsigned(_number_of_scatterers);
+  }
 
   // create a list of all free_flight objects
   void create_pilot_list() 

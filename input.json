@@ -39,14 +39,21 @@
     "exciton monte carlo":{
         "mesh type": "crystalline",
         "mesh input directory": "/Users/amirhossein/research/cnt_mesh_1",
-        "output directory": "/Users/amirhossein/research/exciton_monte_carlo",
+        "output directory": "/Users/amirhossein/research/exciton_monte_carlo_1.5nm",
         "keep old results":true,
         "rate type":"forster",
-        "zshift [m]": [1.5e-9, 10e-9, 10],
-        "axis shift 1 [m]": [-10e-9, 10e-9, 21],
-        "axis shift 2 [m]": [-10e-9, 10e-9, 21],
-        "theta [degrees]": [0, 180, 10],
-        "max hopping radius [m]": 2e-9,
-        "temperature [kelvin]": 300
+        "zshift [m]": [1.5e-9, 10e-9, 100],
+        "axis shift 1 [m]": [-10e-9, 10e-9, 101],
+        "axis shift 2 [m]": [-10e-9, 10e-9, 101],
+        "theta [degrees]": [0, 180, 180],
+        "max hopping radius [m]": 30e-9,
+        "max neighbor search radius [m]": 100e-9,
+        "temperature [kelvin]": 300, 
+        "crystall mesh properties":{
+            "cnt length [m]":10e-9,
+            "cnt spacing [m]":1.5e-9,
+            "cnt orientation":[1,0,0],
+            "simulation domain dimensions [m]": [20e-9,1000e-9,20e-9]
+        }
     }
 }

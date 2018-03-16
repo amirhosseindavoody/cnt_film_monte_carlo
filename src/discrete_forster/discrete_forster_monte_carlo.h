@@ -246,10 +246,10 @@ public:
 
 		initialize_scattering_table();
 
-		double max_search_radius = 40.e-9;
+		double max_search_radius = _json_prop["max neighbor search radius [m]"];
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 
-		find_neighbors(_max_hopping_radius, max_search_radius);
+		find_neighbors(_all_scat_list, _max_hopping_radius, max_search_radius);
 
 		_regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
@@ -263,7 +263,12 @@ public:
 
 
 		_number_of_contact1_particles = 1100;
-		_number_of_contact2_particles = 100;
+		// _number_of_contact1_particles = _regions[0].number_of_scatterers();
+		_number_of_contact2_particles = 0;
+
+		std::cout << "\nnumber of particles in the contact 1: " << _number_of_contact1_particles << "\n"
+							<< "number of particles in the contact 2: " << _number_of_contact2_particles << "\n\n";
+
 		_regions.front().populate(_number_of_contact1_particles);
 		_regions.back().populate(_number_of_contact2_particles);
 
@@ -278,8 +283,16 @@ public:
 
 	};
 
+	// save the json properties that is read and parsed from the input_json file.
+	void save_json_properties() {
+		std::ofstream json_file;
+		json_file.open(_output_directory.path() / "input.json", std::ios::out);
+		json_file << std::setw(4) << _json_prop << std::endl;
+		json_file.close();
+	};
+
 	// find the neighbors of each scattering object
-	void find_neighbors(const double& max_hopping_radius, const double& max_search_radius);
+	void find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius);
 
 	// find minimum of the minimum coordinates of the scattering objects
 	// this function will effectively give us the simulation domain
