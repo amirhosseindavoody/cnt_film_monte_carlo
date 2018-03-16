@@ -18,7 +18,7 @@ private:
 
   std::string _name;
   double _temperature; // temperature of the system to calculate thermal distribution for excitons and other particles
-  double _broadening_factor; // broadening factor used in the lorenzian to simulate dirac delta function
+  double _broadening_factor; // broadening factor  
   std::array<const cnt*,2> _cnts = {nullptr,nullptr}; // array of pointers to the target excitons
 
   enum simulation_mode {ex_trans_vs_angle, ex_trans_vs_zshift, ex_trans_vs_axis_shift_1, ex_trans_vs_axis_shift_2};
