@@ -5,9 +5,15 @@
 #include <stdexcept>
 
 // prepare a directory given by an input string and return the directory_entry object
-inline std::experimental::filesystem::directory_entry prepare_directory(const std::string path, const bool keep_old_files=true)
+inline std::experimental::filesystem::directory_entry prepare_directory(std::string path, const bool keep_old_files=true)
 {
   std::cout << "\n..." << std::endl;
+
+  if (path[0]=='~'){
+    std::string home_dir = getenv("HOME");
+    path.erase(0,1);
+    path = home_dir + path;
+  }
 
   namespace fs = std::experimental::filesystem;
   fs::directory_entry directory;
@@ -59,10 +65,16 @@ inline std::experimental::filesystem::directory_entry prepare_directory(const st
 };
 
 // check a string input to make sure it points to an existing directory and return the directory_entry
-inline std::experimental::filesystem::directory_entry check_directory(const std::string path, bool should_be_empty=false)
+inline std::experimental::filesystem::directory_entry check_directory(std::string path, bool should_be_empty=false)
 {
 
   std::cout << "\n..." << std::endl;
+
+  if (path[0]=='~'){
+    std::string home_dir = getenv("HOME");
+    path.erase(0,1);
+    path = home_dir + path;
+  }
 
   namespace fs = std::experimental::filesystem;
   fs::directory_entry directory;
