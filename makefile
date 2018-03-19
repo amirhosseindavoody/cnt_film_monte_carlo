@@ -6,7 +6,8 @@ OS_NAME=$(shell uname -s)
 
 ifeq ($(OS_NAME),Linux)
 	CFLAGS = -I./ -I./eigen/ -std=c++17
-	LFLAGS = -lm -larmadillo -lblas -llapack -Wl,-rpath=/home/amirhossein/anaconda3/lib/  -lstdc++fs -std=c++17
+	# LFLAGS = -lm -larmadillo -lblas -llapack -Wl,-rpath=/home/amirhossein/anaconda3/lib/  -lstdc++fs -std=c++17
+	LFLAGS = -lm -larmadillo -Wl,-rpath=/home/amirhossein/anaconda3/lib/  -lstdc++fs -std=c++17
 endif
 
 ifeq ($(OS_NAME),Darwin)
