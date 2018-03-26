@@ -11,7 +11,7 @@ Stores all relevant information for a carbon nanotube
 
 #include "constants.h"
 #include "cnt.h"
-#include "progress.hpp"
+#include "../helper/progress.hpp"
 
 void cnt::get_parameters()
 {

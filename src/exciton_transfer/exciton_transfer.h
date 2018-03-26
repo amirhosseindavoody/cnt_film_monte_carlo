@@ -8,7 +8,7 @@
 #include <type_traits>
 
 #include "cnt.h"
-#include "prepare_directory.hpp"
+#include "../helper/prepare_directory.hpp"
 
 class exciton_transfer
 {
@@ -36,7 +36,7 @@ public:
   // constructor
   exciton_transfer(const cnt& cnt1, const cnt& cnt2)
   {
-    _directory = prepare_directory("/Users/amirhossein/research/exciton_transfer",true);
+    _directory = prepare_directory("~/research/exciton_transfer",true);
 
     _cnts = {&cnt1, &cnt2};
     _temperature = 300;

@@ -7,7 +7,7 @@
 #include "exciton_transfer.h"
 #include "cnt.h"
 #include "constants.h"
-#include "progress.hpp"
+#include "../helper/progress.hpp"
 
 // calculate and plot Q matrix element between two exciton bands
 void exciton_transfer::save_Q_matrix_element(const int i_n_principal, const int f_n_principal)
