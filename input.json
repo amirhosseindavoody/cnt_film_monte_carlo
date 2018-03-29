@@ -37,22 +37,22 @@
     },
 
     "exciton monte carlo":{
-        "mesh type": "crystalline",
-        "mesh input directory": "~/research/cnt_mesh_1",
-        "output directory": "~/research/exciton_monte_carlo",
+        "mesh type": "realistic",
+        "mesh input directory": "~/research/cnt_mesh_20_nm_bids_1.5_thick.1",
+        "output directory": "~/research/monte_carlo_davoody_realistic_20_nm_bids_1.5_thick",
         "keep old results":true,
-        "rate type":"forster",
+        "rate type":"davoody",
         "zshift [m]": [1.5e-9, 10e-9, 50],
-        "axis shift 1 [m]": [-10e-9, 10e-9, 51],
-        "axis shift 2 [m]": [-10e-9, 10e-9, 51],
-        "theta [degrees]": [0, 180, 90],
-        "max hopping radius [m]": 30e-9,
+        "axis shift 1 [m]": [-10e-9, 10e-9, 21],
+        "axis shift 2 [m]": [-10e-9, 10e-9, 21],
+        "theta [degrees]": [0, 180, 9],
+        "max hopping radius [m]": 20e-9,
         "max neighbor search radius [m]": 100e-9,
         "temperature [kelvin]": 300, 
         "crystall mesh properties":{
-            "cnt length [m]":10e-9,
-            "cnt spacing [m]":1.5e-9,
-            "cnt orientation":[1,0,0],
+            "cnt length [m]":2e-9,
+            "cnt spacing [m]":2e-9,
+            "cnt orientation":[0,1,0],
             "simulation domain dimensions [m]": [20e-9,1000e-9,20e-9]
         }
     }

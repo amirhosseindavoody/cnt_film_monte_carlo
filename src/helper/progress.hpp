@@ -35,7 +35,7 @@ public:
     _is_silent = is_silent;
     
     if (not _is_silent){
-      std::cout << _title << ":\n";
+      std::cout << _title << ":" << std::endl;
     }
     
   };
@@ -81,12 +81,11 @@ public:
       else if (j == _pos) std::cout << ">";
       else std::cout << " ";
     }
-    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r";
+    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (_i == _i_max)
     {
-      std::cout << "\n";
+      std::cout << std::endl;
     }
-    std::cout.flush();
     _i++;
   };
 
@@ -103,12 +102,11 @@ public:
       else if (j == _pos) std::cout << ">";
       else std::cout << " ";
     }
-    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r";
+    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (i == _i_max)
     {
-      std::cout << "\n";
+      std::cout << std::endl;
     }
-    std::cout.flush();
   };
 
   // constructor without any internal state initialization
@@ -130,8 +128,7 @@ public:
       else if (j == _pos) std::cout << ">";
       else std::cout << " ";
     }
-    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r";
-    std::cout.flush();
+    std::cout << "] " << int((_progress) * 100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (i == i_max-1)
     {
       std::cout << std::endl;
