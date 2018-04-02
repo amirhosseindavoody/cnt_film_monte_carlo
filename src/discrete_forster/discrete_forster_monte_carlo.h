@@ -294,8 +294,7 @@ public:
 	// find the neighbors of each scattering object
 	void find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius);
 
-	// find minimum of the minimum coordinates of the scattering objects
-	// this function will effectively give us the simulation domain
+	// find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the simulation domain
 	std::pair<arma::vec, arma::vec> find_minmax_coordinates()
 	{
 		std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front()->pos(),
@@ -334,12 +333,6 @@ public:
 	// step the simulation in time
 	void step(double dt)
 	{
-
-		// std::cout << std::endl;
-		// std::cout << "_region[0] number of particles: " << _regions[0].number_of_particles() << std::endl;
-		// std::cout << "_region[1] number of particles: " << _regions[1].number_of_particles() << std::endl;
-		// std::cout << "_region[2] number of particles: " << _regions[2].number_of_particles() << std::endl;
-		// std::cin.ignore();
 
 		for (auto&& it=_regions[0].particles().begin(); it!=_regions[0].particles().end(); ++it)
 		{
@@ -386,12 +379,12 @@ public:
 
 		if (_population_probe.history < max_history)
 		{
-			// // open the debug file
-			// if (! debug_file.is_open())
-			// {
-			// 	debug_file.open(_output_directory.path() / "debug.dat", std::ios::out);
-			// 	file << std::showpos << std::scientific;
-			// }
+			// open the debug file
+			if (! debug_file.is_open())
+			{
+				debug_file.open(_output_directory.path() / "debug.dat", std::ios::out);
+				file << std::showpos << std::scientific;
+			}
 
 			mc::discrete_forster_region& bulk = _regions[1];
 
@@ -403,15 +396,15 @@ public:
 				i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk.lower_corner(_population_probe.dim))/_population_probe.dL);
 				if ((i >= _population_probe.number_of_sections) or (i<0))
 				{
-					// debug_file << "index out of bound when making population profile\n";
-					// debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
+					debug_file << "index out of bound when making population profile\n";
+					debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
 
-					// std::cout << "_population_probe.number_of_sections = " << _population_probe.number_of_sections << "\ni = " << i << "\n";
+					std::cout << "_population_probe.number_of_sections = " << _population_probe.number_of_sections << "\ni = " << i << "\n";
 
-					// std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << "\n"
-					// 				  << "bulk limits = [" << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << "]\n"
-					// 					<< "bulk limits - particle position = [" << bulk.lower_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << "]\n";
-					// throw std::range_error("particle is out of bound when calculating population profile");
+					std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << "\n"
+									  << "bulk limits = [" << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << "]\n"
+										<< "bulk limits - particle position = [" << bulk.lower_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << "]\n";
+					throw std::range_error("particle is out of bound when calculating population profile");
 				}
 				else
 				{

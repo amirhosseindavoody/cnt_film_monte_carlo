@@ -42,7 +42,7 @@ public:
 
 		for (unsigned i=0; i<lower_corner.size(); ++i)
 		{
-			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*mc::get_rand_include_zero<mc::t_float>());
+			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*double(std::rand())/double(RAND_MAX));
 		}
 		set_velocity(mc::rand_velocity(beta, mc::elec_mass));
 		set_mass(mass);
@@ -58,7 +58,7 @@ public:
 	{
 		for (unsigned i=0; i<lower_corner.size(); ++i)
 		{
-			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*mc::get_rand_include_zero<mc::t_float>());
+			set_pos(i, lower_corner[i]+(upper_corner[i]-lower_corner[i])*double(std::rand())/double(RAND_MAX));
 		}
 		set_velocity(mc::rand_velocity(beta, mc::elec_mass));
 		kin_energy();

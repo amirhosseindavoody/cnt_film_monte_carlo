@@ -2,7 +2,7 @@
 *.o
 .DS_Store
 
-.vscode
+# .vscode
 *.code-workspace
 
 .ipynb_checkpoints/

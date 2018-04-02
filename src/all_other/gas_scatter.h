@@ -29,10 +29,10 @@ private:
 
 		for (int i=0; i<_num_states; ++i)
 		{
-			temp_element[0] = mc::get_rand_include_zero<mc::t_float>();
+			temp_element[0] = double(std::rand())/double(RAND_MAX);
 			for (unsigned j=1; j<temp_element.size(); ++j)
 			{
-				temp_element[j] = temp_element[j-1] + mc::get_rand_include_zero<mc::t_float>();
+				temp_element[j] = temp_element[j-1] + double(std::rand())/double(RAND_MAX);
 			}
 
 			for (int j=0; j<_num_scat_mech; ++j)
@@ -57,7 +57,7 @@ private:
 	inline mc::t_int get_scat_mechanism(mc::t_float energy) // get the index of the scattering mechanism
 	{
 		mc::t_int state_index = cnvrt_energy_to_state_index(energy);
-		mc::t_float random = mc::get_rand_include_zero<mc::t_float>();
+		mc::t_float random = double(std::rand())/double(RAND_MAX);
 		mc::t_int scat_mechanism = 0;
 		for (mc::v1d::iterator it=_scat_table[state_index].begin(); it!=_scat_table[state_index].end(); ++it)
 		{
@@ -150,14 +150,14 @@ public:
 		mc::t_float new_energy = p->kin_energy();
 		if (new_energy > max_energy) // renormalize energy if the electron has too much energy
 		{
-			new_energy = -(3./2.*0.025*mc::eV)*std::log(mc::get_rand_include_zero<mc::t_float>());
+			new_energy = -(3./2.*0.025*mc::eV)*std::log(double(std::rand())/double(RAND_MAX));
 		}
 		mc::t_float velocity_magnitude = std::sqrt(new_energy*2./mc::elec_mass);
 
 
 		// get uniformly distribution direction
-		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
-		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
+		mc::t_float theta = std::acos(1.-2.*double(std::rand())/double(RAND_MAX));
+		mc::t_float phi = 2.*mc::pi*double(std::rand())/double(RAND_MAX));
 		p->set_velocity({velocity_magnitude*std::sin(theta)*std::cos(phi), velocity_magnitude*std::sin(theta)*std::sin(phi), velocity_magnitude*std::cos(theta)});
 	};
 

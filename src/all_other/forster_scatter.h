@@ -31,8 +31,8 @@ public:
 	inline void update_state(mc::particle* p) // update the final state of the particle
 	{
 		// get uniformly distribution direction
-		mc::t_float theta = std::acos(1.-2.*mc::get_rand_include_zero<mc::t_float>());
-		mc::t_float phi = 2.*mc::pi*mc::get_rand_include_zero<mc::t_float>();
+		mc::t_float theta = std::acos(1.-2.*double(std::rand())/double(RAND_MAX));
+		mc::t_float phi = 2.*mc::pi*double(std::rand())/double(RAND_MAX);
 		mc::t_float radius = _min_radius/std::cbrt(mc::get_rand_exclude_zero<mc::t_float>());
 		mc::arr1d new_pos = {p->pos(0)+radius*std::sin(theta)*std::cos(phi), p->pos(1)+radius*std::sin(theta)*std::sin(phi), p->pos(2)+radius*std::cos(theta)};
 		p->set_pos(new_pos);

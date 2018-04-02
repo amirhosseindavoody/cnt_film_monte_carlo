@@ -19,7 +19,7 @@ private:
   arma::vec _lower_corner; // coordinate of the lower corner of the region
   arma::vec _upper_corner; // coordinate of the upper corner or the region
   double _volume; // volume of the region
-  double _number_of_scatterers;
+  unsigned _number_of_scatterers;
 
   int _particle_flow_log; // this is the net number of particles flowing in (positive) or out (negative) of the region, the first component is the particle flow, the second number is the history.
 
@@ -140,7 +140,7 @@ public:
   	auto it = _particles.begin();
   	while(count < number_of_particles)
   	{
-      dice = (_number_of_scatterers*mc::get_rand_include_zero<double>());
+      dice = std::rand()%_number_of_scatterers;
   		if (it!= _particles.end())
   		{
         (*it)->set_pos(_scatterer_vector[dice]->pos());

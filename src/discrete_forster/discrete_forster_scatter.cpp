@@ -8,7 +8,7 @@ namespace mc
 {
 	void discrete_forster_scatter::update_state(discrete_forster_particle* p) // update the final state of the particle
 	{
-		mc::t_float dice = _max_rate*mc::get_rand_include_zero<mc::t_float>();
+		mc::t_float dice = _max_rate*double(std::rand())/double(RAND_MAX);
 		auto it = _neighbors.begin();
 		auto last = std::prev(_neighbors.end());
 

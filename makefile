@@ -1,5 +1,6 @@
 CC=g++-7
 CC+= -O3 -Wall
+# CC+= -O0 -g -Wall # for debuging using gdb
 
 OS_NAME=$(shell uname -s)
 
