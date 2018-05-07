@@ -66,8 +66,7 @@ private:
 	population_profile _population_probe; // this is the population profile of particles through the simulation domain along the z-axis
 
 	// struct to bundle information about scattering rate on discrete mesh points that are calculated through an arbitrary scattering mechanism
-	struct scattering_struct
-	{
+	struct scattering_struct {
 		// default constructor
 		scattering_struct() {};
 
@@ -110,8 +109,7 @@ public:
 	discrete_forster_monte_carlo()=delete;
 	
 	// constructure with json input file
-	discrete_forster_monte_carlo(const nlohmann::json& j)
-	{
+	discrete_forster_monte_carlo(const nlohmann::json& j) {
 		// store the json properties for use in other methods
 		_json_prop = j;
 
@@ -204,8 +202,7 @@ public:
 	};
 
 	//initialize the simulation condition
-	void init()
-	{
+	void init() {
 		// depending on the mesh type create the scatterer objects that determine the all particles
 		if (_json_prop.count("mesh type")){
 			std::string mesh_type = _json_prop["mesh type"];
@@ -227,7 +224,7 @@ public:
 
 		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
 
-		_domain = find_minmax_coordinates();
+		_domain = find_simulation_domain();
 
 		double x_min = (_domain.first)(0);
 		double x_max = (_domain.second)(0);
@@ -252,7 +249,8 @@ public:
 		double max_search_radius = _json_prop["max neighbor search radius [m]"];
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 
-		find_neighbors(_all_scat_list, _max_hopping_radius, max_search_radius);
+		// find_neighbors(_all_scat_list, _max_hopping_radius, max_search_radius);
+    find_neighbors_using_bucket(_all_scat_list, _max_hopping_radius);
 
 		_regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
@@ -297,40 +295,40 @@ public:
 	// find the neighbors of each scattering object
 	void find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius);
 
+  void find_neighbors_using_bucket(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double max_hopping_radius);
+
 	// find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the simulation domain
-	std::pair<arma::vec, arma::vec> find_minmax_coordinates()
-	{
-		std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front()->pos(),
+	std::pair<arma::vec, arma::vec> find_simulation_domain() {
+		
+    arma::vec min_coor = _all_scat_list.front()->pos();
+    arma::vec max_coor = _all_scat_list.front()->pos();
+
+    std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front()->pos(),
 																											 _all_scat_list.front()->pos());
 
-		for (auto it=_all_scat_list.begin(); it != _all_scat_list.end(); ++it)
-		{
-
-
-			for (int i=0; i<3; ++i)
-			{
-				if ((minmax_coordinates.first)(i) > (*it)->pos(i))
-				{
-					(minmax_coordinates.first)(i) = (*it)->pos(i);
+    for (const auto& s: _all_scat_list) {
+			for (int i=0; i<3; ++i) {
+				if (min_coor(i) > s->pos(i)) {
+					min_coor(i) = s->pos(i);
 				}
 
-				if ((minmax_coordinates.second)(i) < (*it)->pos(i))
-				{
-					(minmax_coordinates.second)(i) = (*it)->pos(i);
-				}
+        if (max_coor(i) < s->pos(i)) {
+					max_coor(i) = s->pos(i);
+        }
 			}
 		}
+    
 
 		std::ios::fmtflags f(std::cout.flags()); // save cout flags to be reset after printing
 
 		std::cout << "\n simulation domain:\n";
-		std::cout << "    x (" << std::fixed << std::showpos << (minmax_coordinates.first)(0)*1e9 << " , " << (minmax_coordinates.second)(0)*1e9 << ") [nm]\n";
-		std::cout << "    y (" << std::fixed << (minmax_coordinates.first)(1)*1e9 << " , " << (minmax_coordinates.second)(1)*1e9 << ") [nm]\n";
-		std::cout << "    z (" << std::fixed << (minmax_coordinates.first)(2)*1e9 << " , " << (minmax_coordinates.second)(2)*1e9 << ") [nm]\n";
+		std::cout << "    x (" << std::fixed << std::showpos << min_coor(0)*1e9 << " , " << max_coor(0)*1e9 << ") [nm]\n";
+		std::cout << "    y (" << std::fixed << min_coor(1)*1e9 << " , " << max_coor(1)*1e9 << ") [nm]\n";
+		std::cout << "    z (" << std::fixed << min_coor(2)*1e9 << " , " << max_coor(2)*1e9 << ") [nm]\n";
 
 		std::cout.flags(f); // reset the cout flags
 
-		return minmax_coordinates;
+		return {min_coor, max_coor};
 	};
 
 	// step the simulation in time
@@ -370,8 +368,7 @@ public:
 	};
 
 	// calculate and save the population profile
-	void population_profiler(const unsigned& max_history, std::fstream& file, std::fstream& debug_file)
-	{
+	void population_profiler(const unsigned& max_history, std::fstream& file, std::fstream& debug_file) {
 
 		if (_population_probe.history < max_history)
 		{
@@ -437,8 +434,7 @@ public:
 	};
 
 	// save the net currents for each region calculated by counting in and out flow of particles in each contact
-	void save_region_current(const unsigned& max_history, std::fstream& current_file, const double& time_step)
-	{
+	void save_region_current(const unsigned& max_history, std::fstream& current_file, const double& time_step) {
 		if ( _history_of_region_currents < max_history)
 		{
 			_history_of_region_currents += 1;
@@ -469,8 +465,7 @@ public:
 	};
 
 	// read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
-	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path)
-	{
+	void create_scatterers_with_orientation(const std::experimental::filesystem::path& input_path, const std::experimental::filesystem::path& output_path) {
 
 		std::cout << "this is the input path: " << input_path << std::endl;
 		std::ifstream file;
@@ -594,8 +589,7 @@ public:
 	scattering_struct create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt);
 
   // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
-  void create_scatterer_from_fiber(const std::experimental::filesystem::path &input_path)
-  {
+  void create_scatterer_from_fiber(const std::experimental::filesystem::path &input_path) {
 
     std::cout << "this is the input path: " << input_path << std::endl;
     std::string line;
@@ -615,12 +609,13 @@ public:
     pos_file.close();
     orient_file.close();
 
+
     for (unsigned i=0; i<pos.n_rows; ++i) {
       _all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
       _all_scat_list.back()->set_pos(pos.row(i).t());
       _all_scat_list.back()->set_orientation(orient.row(i).t());
     }
-
+    
   };
 
 }; // end class discrete_forster_monte_carlo

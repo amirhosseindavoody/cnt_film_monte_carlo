@@ -33,7 +33,7 @@ public:
   discrete_forster_region() {};
 
   // set boarders of the region
-  void set_borders(const arma::vec& lower_corner, const arma::vec& upper_corner) 
+  void set_borders(const arma::vec& lower_corner, const arma::vec& upper_corner)
   {
     if (arma::any(lower_corner > upper_corner)) {
       throw std::out_of_range("invalid region definition: lower corner is larger than the upper corner!");
@@ -43,17 +43,17 @@ public:
   	_upper_corner = upper_corner;
 
   	_volume = arma::prod(_upper_corner-_lower_corner);
-  	
+
   };
 
   // decrease the net particle flow by one
-  void loose_particle() 
+  void loose_particle()
   {
     _particle_flow_log -= 1;
   };
 
   // increase the net particle flow by one
-  void get_particle() 
+  void get_particle()
   {
     _particle_flow_log += 1;
   };
@@ -69,11 +69,9 @@ public:
   }
 
   // add a particle to the _particles list if the particle is in the region region
-  bool enlist(std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator& particle_iterator, discrete_forster_region& other_region) 
-  {
+  bool enlist(std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator& particle_iterator, discrete_forster_region& other_region) {
   	bool is_in_region = in_region(*(*particle_iterator));
-  	if (is_in_region)
-  	{
+  	if (is_in_region) {
   		auto prev_iterator = std::prev(particle_iterator,1); // get the iterator of the previous particle from the other region particle list
   		_new_particles.splice(_new_particles.end(), other_region.particles(), particle_iterator);
   		particle_iterator = prev_iterator; // now the particle iterator is the previous particle from the other region particle list
@@ -84,50 +82,49 @@ public:
   };
 
   // checks if a coordinate is inside the region
-  bool in_region(const arma::vec& pos) 
+  bool in_region(const arma::vec& pos)
   {
     return (arma::all(pos>=_lower_corner) && arma::all(pos<=_upper_corner));
   };
 
   // checks if a particle is inside the region
-  bool in_region(const mc::discrete_forster_particle& p) 
+  bool in_region(const mc::discrete_forster_particle& p)
   {
     return (arma::all(p.pos()>=_lower_corner) && arma::all(p.pos()<=_upper_corner));
   };
 
   // gives the number of particles
-  unsigned number_of_particles() const
-  {
+  unsigned number_of_particles() const {
     return _particles.size() + _new_particles.size();
   };
 
   // gives an element of the _lower_corner
-  const double& lower_corner(unsigned i) const 
+  const double& lower_corner(unsigned i) const
   {
     return _lower_corner(i);
   };
 
   // gives _lower_corner
-  const arma::vec& lower_corner() const 
+  const arma::vec& lower_corner() const
   {
     return _lower_corner;
   };
 
 
   // gives an element of the _upper_corner
-  const double& upper_corner(unsigned i) const 
+  const double& upper_corner(unsigned i) const
   {
     return _upper_corner[i];
   };
 
   // gives _upper_corner
-  const arma::vec& upper_corner() const 
+  const arma::vec& upper_corner() const
   {
     return _upper_corner;
   };
 
   // populate the region with a certain number of particles
-  void populate(const unsigned& number_of_particles) 
+  void populate(const unsigned& number_of_particles)
   {
     // create the new particles by updating the previous particles and adding new ones or deleting the excess ones
     dump_new_particles();
@@ -158,25 +155,25 @@ public:
   };
 
   // dump _new_particles into _particles list
-  void dump_new_particles() 
+  void dump_new_particles()
   {
   	_particles.splice(_particles.end(),_new_particles);
   };
 
   // return _particles list
-  std::list<std::unique_ptr<mc::discrete_forster_particle>>& particles() 
+  std::list<std::unique_ptr<mc::discrete_forster_particle>>& particles()
   {
   	return _particles;
   };
 
   // get volume of the region
-  const double& volume() const 
+  const double& volume() const
   {
     return _volume;
   };
 
   // create a list of all scatterers that are inside this region
-  void create_scatterer_vector(const std::list<std::shared_ptr<mc::discrete_forster_scatter>>& all_scat_list) 
+  void create_scatterer_vector(const std::list<std::shared_ptr<mc::discrete_forster_scatter>>& all_scat_list)
   {
     for (const auto& scat : all_scat_list)
     {
@@ -194,7 +191,7 @@ public:
   }
 
   // create a list of all free_flight objects
-  void create_pilot_list() 
+  void create_pilot_list()
   {
     _pilot_list.push_back(std::make_shared<mc::discrete_forster_free_flight>());
   };
