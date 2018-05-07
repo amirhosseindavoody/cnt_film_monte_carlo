@@ -315,7 +315,10 @@ namespace mc
     return scatterer_list;
   };
 
-  // find the neighbors of each scattering object
+  // find the neighbors of each scattering object using segmentation method,
+  // first divide the scattering objects into multiple buckets based on their
+  // position in x-z plane, and then search for the neighbor pairs by search only
+  // through the neighboring buckets.
   void discrete_forster_monte_carlo::find_neighbors_using_bucket(
       std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list,
       const double max_hopping_radius) {
