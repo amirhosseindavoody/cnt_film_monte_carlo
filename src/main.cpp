@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	nlohmann::json json_mc = j["exciton monte carlo"];
 
 	// if exciton transfer type is davoody get cnt json information and add it to json_mc
-	if (std::string(j["exciton monte carlo"]["rate type"]) == "davoody"){
+	if (j["exciton monte carlo"]["rate type"].get<std::string>() == "davoody"){
 		json_mc["cnts"] = j["cnts"];
 	}
 

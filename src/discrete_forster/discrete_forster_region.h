@@ -7,7 +7,7 @@
 #include <list>
 
 #include "../helper/utility.h"
-#include "discrete_forster_particle.h"
+#include "./discrete_forster_particle.h"
 
 namespace mc
 {
@@ -59,14 +59,12 @@ public:
   };
 
   // read the net particle flow
-  const int& particle_flow() const 
-  {
+  const int& particle_flow() const {
     return _particle_flow_log;
   };
 
   // reset the particle flow counter to zero.
-  void reset_particle_flow() 
-  {
+  void reset_particle_flow() {
     _particle_flow_log = 0;
   }
 
@@ -88,13 +86,13 @@ public:
   // checks if a coordinate is inside the region
   bool in_region(const arma::vec& pos) 
   {
-    return (arma::all(pos>=_lower_corner) and arma::all(pos<=_upper_corner));
+    return (arma::all(pos>=_lower_corner) && arma::all(pos<=_upper_corner));
   };
 
   // checks if a particle is inside the region
   bool in_region(const mc::discrete_forster_particle& p) 
   {
-    return (arma::all(p.pos()>=_lower_corner) and arma::all(p.pos()<=_upper_corner));
+    return (arma::all(p.pos()>=_lower_corner) && arma::all(p.pos()<=_upper_corner));
   };
 
   // gives the number of particles

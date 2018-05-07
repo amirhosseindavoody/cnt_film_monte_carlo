@@ -1,20 +1,20 @@
-CC=g++-7
-CC+= -O3 -Wall
-# CC+= -O0 -g -Wall # for debuging using gdb
 
 OS_NAME=$(shell uname -s)
 
-
-
 ifeq ($(OS_NAME),Linux)
+	CC=g++-7
 	CFLAGS = -I./ -I./eigen/ -std=c++17
 	LFLAGS = -lm -larmadillo -Wl,-rpath=/home/amirhossein/anaconda3/lib/  -lstdc++fs -std=c++17
 endif
 
 ifeq ($(OS_NAME),Darwin)
+	CC=g++-8
 	CFLAGS = -I./ -I./eigen/ -std=c++17
 	LFLAGS = -lm -larmadillo  -lstdc++fs -std=c++17
 endif
+
+CC+= -O3 -Wall
+# CC+= -O0 -g -Wall # for debuging using gdb
 
 SRCDIR = ./src/*.cpp ./src/exciton_transfer/*.cpp ./src/discrete_forster/*.cpp ./src/helper/*.cpp
 OBJDIR = ./obj

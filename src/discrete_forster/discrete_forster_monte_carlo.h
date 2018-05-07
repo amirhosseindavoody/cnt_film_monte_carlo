@@ -141,16 +141,16 @@ public:
 		if (j.count("rate type") == 0){
 			throw std::invalid_argument("\"rate type\" must be specifieced and must be one of the following: \"davoody\", \"forster\", \"wong\"");
 		}
-		if (std::string(j["rate type"]) == "davoody"){
+
+    // std::string(j["rate type"])
+
+    if (j["rate type"].get<std::string>() == "davoody"){
 			_scat_t = davoody;
-		}
-		else if (std::string(j["rate type"]) == "forster"){
+		} else if (j["rate type"].get<std::string>() == "forster"){
 			_scat_t = forster;
-		}
-		else if (std::string(j["rate type"]) == "wong"){
+		} else if (j["rate type"].get<std::string>() == "wong"){
 			_scat_t = wong;
-		}
-		else{
+		} else{
 			throw std::invalid_argument("\"rate type\" must be specifieced and must be one of the following: \"davoody\", \"forster\", \"wong\"");
 		}
 
@@ -214,7 +214,10 @@ public:
 			}
 			else if (_json_prop["mesh type"] == "realistic"){
 				create_scatterers_with_orientation(input_directory().path(), output_directory().path());
-			}
+      } 
+      else if (_json_prop["mesh type"] == "fiber"){
+        create_scatterer_from_fiber(input_directory().path());
+      }
 			else {
 				throw std::invalid_argument("specify mesh type in input json");
 			}
@@ -331,34 +334,28 @@ public:
 	};
 
 	// step the simulation in time
-	void step(double dt)
-	{
+	void step(double dt) {
 
-		for (auto&& it=_regions[0].particles().begin(); it!=_regions[0].particles().end(); ++it)
-		{
+		for (auto&& it=_regions[0].particles().begin(); it!=_regions[0].particles().end(); ++it) {
 			(*it)->step(dt,_domain);
 			_regions[1].enlist(it,_regions[0]);
 		}
 
 
-		for (auto&& it=_regions[2].particles().begin(); it!=_regions[2].particles().end(); ++it)
-		{
+		for (auto&& it=_regions[2].particles().begin(); it!=_regions[2].particles().end(); ++it) {
 			(*it)->step(dt,_domain);
 			_regions[1].enlist(it,_regions[2]);
 		}
 
-		for (auto&& it=_regions[1].particles().begin(); it!=_regions[1].particles().end(); ++it)
-		{
+		for (auto&& it=_regions[1].particles().begin(); it!=_regions[1].particles().end(); ++it) {
 			(*it)->step(dt,_domain);
-			if (not _regions[2].enlist(it,_regions[1]))
-			{
+			if (not _regions[2].enlist(it,_regions[1])) {
 				_regions[0].enlist(it,_regions[1]);
 			}
 		}
 
 		// dump the new particles into the particles list in each region
-		for (auto&& m_region: _regions)
-		{
+		for (auto&& m_region: _regions) {
 			m_region.dump_new_particles();
 		}
 
@@ -367,8 +364,7 @@ public:
 	};
 
 	// repopulate contacts
-	void repopulate_contacts()
-	{
+	void repopulate_contacts() {
 		_regions.front().populate(_number_of_contact1_particles);
 		_regions.back().populate(_number_of_contact2_particles);
 	};
@@ -553,22 +549,16 @@ public:
 						i++;
 					}
 
-					for (unsigned i=0; i<tube_coordinates.n_rows; i++)
-					{
+					for (unsigned i=0; i<tube_coordinates.n_rows; i++) {
 						arma::rowvec pos1;
 						arma::rowvec pos2;
-						if (i==0)
-						{
+						if (i==0) {
 							pos1 = tube_coordinates.row(i);
 							pos2 = tube_coordinates.row(i+1);
-						}
-						else if(i==(tube_coordinates.n_rows-1))
-						{
+						} else if(i==(tube_coordinates.n_rows-1)) {
 							pos1 = tube_coordinates.row(i-1);
 							pos2 = tube_coordinates.row(i);
-						}
-						else
-						{
+						} else {
 							pos1 = tube_coordinates.row(i-1);
 							pos2 = tube_coordinates.row(i+1);
 						}
@@ -603,6 +593,35 @@ public:
 	// method to calculate scattering rate via davoody et al. method
 	scattering_struct create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt);
 
+  // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage particle hopping between the sites
+  void create_scatterer_from_fiber(const std::experimental::filesystem::path &input_path)
+  {
+
+    std::cout << "this is the input path: " << input_path << std::endl;
+    std::string line;
+
+    std::ifstream pos_file;
+    pos_file.open(input_path/"single_cnt.pos.dat");
+    std::ifstream orient_file;
+    orient_file.open(input_path/"single_cnt.orient.dat");
+
+    arma::mat pos;
+    pos.load(pos_file);
+    pos *= 1.e-9;
+
+    arma::mat orient;
+    orient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    for (unsigned i=0; i<pos.n_rows; ++i) {
+      _all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
+      _all_scat_list.back()->set_pos(pos.row(i).t());
+      _all_scat_list.back()->set_orientation(orient.row(i).t());
+    }
+
+  };
 
 }; // end class discrete_forster_monte_carlo
 
