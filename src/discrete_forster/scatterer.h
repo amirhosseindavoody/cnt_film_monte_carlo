@@ -1,5 +1,5 @@
-#ifndef discrete_forster_scatter_h
-#define discrete_forster_scatter_h
+#ifndef scatterer_h
+#define scatterer_h
 
 #include <iostream>
 #include <array>
@@ -14,19 +14,18 @@
 
 #include "../helper/utility.h"
 
-#include "discrete_forster_particle.h"
+#include "./discrete_forster_particle.h"
 
 namespace mc
 {
 
-class discrete_forster_scatter
+class scatterer
 {
-  struct neighbor
-  {
-    neighbor(std::shared_ptr<discrete_forster_scatter> m_scatterer, double m_distance, double m_rate):
-      scatterer(m_scatterer), distance(m_distance), rate(m_rate)
-    {};
-    std::shared_ptr<discrete_forster_scatter> scatterer;
+  struct neighbor {
+    neighbor(std::shared_ptr<scatterer> s, double d,
+             double rate)
+        : s_ptr(s), distance(d), rate(d){};
+    std::shared_ptr<scatterer> s_ptr;
     double distance;
     double rate;
   };
@@ -36,90 +35,83 @@ private:
 	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	arma::vec _pos; // position of the scatterer
   arma::vec _orientation; // orientation of the scattering object site
-  std::list<discrete_forster_scatter::neighbor> _neighbors;
+  std::list<scatterer::neighbor> _neighbors;
+  // std::vector<std::list<std::shared_ptr<scatterer>>> close
 
 public:
 
 	// default constructor
-	discrete_forster_scatter()
-  {};
+  scatterer(){};
 
   // set position of the scatterer
-  void set_pos(const arma::vec& position)
-	{
-		_pos = position;
-	};
+  void set_pos(const arma::vec& position) {
+    _pos = position;
+  };
 
   // set a component of the scatterer position
-  void set_pos(const unsigned& i, const double& value)
-	{
-		_pos(i) = value;
-	};
+  void set_pos(const unsigned& i, const double& value) {
+    _pos(i) = value;
+  };
 
   // get position of the scatterer
-  const arma::vec& pos() const
-	{
-		return _pos;
-	};
+  const arma::vec& pos() const {
+    return _pos;
+  };
+
   // get i'th component of position of the scatterer
-  const double& pos(const unsigned& i) const
-	{
-		return _pos(i);
-	};
+  const double& pos(const unsigned& i) const {
+    return _pos(i);
+  };
+
   // set the orientation of the scatterer object
-  void set_orientation(const arma::vec& m_orientation)
-  {
-    _orientation = m_orientation;
+  void set_orientation(const arma::vec& m_orientation) {
+   _orientation = m_orientation;
   };
 
   // set the i'th element of the orientation of the scatterer object
-  void set_orientation(const mc::t_uint& i, const double& value)
-  {
+  void set_orientation(const mc::t_uint& i, const double& value) {
     _orientation(i) = value;
   };
 
   // get the orientation of the scatterer object
-  const arma::vec& orientation() const
-  {
+  const arma::vec& orientation() const {
     return _orientation;
   };
 
   // get the i'th element of the orientation of the scatterer object
-  const double& orientation(const unsigned& i) const
-  {
+  const double& orientation(const unsigned& i) const {
     return _orientation(i);
   };
 
   // get random free flight time
-  double ff_time() const
-	{
-		return -_inverse_max_rate*std::log(mc::get_rand_exclude_zero<double>());
+  double ff_time() const {
+    int r;
+    while ((r = rand()) == 0) {
+    }
+  
+    return -_inverse_max_rate * std::log(double(r)/double(RAND_MAX));
 	};
 
 	// update the final state of the particle
 	void update_state(discrete_forster_particle* p);
 
 	// add a scattering object and its distance to the neighbors list
-	void add_neighbor(const std::shared_ptr<mc::discrete_forster_scatter>& neighbor_ptr, const double& distance, const double& rate)
-	{
+	void add_neighbor(const std::shared_ptr<scatterer>& neighbor_ptr, const double& distance, const double& rate) {
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
 	};
 
   // get the number of neighbors
-  mc::t_uint number_of_neighbors()
-	{
+  mc::t_uint number_of_neighbors() {
 		return _neighbors.size();
 	};
 
   // sort neighbors in the ascending order of distances
-  void sort_neighbors()
-	{
+  void sort_neighbors() {
     _neighbors.sort([](const auto& n1, const auto& n2){return n1.distance < n2.distance;});
 	};
 
   // make a cumulative scattering rate table
-  void make_cumulative_scat_rate()
-	{
+  void make_cumulative_scat_rate() {
 		_max_rate = 0;
 		for (auto& neighbor: _neighbors)
 		{
@@ -130,8 +122,7 @@ public:
 	};
 
   // print neighbor distances
-  void print_neighbor_distances()
-	{
+  void print_neighbor_distances() {
 		std::cout << "...neighbor distances: ";
 		for (const auto& neighbor : _neighbors)
 		{
@@ -141,8 +132,7 @@ public:
 	};
 
   // print neighbor rates
-  void print_neighbor_rates()
-	{
+  void print_neighbor_rates() {
 		std::cout << "...neighbor rates: ";
 		for (const auto& neighbor : _neighbors)
 		{
@@ -152,34 +142,30 @@ public:
 	};
 
   // return closest neighbor distance
-  double closest_neighbor()
-  {
-    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
-    {
+  double closest_neighbor() {
+    auto cmp_neighbor = [](const scatterer::neighbor& n1,
+                           const scatterer::neighbor& n2) {
       return n1.distance < n2.distance;
     };
     return std::min_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
 
   // return farthest neighbor distance
-  double farthest_neighbor()
-  {
-    auto cmp_neighbor = [](const mc::discrete_forster_scatter::neighbor& n1, const mc::discrete_forster_scatter::neighbor& n2)
-    {
+  double farthest_neighbor() {
+    auto cmp_neighbor = [](const scatterer::neighbor& n1,
+                           const scatterer::neighbor& n2) {
       return n1.distance < n2.distance;
     };
     return std::max_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
   };
 
   // return the maximum scattering rate
-  const double& max_rate() const
-  {
+  const double& max_rate() const {
     return _max_rate;
   };
 
-}; // end class discrete_forster_scatter
-
+};  // end class scatterer
 
 } // end namespace mc
 
-#endif // discrete_forster_scatter_h
+#endif  // scatterer_h

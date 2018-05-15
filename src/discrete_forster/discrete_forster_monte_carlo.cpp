@@ -68,7 +68,7 @@ namespace mc
 
     auto theta_prop = _json_prop["theta [degrees]"];
     arma::vec theta = arma::linspace<arma::vec>(theta_prop[0], theta_prop[1], theta_prop[2])*(constants::pi/180);
-    
+
     arma::field<arma::cube> rate(theta.n_elem);
     rate.for_each([&](arma::cube& c){c.zeros(z_shift.n_elem, axis_shift_1.n_elem, axis_shift_2.n_elem);});
 
@@ -93,7 +93,7 @@ namespace mc
           {
             prog.step();
             rate(i_th)(i_zsh,i_ash1,i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
-            
+
             if (rate(i_th)(i_zsh,i_ash1,i_ash2) > max_rate) {
               max_rate = rate(i_th)(i_zsh,i_ash1,i_ash2);
             }
@@ -131,7 +131,7 @@ namespace mc
 
     auto theta_prop = _json_prop["theta [degrees]"];
     arma::vec theta = arma::linspace<arma::vec>(theta_prop[0], theta_prop[1], theta_prop[2])*(constants::pi/180);
-    
+
     arma::field<arma::cube> rate(theta.n_elem);
     rate.for_each([&](arma::cube& c){c.zeros(z_shift.n_elem, axis_shift_1.n_elem, axis_shift_2.n_elem);});
 
@@ -170,8 +170,9 @@ namespace mc
   };
 
   // find the neighbors of each scattering object
-	void discrete_forster_monte_carlo::find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius) {
-
+  void discrete_forster_monte_carlo::find_neighbors(
+      std::list<std::shared_ptr<scatterer>>& scat_list,
+      const double& max_hopping_radius, const double& max_search_radius) {
     std::cout << "finding neighbors in scatterers list:\n";
 
 		// sort scattering objects to have better performance
@@ -237,25 +238,34 @@ namespace mc
 
 			if (counter %1000 == 0)
 			{
-				std::cout << "scatterer number:" << counter << " ... average number of neighbors:" << (avg_number_of_neighbors/another_counter) << " ... average max rate = " << avg_max_rate/another_counter << "                     \r" << std::flush;
-				avg_max_rate = 0;
-				avg_number_of_neighbors = 0;
-				another_counter = 0;
+        std::cout
+            << "scatterer number:" << counter
+            << " ... average number of neighbors:"
+            << (avg_number_of_neighbors / another_counter)
+            << " ... average max rate = "
+            << avg_max_rate / another_counter
+            << "                     \r" << std::flush;
+        avg_max_rate = 0;
+        avg_number_of_neighbors = 0;
+        another_counter = 0;
 			}
 
 		}
 
-		std::cout << "\n\nfinished finding neighbors:\n" 
-              << "total number of neighbor pairs: " << total_number_of_neighbors << "\n"
-              << "average number of neighbors per scatterer: " << (2*total_number_of_neighbors)/scat_list.size() << "\n\n";
-	};
+    std::cout << "\n\nfinished finding neighbors:\n"
+              << "total number of neighbor pairs: "
+              << total_number_of_neighbors << "\n"
+              << "average number of neighbors per scatterer: "
+              << (2 * total_number_of_neighbors) / scat_list.size()
+              << "\n\n";
+  };
 
   // create a crystalline mesh structure
-	std::list<std::shared_ptr<discrete_forster_scatter>> discrete_forster_monte_carlo::create_crystalline_structure()
+	std::list<std::shared_ptr<scatterer>> discrete_forster_monte_carlo::create_crystalline_structure()
   {
     std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
 
-    std::list<std::shared_ptr<discrete_forster_scatter>> scatterer_list;
+    std::list<std::shared_ptr<scatterer>> scatterer_list;
 
     arma::vec domain_length;
     arma::vec orientation;
@@ -265,7 +275,7 @@ namespace mc
     if (_json_prop.count("crystall mesh properties")){
       cnt_length = _json_prop["crystall mesh properties"]["cnt length [m]"];
       cnt_spacing = _json_prop["crystall mesh properties"]["cnt spacing [m]"];
-      
+
       std::vector<double> tmp1 = _json_prop["crystall mesh properties"]["cnt orientation"];
       orientation = tmp1;
 
@@ -305,7 +315,7 @@ namespace mc
         for (unsigned iz=0; iz<=n_tubes(2); iz++){
           double z = iz*dr(2);
 
-          scatterer_list.push_back(std::make_shared<discrete_forster_scatter>());
+          scatterer_list.push_back(std::make_shared<scatterer>());
           scatterer_list.back()->set_pos({x,y,z});
           scatterer_list.back()->set_orientation(orientation);
         }
@@ -320,13 +330,17 @@ namespace mc
   // position in x-z plane, and then search for the neighbor pairs by search only
   // through the neighboring buckets.
   void discrete_forster_monte_carlo::find_neighbors_using_bucket(
-      std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list,
+      std::list<std::shared_ptr<scatterer>>& scat_list,
       const double max_hopping_radius) {
     std::cout << "finding neighbors in scatterers list using buckets:\n";
 
     double xmin = (_domain.first)(0);
     double xmax = (_domain.second)(0);
-    int nx = std::ceil((xmax - xmin)/max_hopping_radius);
+    int nx = std::ceil((xmax - xmin)/max_hopping_radius)+1;
+
+    double ymin = (_domain.first)(1);
+    double ymax = (_domain.second)(1);
+    int ny = std::ceil((ymax - ymin) / max_hopping_radius)+1;
 
     double zmin = (_domain.first)(2);
     double zmax = (_domain.second)(2);
@@ -334,20 +348,25 @@ namespace mc
 
 
     std::cout << "xmin:" << xmin << " , xmax:" << xmax << "\n";
+    std::cout << "ymin:" << ymin << " , ymax:" << ymax << "\n";
     std::cout << "zmin:" << zmin << " , zmax:" << zmax << "\n";
-    std::cout << "nx:" << nx << " , nz:" << nz << "\n";
+    std::cout << "nx:" << nx << " , ny:" << ny << " , nz:" << nz << "\n";
 
-    typedef std::shared_ptr<discrete_forster_scatter> s_ptr;
-    std::vector<std::vector<std::list<s_ptr>>> grid(nx, std::vector<std::list<s_ptr>>(nz, std::list<s_ptr>()));
+    typedef std::shared_ptr<scatterer> s_ptr;
+    std::vector<std::vector<std::vector<std::list<s_ptr>>>> grid(
+        nx, std::vector<std::vector<std::list<s_ptr>>>(
+                ny, std::vector<std::list<s_ptr>>(nz, std::list<s_ptr>())));
 
     for (s_ptr& s: scat_list){
       int ix = (s->pos(0)-xmin)/max_hopping_radius;
+      int iy = (s->pos(1)-ymin)/max_hopping_radius;
       int iz = (s->pos(2)-zmin)/max_hopping_radius;
-      grid[ix][iz].push_back(s);
+      grid[ix][iy][iz].push_back(s);
     }
 
-    // a local reference to the scattering table since we cannot access class members via capture by reference in lambda function
-    scattering_struct& scat_tab_ptr = _scat_table;
+    // a local reference to the scattering table since we cannot access class
+    // members via capture by reference in lambda function
+    scattering_struct* scat_tab_ptr = &_scat_table;
     auto find_pairs = [&max_hopping_radius, &scat_tab_ptr](std::list<s_ptr>& l1, std::list<s_ptr>& l2) {
       double cosTheta, theta, y1, y2, sin2Theta, axis_shift_1, axis_shift_2, z_shift;
 
@@ -377,7 +396,7 @@ namespace mc
                                           (axis_shift_2 * a2 + s2->pos()));
             }
 
-            double rate = scat_tab_ptr.get_rate(theta, z_shift, axis_shift_1,
+            double rate = scat_tab_ptr->get_rate(theta, z_shift, axis_shift_1,
                                                axis_shift_2);
 
             s1->add_neighbor(s2, distance, rate);
@@ -387,27 +406,24 @@ namespace mc
       }
     };
 
-
-
-    for (int ix=0; ix<nx; ++ix){
+    for (int ix = 0; ix < nx; ++ix) {
       std::cout << "ix:" << ix << "\r" << std::flush;
-      for (int iz=0; iz<nz; ++iz){
-        find_pairs(grid[ix][iz], grid[ix][iz]);
-        
-        if (ix > 0) find_pairs(grid[ix][iz], grid[ix - 1][iz]);
-        if (ix + 1 < nx) find_pairs(grid[ix][iz], grid[ix + 1][iz]);
-        if (iz > 0) find_pairs(grid[ix][iz], grid[ix][iz - 1]);
-        if (iz + 1 < nz) find_pairs(grid[ix][iz], grid[ix][iz + 1]);
-
-        if (ix > 0 && iz > 0) find_pairs(grid[ix][iz], grid[ix - 1][iz - 1]);
-        if (ix + 1 < nx && iz > 0) find_pairs(grid[ix][iz], grid[ix + 1][iz - 1]);
-        if (ix > 0 && iz + 1 < nz) find_pairs(grid[ix][iz], grid[ix - 1][iz + 1]);
-        if (ix + 1 < nx && iz + 1 < nz) find_pairs(grid[ix][iz], grid[ix + 1][iz + 1]);
+      for (int iy = 0; iy < ny; ++iy) {
+        for (int iz = 0; iz < nz; ++iz) {
+          // get the nieghbor indices
+          for (int i : {ix - 1, ix, ix + 1}) {
+            for (int j : {iy - 1, iy, iy + 1}) {
+              for (int k : {iz - 1, iz, iz + 1}) {
+                if (i > -1 && i < nx && j > -1 && j < ny && k > -1 && k < nz) {
+                  find_pairs(grid[ix][iy][iz], grid[i][j][k]);
+                }
+              }
+            }
+          }
+        }
       }
     }
 
-    
-    
     int counter = 0;
     double avg_max_rate = 0;
     double avg_number_of_neighbors = 0;
@@ -415,7 +431,7 @@ namespace mc
     long total_number_of_neighbors = 0;
 
     for (s_ptr& s:scat_list) {
-      
+
       s->sort_neighbors();
       s->make_cumulative_scat_rate();
 

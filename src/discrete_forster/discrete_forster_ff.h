@@ -14,9 +14,6 @@ class discrete_forster_free_flight
 {
 public:
 	typedef mc::discrete_forster_particle t_particle; // particle type
-	// typedef mc::discrete_forster_free_flight t_ff; // free_flight type
-	// typedef mc::discrete_forster_region t_region; // region type
-	// typedef mc::discrete_forster_scatter t_scatter; // scatter
 private:
 
 public:

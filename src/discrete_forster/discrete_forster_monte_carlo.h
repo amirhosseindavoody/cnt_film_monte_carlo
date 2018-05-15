@@ -22,10 +22,10 @@
 #include "../lib/rapidxml/rapidxml_print.hpp"
 #include "../lib/json.hpp"
 
-
-#include "./discrete_forster_region.h"
 #include "../exciton_transfer/cnt.h"
 #include "../exciton_transfer/exciton_transfer.h"
+#include "./discrete_forster_region.h"
+#include "./scatterer.h"
 
 namespace mc
 {
@@ -55,7 +55,7 @@ private:
 	scattering_type _scat_t;
 
 	std::array<discrete_forster_region,3> _regions; // simulation regions: contacts and bulk. Since discrete_forster_region data type has unique_ptr as data members, we can't use vectors and dynamically push_back new regions. If we want to do that we need to implement the move and copy constructors explicitly.
-	std::list<std::shared_ptr<discrete_forster_scatter>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
+	std::list<std::shared_ptr<scatterer>> _all_scat_list; // holds the list of all scattering sites containing the position and orientation
 	std::pair<arma::vec, arma::vec> _domain;
 
 	unsigned _number_of_contact1_particles, _number_of_contact2_particles; // number of particles in the contacts
@@ -222,7 +222,7 @@ public:
 			throw std::invalid_argument("specify mesh type in input json");
 		}
 
-		std::cout << "\n\ntotal number of discrete_forster_scatterer: " << _all_scat_list.size() << std::endl;
+		std::cout << "\n\ntotal number of scatterers: " << _all_scat_list.size() << std::endl;
 
 		_domain = find_simulation_domain();
 
@@ -246,7 +246,6 @@ public:
 
 		initialize_scattering_table();
 
-		double max_search_radius = _json_prop["max neighbor search radius [m]"];
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
 
 		// find_neighbors(_all_scat_list, _max_hopping_radius, max_search_radius);
@@ -256,8 +255,7 @@ public:
 		_regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
 		_regions[2].set_borders(contact_2_lower_corner, contact_2_upper_corner);
 
-		for (auto& m_region: _regions)
-		{
+		for (auto& m_region: _regions) {
 			m_region.create_scatterer_vector(_all_scat_list);
 			m_region.create_pilot_list();
 		}
@@ -293,11 +291,20 @@ public:
 	};
 
 	// find the neighbors of each scattering object
-	void find_neighbors(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double& max_hopping_radius, const double& max_search_radius);
+  void find_neighbors(std::list<std::shared_ptr<scatterer>>& scat_list,
+                      const double& max_hopping_radius,
+                      const double& max_search_radius);
 
-  void find_neighbors_using_bucket(std::list<std::shared_ptr<discrete_forster_scatter>>& scat_list, const double max_hopping_radius);
+  // find the neighbors of each scattering object using segmentation
+  // method, first divide the scattering objects into multiple buckets
+  // based on their position in x-z plane, and then search for the
+  // neighbor pairs by search only through the neighboring buckets.
+  void find_neighbors_using_bucket(
+      std::list<std::shared_ptr<scatterer>>& scat_list,
+      const double max_hopping_radius);
 
-	// find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the simulation domain
+  // find minimum of the minimum coordinates of the scattering objects,
+  // this function will effectively give us the simulation domain
 	std::pair<arma::vec, arma::vec> find_simulation_domain() {
 		
     arma::vec min_coor = _all_scat_list.front()->pos();
@@ -559,8 +566,8 @@ public:
 						}
 						arma::rowvec orientation = arma::normalise(pos2-pos1);
 
-						_all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
-						_all_scat_list.back()->set_pos(tube_coordinates.row(i).t());
+            _all_scat_list.push_back(std::make_shared<scatterer>());
+            _all_scat_list.back()->set_pos(tube_coordinates.row(i).t());
 						_all_scat_list.back()->set_orientation(orientation.t());
 					}
 
@@ -577,7 +584,7 @@ public:
 	};
 
 	// create a crystalline mesh structure
-	std::list<std::shared_ptr<discrete_forster_scatter>> create_crystalline_structure();
+  std::list<std::shared_ptr<scatterer>> create_crystalline_structure();
 
   // high level method to calculate proper scattering table
 	void initialize_scattering_table();
@@ -611,7 +618,7 @@ public:
 
 
     for (unsigned i=0; i<pos.n_rows; ++i) {
-      _all_scat_list.push_back(std::make_shared<mc::discrete_forster_scatter>());
+      _all_scat_list.push_back(std::make_shared<scatterer>());
       _all_scat_list.back()->set_pos(pos.row(i).t());
       _all_scat_list.back()->set_orientation(orient.row(i).t());
     }

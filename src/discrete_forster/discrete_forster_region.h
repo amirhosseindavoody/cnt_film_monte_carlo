@@ -8,6 +8,7 @@
 
 #include "../helper/utility.h"
 #include "./discrete_forster_particle.h"
+#include "./scatterer.h"
 
 namespace mc
 {
@@ -25,7 +26,7 @@ private:
 
   std::list<std::unique_ptr<mc::discrete_forster_particle>> _particles; // list of particles in the region
   std::list<std::unique_ptr<mc::discrete_forster_particle>> _new_particles; // list of particles newly entered the region
-  std::vector<std::shared_ptr<mc::discrete_forster_scatter>> _scatterer_vector; // list of scatterers
+  std::vector<std::shared_ptr<scatterer>> _scatterer_vector; // list of scatterers
   std::list<std::shared_ptr<mc::discrete_forster_free_flight>> _pilot_list; // list of free_flight objects
 
 public:
@@ -33,8 +34,7 @@ public:
   discrete_forster_region() {};
 
   // set boarders of the region
-  void set_borders(const arma::vec& lower_corner, const arma::vec& upper_corner)
-  {
+  void set_borders(const arma::vec& lower_corner, const arma::vec& upper_corner) {
     if (arma::any(lower_corner > upper_corner)) {
       throw std::out_of_range("invalid region definition: lower corner is larger than the upper corner!");
     }
@@ -47,14 +47,12 @@ public:
   };
 
   // decrease the net particle flow by one
-  void loose_particle()
-  {
+  void loose_particle() {
     _particle_flow_log -= 1;
   };
 
   // increase the net particle flow by one
-  void get_particle()
-  {
+  void get_particle() {
     _particle_flow_log += 1;
   };
 
@@ -66,7 +64,7 @@ public:
   // reset the particle flow counter to zero.
   void reset_particle_flow() {
     _particle_flow_log = 0;
-  }
+  };
 
   // add a particle to the _particles list if the particle is in the region region
   bool enlist(std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator& particle_iterator, discrete_forster_region& other_region) {
@@ -82,14 +80,12 @@ public:
   };
 
   // checks if a coordinate is inside the region
-  bool in_region(const arma::vec& pos)
-  {
+  bool in_region(const arma::vec& pos) {
     return (arma::all(pos>=_lower_corner) && arma::all(pos<=_upper_corner));
   };
 
   // checks if a particle is inside the region
-  bool in_region(const mc::discrete_forster_particle& p)
-  {
+  bool in_region(const mc::discrete_forster_particle& p) {
     return (arma::all(p.pos()>=_lower_corner) && arma::all(p.pos()<=_upper_corner));
   };
 
@@ -99,27 +95,23 @@ public:
   };
 
   // gives an element of the _lower_corner
-  const double& lower_corner(unsigned i) const
-  {
+  const double& lower_corner(unsigned i) const {
     return _lower_corner(i);
   };
 
   // gives _lower_corner
-  const arma::vec& lower_corner() const
-  {
+  const arma::vec& lower_corner() const {
     return _lower_corner;
   };
 
 
   // gives an element of the _upper_corner
-  const double& upper_corner(unsigned i) const
-  {
+  const double& upper_corner(unsigned i) const {
     return _upper_corner[i];
   };
 
   // gives _upper_corner
-  const arma::vec& upper_corner() const
-  {
+  const arma::vec& upper_corner() const {
     return _upper_corner;
   };
 
@@ -132,53 +124,43 @@ public:
     unsigned dice;
 
   	unsigned count=0;
-  	auto it = _particles.begin();
-  	while(count < number_of_particles)
-  	{
+  	auto p = _particles.begin();
+  	while(count < number_of_particles) {
       dice = std::rand()%_number_of_scatterers;
-  		if (it!= _particles.end())
-  		{
-        (*it)->set_pos(_scatterer_vector[dice]->pos());
-        (*it)->set_scatterer(_scatterer_vector[dice]);
-        (*it)->get_ff_time();
-  			it++;
-  		}
-  		else
-  		{
+  		if (p!= _particles.end()) {
+        (*p)->set_pos(_scatterer_vector[dice]->pos());
+        (*p)->set_scatterer(_scatterer_vector[dice]);
+        (*p)->get_ff_time();
+  			++p;
+  		} else {
         _particles.push_back(std::make_unique<mc::discrete_forster_particle>( _scatterer_vector[dice]->pos(), _pilot_list.back(), _scatterer_vector[dice]));
   		}
   		count++;
   	}
 
-  	_particles.erase(it, _particles.end());
+  	_particles.erase(p, _particles.end());
 
   };
 
   // dump _new_particles into _particles list
-  void dump_new_particles()
-  {
+  void dump_new_particles() {
   	_particles.splice(_particles.end(),_new_particles);
   };
 
   // return _particles list
-  std::list<std::unique_ptr<mc::discrete_forster_particle>>& particles()
-  {
+  std::list<std::unique_ptr<mc::discrete_forster_particle>>& particles() {
   	return _particles;
   };
 
   // get volume of the region
-  const double& volume() const
-  {
+  const double& volume() const {
     return _volume;
   };
 
   // create a list of all scatterers that are inside this region
-  void create_scatterer_vector(const std::list<std::shared_ptr<mc::discrete_forster_scatter>>& all_scat_list)
-  {
-    for (const auto& scat : all_scat_list)
-    {
-      if (in_region(scat->pos()))
-      {
+  void create_scatterer_vector(const std::list<std::shared_ptr<scatterer>>& all_scat_list) {
+    for (const auto& scat : all_scat_list) {
+      if (in_region(scat->pos())) {
         _scatterer_vector.push_back(scat);
       }
     }
@@ -186,13 +168,12 @@ public:
   };
 
   // get number of scatterers in the region
-  unsigned number_of_scatterers(){
+  unsigned number_of_scatterers() {
     return unsigned(_number_of_scatterers);
   }
 
   // create a list of all free_flight objects
-  void create_pilot_list()
-  {
+  void create_pilot_list() {
     _pilot_list.push_back(std::make_shared<mc::discrete_forster_free_flight>());
   };
 

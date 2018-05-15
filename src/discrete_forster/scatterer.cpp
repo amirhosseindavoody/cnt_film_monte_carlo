@@ -1,12 +1,12 @@
 #include <iostream>
 #include <limits>
 
-#include "discrete_forster_scatter.h"
 #include "discrete_forster_particle.h"
+#include "scatterer.h"
 
 namespace mc
 {
-	void discrete_forster_scatter::update_state(discrete_forster_particle* p) // update the final state of the particle
+	void scatterer::update_state(discrete_forster_particle* p) // update the final state of the particle
 	{
 		mc::t_float dice = _max_rate*double(std::rand())/double(RAND_MAX);
 		auto it = _neighbors.begin();
@@ -17,7 +17,7 @@ namespace mc
 			it++;
 		}
 
-		p->set_pos(it->scatterer->pos());
-		p->set_scatterer(it->scatterer);
+		p->set_pos(it->s_ptr->pos());
+		p->set_scatterer(it->s_ptr);
 	};
 } // mc namespace

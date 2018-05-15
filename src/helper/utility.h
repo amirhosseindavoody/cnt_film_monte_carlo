@@ -21,7 +21,7 @@ class forster_particle;
 
 class discrete_forster_particle;
 class discrete_forster_free_flight;
-class discrete_forster_scatter;
+class scatterer;
 
 // use continous forster model
 typedef forster_scatter t_scatter;
