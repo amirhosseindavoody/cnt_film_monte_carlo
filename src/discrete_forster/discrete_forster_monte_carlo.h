@@ -17,10 +17,7 @@
 #include "../helper/constants.h"
 #include "../helper/progress.hpp"
 
-#include "../lib/rapidxml/rapidxml.hpp"
-#include "../lib/rapidxml/rapidxml_utils.hpp"
-#include "../lib/rapidxml/rapidxml_print.hpp"
-#include "../lib/json.hpp"
+#include "../../lib/json.hpp"
 
 #include "../exciton_transfer/cnt.h"
 #include "../exciton_transfer/exciton_transfer.h"

@@ -8,7 +8,7 @@
 
 #include "constants.h"
 #include "small.h"
-#include "../lib/json.hpp"
+#include "../../lib/json.hpp"
 #include "../helper/prepare_directory.hpp"
 
 class cnt
