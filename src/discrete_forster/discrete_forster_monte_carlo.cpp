@@ -19,8 +19,10 @@ namespace mc
 {
 
   // high level method to calculate proper scattering table
-  void discrete_forster_monte_carlo::initialize_scattering_table() {
+  scattering_struct discrete_forster_monte_carlo::initialize_scattering_table() {
     std::cout << "\ninitializing scattering table...\n";
+
+    scattering_struct scat_tab;
 
     switch(_scat_t) {
       case davoody:
@@ -37,26 +39,28 @@ namespace mc
             cnts.emplace_back(cnt(j_cnt,parent_directory));
             cnts.back().calculate_exciton_dispersion();
           };
-          _scat_table = create_davoody_scatt_table(cnts[0], cnts[0]);
+          scat_tab = create_davoody_scatt_table(cnts[0], cnts[0]);
         }
         break;
 
       case forster:
-        _scat_table = create_forster_scatt_table(1.e15, 1.4e9);
+        scat_tab = create_forster_scatt_table(1.e15, 1.4e9);
         break;
 
       case wong:
-        _scat_table = create_forster_scatt_table(1.e13, 1.4e9);
+        scat_tab = create_forster_scatt_table(1.e13, 1.4e9);
         break;
 
       default:
         throw std::logic_error("invalid value for rate type");
     }
+
+    return scat_tab;
   };
 
 
   // method to calculate scattering rate via davoody et al. method
-  discrete_forster_monte_carlo::scattering_struct discrete_forster_monte_carlo::create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt) {
+  scattering_struct discrete_forster_monte_carlo::create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt) {
     auto zshift_prop = _json_prop["zshift [m]"];
     arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
 
@@ -119,7 +123,7 @@ namespace mc
   };
 
   // method to calculate scattering rate via forster method
-  discrete_forster_monte_carlo::scattering_struct discrete_forster_monte_carlo::create_forster_scatt_table(double gamma_0, double r_0) {
+  scattering_struct discrete_forster_monte_carlo::create_forster_scatt_table(double gamma_0, double r_0) {
     auto zshift_prop = _json_prop["zshift [m]"];
     arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
 
@@ -364,10 +368,7 @@ namespace mc
       grid[ix][iy][iz].push_back(s);
     }
 
-    // a local reference to the scattering table since we cannot access class
-    // members via capture by reference in lambda function
-    scattering_struct* scat_tab_ptr = &_scat_table;
-    auto find_pairs = [&max_hopping_radius, &scat_tab_ptr](std::list<s_ptr>& l1, std::list<s_ptr>& l2) {
+    auto find_pairs = [&max_hopping_radius, this](std::list<s_ptr>& l1, std::list<s_ptr>& l2) {
       double cosTheta, theta, y1, y2, sin2Theta, axis_shift_1, axis_shift_2, z_shift;
 
       for (s_ptr& s1: l1){
@@ -396,7 +397,7 @@ namespace mc
                                           (axis_shift_2 * a2 + s2->pos()));
             }
 
-            double rate = scat_tab_ptr->get_rate(theta, z_shift, axis_shift_1,
+            double rate = _scat_table.get_rate(theta, z_shift, axis_shift_1,
                                                axis_shift_2);
 
             s1->add_neighbor(s2, distance, rate);

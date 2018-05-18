@@ -15,6 +15,7 @@
 #include "../helper/utility.h"
 
 #include "./discrete_forster_particle.h"
+#include "./scattering_struct.h"
 
 namespace mc
 {
@@ -36,9 +37,10 @@ private:
 	arma::vec _pos; // position of the scatterer
   arma::vec _orientation; // orientation of the scattering object site
   std::list<scatterer::neighbor> _neighbors;
-  // std::vector<std::list<std::shared_ptr<scatterer>>> close
 
 public:
+  std::vector< std::vector<scatterer*>* > close_scats; // index of neighboring grid cells
+  const scattering_struct* scat_tab;
 
 	// default constructor
   scatterer(){};
@@ -59,13 +61,11 @@ public:
   };
 
   // get i'th component of position of the scatterer
-  const double& pos(const unsigned& i) const {
-    return _pos(i);
-  };
+  const double& pos(const unsigned& i) const { return _pos(i); };
 
   // set the orientation of the scatterer object
   void set_orientation(const arma::vec& m_orientation) {
-   _orientation = m_orientation;
+    _orientation = m_orientation;
   };
 
   // set the i'th element of the orientation of the scatterer object
@@ -74,9 +74,7 @@ public:
   };
 
   // get the orientation of the scatterer object
-  const arma::vec& orientation() const {
-    return _orientation;
-  };
+  const arma::vec& orientation() const { return _orientation; };
 
   // get the i'th element of the orientation of the scatterer object
   const double& orientation(const unsigned& i) const {
@@ -88,27 +86,29 @@ public:
     int r;
     while ((r = rand()) == 0) {
     }
-  
-    return -_inverse_max_rate * std::log(double(r)/double(RAND_MAX));
-	};
 
-	// update the final state of the particle
-	void update_state(discrete_forster_particle* p);
+    return -_inverse_max_rate * std::log(double(r) / double(RAND_MAX));
+  };
 
-	// add a scattering object and its distance to the neighbors list
-	void add_neighbor(const std::shared_ptr<scatterer>& neighbor_ptr, const double& distance, const double& rate) {
+  // update the final state of the particle
+  void update_state(discrete_forster_particle* p,
+                    const double& max_hopping_radius);
+
+  // add a scattering object and its distance to the neighbors list
+  void add_neighbor(const std::shared_ptr<scatterer>& neighbor_ptr,
+                    const double& distance, const double& rate) {
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
-	};
+  };
 
   // get the number of neighbors
-  mc::t_uint number_of_neighbors() {
-		return _neighbors.size();
-	};
+  unsigned number_of_neighbors() { return _neighbors.size(); };
 
   // sort neighbors in the ascending order of distances
   void sort_neighbors() {
-    _neighbors.sort([](const auto& n1, const auto& n2){return n1.distance < n2.distance;});
-	};
+    _neighbors.sort([](const auto& n1, const auto& n2) {
+      return n1.distance < n2.distance;
+    });
+  };
 
   // make a cumulative scattering rate table
   void make_cumulative_scat_rate() {
@@ -160,9 +160,11 @@ public:
   };
 
   // return the maximum scattering rate
-  const double& max_rate() const {
-    return _max_rate;
-  };
+  const double& max_rate() const { return _max_rate; };
+
+ private:
+  // find neighbors of the current scatterer and their scattering rates
+  std::vector < std::pair<double, scatterer*>> find_neighbors(const double& max_hopping_radius);
 
 };  // end class scatterer
 

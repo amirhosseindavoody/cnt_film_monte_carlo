@@ -116,8 +116,7 @@ public:
   };
 
   // populate the region with a certain number of particles
-  void populate(const unsigned& number_of_particles)
-  {
+  void populate(const unsigned& number_of_particles) {
     // create the new particles by updating the previous particles and adding new ones or deleting the excess ones
     dump_new_particles();
 
@@ -129,7 +128,7 @@ public:
       dice = std::rand()%_number_of_scatterers;
   		if (p!= _particles.end()) {
         (*p)->set_pos(_scatterer_vector[dice]->pos());
-        (*p)->set_scatterer(_scatterer_vector[dice]);
+        (*p)->set_scatterer(_scatterer_vector[dice].get());
         (*p)->get_ff_time();
   			++p;
   		} else {

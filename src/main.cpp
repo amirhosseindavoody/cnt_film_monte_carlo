@@ -63,8 +63,10 @@ int main(int argc, char *argv[])
 	std::fstream region_current_file;
 	std::fstream debug_file;
 
-	mc::t_float time_step = 1.e-14;
-	mc::t_uint max_history = 100;
+	double time_step = 1.e-14;
+	unsigned max_history = 1;
+
+  std::cout << "running Monte Carlo:\n";
 
 	while (true)
 	{
@@ -73,10 +75,10 @@ int main(int argc, char *argv[])
 		sim.population_profiler(max_history, population_file, debug_file);
 		sim.save_region_current(max_history, region_current_file, time_step);
 
-		if (int(sim.time() / time_step) % 10 == 0)
-		{
+		// if (int(sim.time() / time_step) % 10 == 0)
+		// {
 			std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... number of particles: " << sim.number_of_particles() <<"\r" << std::flush;
-		}
+		// }
 	}
 
 	// print the end time and the runtime

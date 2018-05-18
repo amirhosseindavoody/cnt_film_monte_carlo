@@ -17,16 +17,16 @@ class discrete_forster_particle
 public:
 	typedef mc::discrete_forster_particle t_particle; // particle type
 	typedef mc::discrete_forster_free_flight t_ff; // free_flight type
-	// typedef mc::discrete_forster_region t_region; // region type
 
 private:
 	arma::vec _pos; // position of the particle
 	arma::vec _old_pos; // position of the particle in the previous time step, this is used for boundary collision detection
 
 	std::shared_ptr<t_ff> _pilot; // pointer to free_flight object for driving the particle
-	std::shared_ptr<scatterer> _scat_ptr; // pointer to scatter object for scattering the particle
+	// std::shared_ptr<scatterer> _scat_ptr; // pointer to scatter object for scattering the particle
+  scatterer* _scat_ptr;  // pointer to scatter object for scattering the particle
 
-	double _ff_time; // free flight time until next scattering event
+        double _ff_time; // free flight time until next scattering event
 
 public:
 	//constructor
@@ -56,39 +56,27 @@ public:
   };
 
   // set the pointer to the scatterer object
-  void set_scatterer(const std::shared_ptr<scatterer>& s) {
-    _scat_ptr = s;
-	};
+  void set_scatterer(scatterer* s) { _scat_ptr = s; };
 
-	// return the pointer to the scatterer object
-	const std::shared_ptr<scatterer>& scat_ptr() const {
-		return _scat_ptr;
-	};
+  // return the pointer to the scatterer object
+  const scatterer* scat_ptr() const { return _scat_ptr; };
 
-	// get position of the particle
-	const arma::vec& pos() const  {
-		return _pos;
-	};
+  // get position of the particle
+  const arma::vec& pos() const { return _pos; };
 
-	// get position of the particle
-	const double& pos(const double& i) const  {
-		return _pos(i);
-	};
+  // get position of the particle
+  const double& pos(const double& i) const { return _pos(i); };
 
-	// get old position of the particle
-	const arma::vec& old_pos() const  {
-		return _old_pos;
-	};
+  // get old position of the particle
+  const arma::vec& old_pos() const { return _old_pos; };
 
-	// get old position of the particle
-	const double& old_pos(const int& i) const  {
-		return _old_pos(i);
-	};
+  // get old position of the particle
+  const double& old_pos(const int& i) const { return _old_pos(i); };
 
-	// set position of the particle and set the old position into _old_pos
-	void set_pos(const arma::vec& pos) {
-		_old_pos = _pos;
-		_pos = pos;
+  // set position of the particle and set the old position into _old_pos
+  void set_pos(const arma::vec& pos) {
+    _old_pos = _pos;
+    _pos = pos;
 	};
 
 	// set an element of particle position and set the old position into _old_pos
@@ -121,7 +109,9 @@ public:
 	void get_ff_time();
 
 	// step particle state for dt in time
-	void step(double dt, const std::pair<arma::vec, arma::vec>& domain);
+  void step(double dt,
+            const std::pair<arma::vec, arma::vec>& domain,
+            const double& max_hop_radius);
 
 }; //discrete_forster_particle class
 
