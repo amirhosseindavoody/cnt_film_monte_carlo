@@ -1,5 +1,5 @@
-#ifndef discrete_forster_region_h
-#define discrete_forster_region_h
+#ifndef region_h
+#define region_h
 
 #include <iostream>
 #include <array>
@@ -13,7 +13,7 @@
 namespace mc
 {
 
-class discrete_forster_region
+class region_class
 {
 private:
   unsigned _id; // this is a unique id for each region which is used for hashing
@@ -31,7 +31,7 @@ private:
 
 public:
   // default constructor
-  discrete_forster_region() {};
+  region_class() {};
 
   // set boarders of the region
   void set_borders(const arma::vec& lower_corner, const arma::vec& upper_corner) {
@@ -67,13 +67,14 @@ public:
   };
 
   // add a particle to the _particles list if the particle is in the region region
-  bool enlist(std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator& particle_iterator, discrete_forster_region& other_region) {
+  typedef std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator pIterator;
+  bool enlist(pIterator& particle_iterator, region_class* other_region) {
   	bool is_in_region = in_region(*(*particle_iterator));
   	if (is_in_region) {
   		auto prev_iterator = std::prev(particle_iterator,1); // get the iterator of the previous particle from the other region particle list
-  		_new_particles.splice(_new_particles.end(), other_region.particles(), particle_iterator);
+  		_new_particles.splice(_new_particles.end(), other_region->particles(), particle_iterator);
   		particle_iterator = prev_iterator; // now the particle iterator is the previous particle from the other region particle list
-      other_region.loose_particle();
+      other_region->loose_particle();
       get_particle();
   	}
   	return is_in_region;
@@ -146,9 +147,11 @@ public:
   	_particles.splice(_particles.end(),_new_particles);
   };
 
+
   // return _particles list
-  std::list<std::unique_ptr<mc::discrete_forster_particle>>& particles() {
-  	return _particles;
+  typedef std::list<std::unique_ptr<mc::discrete_forster_particle>> plist;
+  plist& particles() {
+    return _particles;
   };
 
   // get volume of the region
@@ -157,7 +160,8 @@ public:
   };
 
   // create a list of all scatterers that are inside this region
-  void create_scatterer_vector(const std::list<std::shared_ptr<scatterer>>& all_scat_list) {
+  typedef std::list<std::shared_ptr<scatterer>> slist;
+  void create_scatterer_vector(const slist& all_scat_list) {
     for (const auto& scat : all_scat_list) {
       if (in_region(scat->pos())) {
         _scatterer_vector.push_back(scat);
@@ -176,8 +180,8 @@ public:
     _pilot_list.push_back(std::make_shared<mc::discrete_forster_free_flight>());
   };
 
-}; //discrete_forster_region class
+}; //region_class
 
 } //mc namespace
 
-#endif // discrete_forster_region_h
+#endif // region_h

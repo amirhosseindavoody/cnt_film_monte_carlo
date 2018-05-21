@@ -21,7 +21,7 @@
 
 #include "../exciton_transfer/cnt.h"
 #include "../exciton_transfer/exciton_transfer.h"
-#include "./discrete_forster_region.h"
+#include "./region.h"
 #include "./scatterer.h"
 #include "./scattering_struct.h"
 
@@ -34,8 +34,8 @@ class discrete_forster_monte_carlo
 private:
   struct population_profile {
     std::vector<unsigned> profile;  // number of particles in each segment
-    unsigned number_of_sections;    // number of sections in the profiler
-    unsigned history;               // history of the population_profiler
+    unsigned number_of_sections=0;    // number of sections in the profiler
+    unsigned history=0;               // history of the population_profiler
     double dL;     // length of each segment in population profiler
     double dV;     // volume of each segment in population profiler
     unsigned dim;  // this is the dimension along which the population profiler
@@ -56,14 +56,13 @@ private:
 
   scattering_type _scat_t;
 
-  std::array<discrete_forster_region, 3>
+  std::array<region_class, 3>
       _regions;  // simulation regions: contacts and bulk. Since
                   // discrete_forster_region data type has unique_ptr as data
                   // members, we can't use vectors and dynamically push_back new
                   // regions. If we want to do that we need to implement the move
                   // and copy constructors explicitly.
-  std::list<std::shared_ptr<scatterer>>
-      _all_scat_list;  // holds the list of all scattering sites containing the
+  std::list<std::shared_ptr<scatterer>> _all_scat_list;  // holds the list of all scattering sites containing the
                         // position and orientation
   std::pair<arma::vec, arma::vec> _domain;
 
@@ -77,7 +76,7 @@ private:
       _input_directory;  // this is the address of the input_directory
 
   unsigned
-      _history_of_region_currents;  // this is the number of steps that the net
+      _history_of_region_currents=0;  // this is the number of steps that the net
                                     // _current in the regions have been recorded
   population_profile
       _population_probe;  // this is the population profile of particles through
@@ -244,28 +243,30 @@ public:
 		_regions[2].set_borders(contact_2_lower_corner, contact_2_upper_corner);
 
 		for (auto& m_region: _regions) {
-			m_region.create_scatterer_vector(_all_scat_list);
-			m_region.create_pilot_list();
+      m_region.create_scatterer_vector(_all_scat_list);
+      m_region.create_pilot_list();
 		}
 
 
 		_number_of_contact1_particles = 1100;
 		_number_of_contact2_particles = 0;
 
-		std::cout << "\nnumber of particles in the contact 1: " << _number_of_contact1_particles << "\n"
-							<< "number of particles in the contact 2: " << _number_of_contact2_particles << "\n\n";
+		std::cout << "\n"
+              << "number of particles in the contact 1: " << _number_of_contact1_particles << "\n"
+							<< "number of particles in the contact 2: " << _number_of_contact2_particles << "\n"
+              << "\n";
 
 		_regions.front().populate(_number_of_contact1_particles);
 		_regions.back().populate(_number_of_contact2_particles);
 
-		discrete_forster_region& bulk = _regions[1];
+		region_class* bulk = &(_regions[1]);
 
 		_population_probe.number_of_sections = 10;
 		_population_probe.dim = 1;
 		_population_probe.profile = std::vector<unsigned>(_population_probe.number_of_sections, 0);
 		_population_probe.history = 0;
-		_population_probe.dL = (bulk.upper_corner(_population_probe.dim)-bulk.lower_corner(_population_probe.dim))/double(_population_probe.number_of_sections);
-		_population_probe.dV = bulk.volume()/(_population_probe.number_of_sections);
+		_population_probe.dL = (bulk->upper_corner(_population_probe.dim)-bulk->lower_corner(_population_probe.dim))/double(_population_probe.number_of_sections);
+		_population_probe.dV = bulk->volume()/(_population_probe.number_of_sections);
 
 	};
 
@@ -333,19 +334,19 @@ public:
 
 		for (auto&& p=_regions[0].particles().begin(); p!=_regions[0].particles().end(); ++p) {
 			(*p)->step(dt,_domain, _max_hopping_radius);
-			_regions[1].enlist(p,_regions[0]);
+			_regions[1].enlist(p,&(_regions[0]));
 		}
 
 
 		for (auto&& p=_regions[2].particles().begin(); p!=_regions[2].particles().end(); ++p) {
       (*p)->step(dt, _domain, _max_hopping_radius);
-      _regions[1].enlist(p, _regions[2]);
+      _regions[1].enlist(p, &(_regions[2]));
 		}
 
 		for (auto&& p=_regions[1].particles().begin(); p!=_regions[1].particles().end(); ++p) {
 			(*p)->step(dt, _domain, _max_hopping_radius);
-			if (not _regions[2].enlist(p,_regions[1])) {
-				_regions[0].enlist(p,_regions[1]);
+			if (not _regions[2].enlist(p,&(_regions[1]))) {
+				_regions[0].enlist(p,&(_regions[1]));
 			}
 		}
 
@@ -373,23 +374,24 @@ public:
       file << std::showpos << std::scientific;
     }
 
-    mc::discrete_forster_region& bulk = _regions[1];
+    region_class* bulk = &(_regions[1]);
 
     _population_probe.history++;
 
     unsigned i;
-    for (const auto& m_particle_ptr: bulk.particles()) {
-      i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk.lower_corner(_population_probe.dim))/_population_probe.dL);
+    for (const auto& m_particle_ptr: bulk->particles()) {
+      i = std::floor((m_particle_ptr->pos(_population_probe.dim) - bulk->lower_corner(_population_probe.dim))/_population_probe.dL);
       if ((i >= _population_probe.number_of_sections) or (i<0)) {
         debug_file << "index out of bound when making population profile\n";
-        debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << " ]" << std::endl;
+        debug_file << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << " , bulk limits = [ " << bulk->lower_corner(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) << " ]" << std::endl;
 
         std::cout << "_population_probe.number_of_sections = " << _population_probe.number_of_sections << "\ni = " << i << "\n";
 
         std::cout << "particle position = " << m_particle_ptr->pos(_population_probe.dim) << "\n"
-                  << "bulk limits = [" << bulk.lower_corner(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) << "]\n"
-                  << "bulk limits - particle position = [" << bulk.lower_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << " , " << bulk.upper_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << "]\n";
+                  << "bulk limits = [" << bulk->lower_corner(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) << "]\n"
+                  << "bulk limits - particle position = [" << bulk->lower_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) - m_particle_ptr->pos(_population_probe.dim) << "]\n";
         throw std::range_error("particle is out of bound when calculating population profile");
+
       } else {
         _population_probe.profile[i]++;
       }
@@ -433,8 +435,8 @@ public:
 				current_file << std::showpos << std::scientific;
 			}
 
-			discrete_forster_region& bulk = _regions[1];
-			double cross_section = (bulk.upper_corner(0)-bulk.lower_corner(0)) * (bulk.upper_corner(2)-bulk.lower_corner(2));
+			region_class* bulk = &(_regions[1]);
+			double cross_section = (bulk->upper_corner(0)-bulk->lower_corner(0)) * (bulk->upper_corner(2)-bulk->lower_corner(2));
 			double elapsed_time = double(_history_of_region_currents)*time_step;
 
 			current_file << time() << " ";
@@ -557,7 +559,7 @@ public:
     }
   };
 
-        // create a crystalline mesh structure
+  // create a crystalline mesh structure
   std::list<std::shared_ptr<scatterer>> create_crystalline_structure();
 
   // high level method to calculate proper scattering table
