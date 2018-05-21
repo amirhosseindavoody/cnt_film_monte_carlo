@@ -62,8 +62,10 @@ private:
                   // members, we can't use vectors and dynamically push_back new
                   // regions. If we want to do that we need to implement the move
                   // and copy constructors explicitly.
-  std::list<std::shared_ptr<scatterer>> _all_scat_list;  // holds the list of all scattering sites containing the
-                        // position and orientation
+  
+  std::vector<scatterer> _all_scat_list;
+
+
   std::pair<arma::vec, arma::vec> _domain;
 
   unsigned _number_of_contact1_particles,
@@ -279,7 +281,7 @@ public:
 	};
 
 	// find the neighbors of each scattering object
-  void find_neighbors(std::list<std::shared_ptr<scatterer>>& scat_list,
+  void find_neighbors(std::vector<scatterer>& scat_list,
                       const double& max_hopping_radius,
                       const double& max_search_radius);
 
@@ -288,28 +290,23 @@ public:
   // based on their position in x-z plane, and then search for the
   // neighbor pairs by search only through the neighboring buckets.
   void find_neighbors_using_bucket(
-      std::list<std::shared_ptr<scatterer>>& scat_list,
+      std::vector<scatterer>& scat_list,
       const double max_hopping_radius);
 
   // find minimum of the minimum coordinates of the scattering objects,
   // this function will effectively give us the simulation domain
 	std::pair<arma::vec, arma::vec> find_simulation_domain() {
 		
-    arma::vec min_coor = _all_scat_list.front()->pos();
-    arma::vec max_coor = _all_scat_list.front()->pos();
+    arma::vec min_coor = _all_scat_list.front().pos();
+    arma::vec max_coor = _all_scat_list.front().pos();
 
-    std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front()->pos(),
-																											 _all_scat_list.front()->pos());
+    std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front().pos(),
+																											 _all_scat_list.front().pos());
 
     for (const auto& s : _all_scat_list) {
       for (int i = 0; i < 3; ++i) {
-        if (min_coor(i) > s->pos(i)) {
-          min_coor(i) = s->pos(i);
-        }
-
-        if (max_coor(i) < s->pos(i)) {
-          max_coor(i) = s->pos(i);
-        }
+        min_coor(i) = min_coor(i) > s.pos(i) ? s.pos(i) : min_coor(i);
+        max_coor(i) = max_coor(i) < s.pos(i) ? s.pos(i) : max_coor(i);
       }
     }
 
@@ -545,9 +542,9 @@ public:
             }
             arma::rowvec orientation = arma::normalise(pos2 - pos1);
 
-            _all_scat_list.push_back(std::make_shared<scatterer>());
-            _all_scat_list.back()->set_pos(tube_coordinates.row(i).t());
-            _all_scat_list.back()->set_orientation(orientation.t());
+            _all_scat_list.push_back(scatterer());
+            _all_scat_list.back().set_pos(tube_coordinates.row(i).t());
+            _all_scat_list.back().set_orientation(orientation.t());
           }
         }
       }
@@ -560,7 +557,7 @@ public:
   };
 
   // create a crystalline mesh structure
-  std::list<std::shared_ptr<scatterer>> create_crystalline_structure();
+  std::vector<scatterer> create_crystalline_structure();
 
   // high level method to calculate proper scattering table
 	scattering_struct initialize_scattering_table();
@@ -593,11 +590,11 @@ public:
     pos_file.close();
     orient_file.close();
 
+    _all_scat_list.resize(pos.n_rows);
 
     for (unsigned i=0; i<pos.n_rows; ++i) {
-      _all_scat_list.push_back(std::make_shared<scatterer>());
-      _all_scat_list.back()->set_pos(pos.row(i).t());
-      _all_scat_list.back()->set_orientation(orient.row(i).t());
+      _all_scat_list[i].set_pos(pos.row(i).t());
+      _all_scat_list[i].set_orientation(orient.row(i).t());
     }
     
   };
@@ -606,7 +603,7 @@ public:
   // pointers to enclosing and neighboring buckets for each scatterer object
   void create_scatterer_buckets(
       const double max_hopping_radius,
-      std::list<std::shared_ptr<scatterer>>& scat_list,
+      std::vector<scatterer>& scat_list,
       std::vector<std::vector<scatterer*>>& scat_buckets) {
 
     using namespace std;
@@ -632,27 +629,25 @@ public:
 
     scat_buckets.resize(nx*ny*nz);
 
-    typedef std::shared_ptr<scatterer> s_ptr;
-
-    for (s_ptr& s : scat_list) {
-      int ix = (s->pos(0) - xmin) / max_hopping_radius;
-      int iy = (s->pos(1) - ymin) / max_hopping_radius;
-      int iz = (s->pos(2) - zmin) / max_hopping_radius;
+    for (scatterer& s : scat_list) {
+      int ix = (s.pos(0) - xmin) / max_hopping_radius;
+      int iy = (s.pos(1) - ymin) / max_hopping_radius;
+      int iz = (s.pos(2) - zmin) / max_hopping_radius;
       int idx = ix + iy * nx + iz * nx * ny;
-      scat_buckets[idx].push_back(s.get());
+      scat_buckets[idx].push_back(&s);
     }
 
-    for (s_ptr& s : scat_list) {
-      int ix = (s->pos(0) - xmin) / max_hopping_radius;
-      int iy = (s->pos(1) - ymin) / max_hopping_radius;
-      int iz = (s->pos(2) - zmin) / max_hopping_radius;
+    for (scatterer& s : scat_list) {
+      int ix = (s.pos(0) - xmin) / max_hopping_radius;
+      int iy = (s.pos(1) - ymin) / max_hopping_radius;
+      int iz = (s.pos(2) - zmin) / max_hopping_radius;
 
       for (int i : {ix - 1, ix, ix + 1}) {
         for (int j : {iy - 1, iy, iy + 1}) {
           for (int k : {iz - 1, iz, iz + 1}) {
             if (i > -1 && i < nx && j > -1 && j < ny && k > -1 && k < nz) {
               unsigned idx = i + j * nx + k * nx * ny;
-              s->close_scats.push_back(&(scat_buckets[idx]));
+              s.close_scats.push_back(&(scat_buckets[idx]));
             }
           }
         }
@@ -665,9 +660,9 @@ public:
 
   // set the pointer to scattering table struct for all scatterer objects
   void set_scat_table(const scattering_struct& scat_tab,
-                      std::list<std::shared_ptr<scatterer>>& scat_list) {
+                      std::vector<scatterer>& scat_list) {
     for (auto& s : scat_list) {
-      s->scat_tab = &scat_tab;
+      s.scat_tab = &scat_tab;
     }
   }
 

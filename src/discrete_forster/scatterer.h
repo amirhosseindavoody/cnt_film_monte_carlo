@@ -20,13 +20,12 @@
 namespace mc
 {
 
-class scatterer
-{
+class scatterer {
+
   struct neighbor {
-    neighbor(std::shared_ptr<scatterer> s, double d,
-             double rate)
+    neighbor(scatterer* s, double d, double rate)
         : s_ptr(s), distance(d), rate(d){};
-    std::shared_ptr<scatterer> s_ptr;
+    scatterer* s_ptr;
     double distance;
     double rate;
   };
@@ -43,7 +42,7 @@ public:
   const scattering_struct* scat_tab;
 
 	// default constructor
-  scatterer(){};
+  scatterer(): _max_rate(0), _inverse_max_rate(0) {};
 
   // set position of the scatterer
   void set_pos(const arma::vec& position) {
@@ -95,7 +94,7 @@ public:
                     const double& max_hopping_radius);
 
   // add a scattering object and its distance to the neighbors list
-  void add_neighbor(const std::shared_ptr<scatterer>& neighbor_ptr,
+  void add_neighbor(scatterer* neighbor_ptr,
                     const double& distance, const double& rate) {
     _neighbors.emplace_back(neighbor_ptr, distance, rate);
   };

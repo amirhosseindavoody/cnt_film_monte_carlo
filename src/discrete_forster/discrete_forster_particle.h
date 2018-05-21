@@ -32,7 +32,7 @@ public:
 	//constructor
   discrete_forster_particle(
       const arma::vec& pos, const std::shared_ptr<t_ff>& pilot,
-      const std::shared_ptr<scatterer>& m_scatterer);  // constructor
+      scatterer* m_scatterer);  // constructor
 
   // reinitialize particle properties instead of creating new particles
   void reinitialize(const arma::vec& lower_corner, const arma::vec& upper_corner,

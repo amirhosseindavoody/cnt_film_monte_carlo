@@ -175,86 +175,80 @@ namespace mc
 
   // find the neighbors of each scattering object
   void discrete_forster_monte_carlo::find_neighbors(
-      std::list<std::shared_ptr<scatterer>>& scat_list,
+      std::vector<scatterer>& scat_list,
       const double& max_hopping_radius, const double& max_search_radius) {
     std::cout << "finding neighbors in scatterers list:\n";
 
 		// sort scattering objects to have better performance
-		scat_list.sort([](const auto& s1, const auto& s2){
-			return s1->pos(1) < s2->pos(1);
-		});
+    std::sort(scat_list.begin(), scat_list.end(),
+              [](auto& s1, auto& s2) { return s1.pos(1) < s2.pos(1); });
 
-
-		int counter = 0;
-		double avg_max_rate = 0;
-		double avg_number_of_neighbors = 0;
-		double another_counter = 0;
+    int counter = 0;
+    double avg_max_rate = 0;
+    double avg_number_of_neighbors = 0;
+    double another_counter = 0;
     long total_number_of_neighbors=0;
 
-		for (auto i = scat_list.begin(); i != scat_list.end(); ++i)
-		{
-
-			for (auto j = std::next(i); j!= scat_list.end(); ++j)
-			{
-        arma::vec dR = (*i)->pos()-(*j)->pos();
+    for (unsigned i = 0; i < scat_list.size(); ++i) {
+      for (unsigned j = i + 1; j < scat_list.size(); ++j) {
+        arma::vec dR = scat_list[i].pos() - scat_list[j].pos();
         double distance = arma::norm(dR);
 
-				if ((distance < max_hopping_radius) and (distance > 0.4e-9))
-				{
-          arma::vec a1 = (*i)->orientation();
-          arma::vec a2 = (*j)->orientation();
-          double cosTheta = arma::dot(a1,a2);
+        if ((distance < max_hopping_radius) and (distance > 0.4e-9)) {
+          arma::vec a1 = scat_list[i].orientation();
+          arma::vec a2 = scat_list[j].orientation();
+          double cosTheta = arma::dot(a1, a2);
           double theta = std::acos(cosTheta);
-          double y1 = arma::dot(a1,dR);
-          double y2 = arma::dot(a2,dR);
-          double sin2Theta = 1-std::pow(cosTheta,2);
-          double axis_shift_1 = (y1+y2*cosTheta)/sin2Theta;
-          double axis_shift_2 = (y2+y1*cosTheta)/sin2Theta;
-          double z_shift = arma::norm((axis_shift_1*a1+(*i)->pos())-(axis_shift_2*a2+(*j)->pos()));
+          double y1 = arma::dot(a1, dR);
+          double y2 = arma::dot(a2, dR);
+          double sin2Theta = 1 - std::pow(cosTheta, 2);
+          double axis_shift_1 = (y1 + y2 * cosTheta) / sin2Theta;
+          double axis_shift_2 = (y2 + y1 * cosTheta) / sin2Theta;
+          double z_shift = arma::norm((axis_shift_1 * a1 + scat_list[i].pos()) -
+                                      (axis_shift_2 * a2 + scat_list[j].pos()));
           // check if parallel case has happend
-          if (cosTheta == 1){
-            axis_shift_1=0;
-            axis_shift_2 = arma::dot(dR,a1);
+          if (cosTheta == 1) {
+            axis_shift_1 = 0;
+            axis_shift_2 = arma::dot(dR, a1);
             theta = 0;
-            z_shift = arma::norm(dR-arma::dot(dR,a1)*a1);
+            z_shift = arma::norm(dR - arma::dot(dR, a1) * a1);
           }
 
-          double rate = _scat_table.get_rate(theta,z_shift,axis_shift_1,axis_shift_2);
+          double rate =
+              _scat_table.get_rate(theta, z_shift, axis_shift_1, axis_shift_2);
 
-					(*i)->add_neighbor(*j,distance,rate);
-					(*j)->add_neighbor(*i,distance,rate);
+          scat_list[i].add_neighbor(&(scat_list[j]), distance, rate);
+          scat_list[j].add_neighbor(&(scat_list[i]), distance, rate);
           total_number_of_neighbors++;
-				}
+        }
 
-				// break the search if the scatterers are getting too far apart to speed up the search process
-				if (distance > max_search_radius)
-				{
-					break;
-				}
-			}
-			(*i)->sort_neighbors();
-			(*i)->make_cumulative_scat_rate();
+        // break the search if the scatterers are getting too far apart to speed
+        // up the search process
+        if (distance > max_search_radius) {
+          break;
+        }
+      }
 
-			counter ++;
-			avg_number_of_neighbors += (*i)->number_of_neighbors();
-			avg_max_rate += (*i)->max_rate();
-			another_counter += 1.;
+      scat_list[i].sort_neighbors();
+      scat_list[i].make_cumulative_scat_rate();
 
-			if (counter %1000 == 0)
-			{
-        std::cout
-            << "scatterer number:" << counter
-            << " ... average number of neighbors:"
-            << (avg_number_of_neighbors / another_counter)
-            << " ... average max rate = "
-            << avg_max_rate / another_counter
-            << "                     \r" << std::flush;
+      counter++;
+      avg_number_of_neighbors += scat_list[i].number_of_neighbors();
+      avg_max_rate += scat_list[i].max_rate();
+      another_counter += 1.;
+
+      if (counter % 1000 == 0) {
+        std::cout << "scatterer number:" << counter
+                  << " ... average number of neighbors:"
+                  << (avg_number_of_neighbors / another_counter)
+                  << " ... average max rate = "
+                  << avg_max_rate / another_counter << "                     \r"
+                  << std::flush;
         avg_max_rate = 0;
         avg_number_of_neighbors = 0;
         another_counter = 0;
-			}
-
-		}
+      }
+    }
 
     std::cout << "\n\nfinished finding neighbors:\n"
               << "total number of neighbor pairs: "
@@ -265,11 +259,11 @@ namespace mc
   };
 
   // create a crystalline mesh structure
-	std::list<std::shared_ptr<scatterer>> discrete_forster_monte_carlo::create_crystalline_structure()
-  {
+	std::vector<scatterer> discrete_forster_monte_carlo::create_crystalline_structure() {
     std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
 
-    std::list<std::shared_ptr<scatterer>> scatterer_list;
+    std::vector<scatterer> scatterer_list;
+
 
     arma::vec domain_length;
     arma::vec orientation;
@@ -303,25 +297,27 @@ namespace mc
     arma::vec dr = {0,0,0};
     for (int i=0; i<3; i++){
       if (i==dim){
-        n_tubes(i) = unsigned(domain_length(i)/cnt_length);
+        n_tubes(i) = unsigned(domain_length(i)/cnt_length)+1;
         dr(i) = cnt_length;
       } else {
-        n_tubes(i) = unsigned(domain_length(i)/cnt_spacing);
+        n_tubes(i) = unsigned(domain_length(i)/cnt_spacing)+1;
         dr(i) = cnt_spacing;
       }
     }
     n_tubes.print("number of tubes along each dimension:");
 
-    for (unsigned ix=0; ix<=n_tubes(0); ix++){
+    scatterer_list.resize(n_tubes(0)*n_tubes(1)*n_tubes(2));
+
+    for (unsigned ix=0; ix<n_tubes(0); ix++){
       double x = ix*dr(0);
-      for (unsigned iy=0; iy<=n_tubes(1); iy++){
+      for (unsigned iy=0; iy<n_tubes(1); iy++){
         double y = iy*dr(1);
-        for (unsigned iz=0; iz<=n_tubes(2); iz++){
+        for (unsigned iz=0; iz<n_tubes(2); iz++){
           double z = iz*dr(2);
 
-          scatterer_list.push_back(std::make_shared<scatterer>());
-          scatterer_list.back()->set_pos({x,y,z});
-          scatterer_list.back()->set_orientation(orientation);
+          unsigned idx = ix + iy*n_tubes(0) + iz * n_tubes(0) * n_tubes(1);
+          scatterer_list[idx].set_pos({x,y,z});
+          scatterer_list[idx].set_orientation(orientation);
         }
       }
     }
@@ -334,7 +330,7 @@ namespace mc
   // position in x-z plane, and then search for the neighbor pairs by search only
   // through the neighboring buckets.
   void discrete_forster_monte_carlo::find_neighbors_using_bucket(
-      std::list<std::shared_ptr<scatterer>>& scat_list,
+      std::vector<scatterer>& scat_list,
       const double max_hopping_radius) {
     std::cout << "finding neighbors in scatterers list using buckets:\n";
 
@@ -356,16 +352,16 @@ namespace mc
     std::cout << "zmin:" << zmin << " , zmax:" << zmax << "\n";
     std::cout << "nx:" << nx << " , ny:" << ny << " , nz:" << nz << "\n";
 
-    typedef std::shared_ptr<scatterer> s_ptr;
+    typedef scatterer* s_ptr;
     std::vector<std::vector<std::vector<std::list<s_ptr>>>> grid(
         nx, std::vector<std::vector<std::list<s_ptr>>>(
                 ny, std::vector<std::list<s_ptr>>(nz, std::list<s_ptr>())));
 
-    for (s_ptr& s: scat_list){
-      int ix = (s->pos(0)-xmin)/max_hopping_radius;
-      int iy = (s->pos(1)-ymin)/max_hopping_radius;
-      int iz = (s->pos(2)-zmin)/max_hopping_radius;
-      grid[ix][iy][iz].push_back(s);
+    for (scatterer& s: scat_list){
+      int ix = (s.pos(0)-xmin)/max_hopping_radius;
+      int iy = (s.pos(1)-ymin)/max_hopping_radius;
+      int iz = (s.pos(2)-zmin)/max_hopping_radius;
+      grid[ix][iy][iz].push_back(&s);
     }
 
     auto find_pairs = [&max_hopping_radius, this](std::list<s_ptr>& l1, std::list<s_ptr>& l2) {
@@ -431,14 +427,14 @@ namespace mc
     double another_counter = 0;
     long total_number_of_neighbors = 0;
 
-    for (s_ptr& s:scat_list) {
+    for (scatterer& s:scat_list) {
 
-      s->sort_neighbors();
-      s->make_cumulative_scat_rate();
+      s.sort_neighbors();
+      s.make_cumulative_scat_rate();
 
       counter++;
-      avg_number_of_neighbors += s->number_of_neighbors();
-      avg_max_rate += s->max_rate();
+      avg_number_of_neighbors += s.number_of_neighbors();
+      avg_max_rate += s.max_rate();
       another_counter += 1.;
 
       if (counter % 1000 == 0) {

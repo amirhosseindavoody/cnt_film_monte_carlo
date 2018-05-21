@@ -26,7 +26,7 @@ private:
 
   std::list<std::unique_ptr<mc::discrete_forster_particle>> _particles; // list of particles in the region
   std::list<std::unique_ptr<mc::discrete_forster_particle>> _new_particles; // list of particles newly entered the region
-  std::vector<std::shared_ptr<scatterer>> _scatterer_vector; // list of scatterers
+  std::vector<scatterer*> _scatterer_vector; // list of scatterers
   std::list<std::shared_ptr<mc::discrete_forster_free_flight>> _pilot_list; // list of free_flight objects
 
 public:
@@ -129,7 +129,7 @@ public:
       dice = std::rand()%_number_of_scatterers;
   		if (p!= _particles.end()) {
         (*p)->set_pos(_scatterer_vector[dice]->pos());
-        (*p)->set_scatterer(_scatterer_vector[dice].get());
+        (*p)->set_scatterer(_scatterer_vector[dice]);
         (*p)->get_ff_time();
   			++p;
   		} else {
@@ -160,11 +160,11 @@ public:
   };
 
   // create a list of all scatterers that are inside this region
-  typedef std::list<std::shared_ptr<scatterer>> slist;
-  void create_scatterer_vector(const slist& all_scat_list) {
-    for (const auto& scat : all_scat_list) {
-      if (in_region(scat->pos())) {
-        _scatterer_vector.push_back(scat);
+  typedef std::vector<scatterer> slist;
+  void create_scatterer_vector(slist& all_scat_list) {
+    for (auto& scat : all_scat_list) {
+      if (in_region(scat.pos())) {
+        _scatterer_vector.push_back(&scat);
       }
     }
     _number_of_scatterers = _scatterer_vector.size();
