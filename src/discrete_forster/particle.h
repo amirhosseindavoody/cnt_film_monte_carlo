@@ -1,62 +1,62 @@
-#ifndef discrete_forster_particle_h
-#define discrete_forster_particle_h
+#ifndef particle_h
+#define particle_h
 
 #include <iostream>
 #include <array>
 #include <memory>
 #include <armadillo>
 
-#include "discrete_forster_ff.h"
-#include "scatterer.h"
+#include "./free_flight.h"
+#include "./scatterer.h"
 
 namespace mc
 {
 
-class discrete_forster_particle
+class free_flight;
+
+class particle
 {
-public:
-	typedef mc::discrete_forster_particle t_particle; // particle type
-	typedef mc::discrete_forster_free_flight t_ff; // free_flight type
 
 private:
-	arma::vec _pos; // position of the particle
-	arma::vec _old_pos; // position of the particle in the previous time step, this is used for boundary collision detection
 
-	std::shared_ptr<t_ff> _pilot; // pointer to free_flight object for driving the particle
-	// std::shared_ptr<scatterer> _scat_ptr; // pointer to scatter object for scattering the particle
-  scatterer* _scat_ptr;  // pointer to scatter object for scattering the particle
+  // pointer to free_flight object for driving the particle
+  const free_flight* _pilot=nullptr;
 
-        double _ff_time; // free flight time until next scattering event
+  // pointer to scatter object for scattering the particle
+  const scatterer* _scat_ptr=nullptr;
+
+  // position of the particle
+  arma::vec _pos;
+
+  // position of the particle in the previous time step, this is used for boundary collision detection
+  arma::vec _old_pos;
+
+  // free flight time until next scattering event
+  double _ff_time;
 
 public:
-	//constructor
-  discrete_forster_particle(
-      const arma::vec& pos, const std::shared_ptr<t_ff>& pilot,
-      scatterer* m_scatterer);  // constructor
+
+  particle( const arma::vec& pos, const free_flight* pilot, const scatterer* s):
+      _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos) {
+    _ff_time = scat_ptr()->ff_time();
+	};
 
   // reinitialize particle properties instead of creating new particles
-  void reinitialize(const arma::vec& lower_corner, const arma::vec& upper_corner,
-                    const double& beta, const double& mass,
-                    const std::shared_ptr<t_ff>& pilot,
-                    const std::shared_ptr<scatterer>& m_scatterer);
+  void reinitialize(const arma::vec& lower_corner, const arma::vec& upper_corner, const double& beta, const double& mass,
+                    const std::shared_ptr<free_flight>& pilot,
+                    const std::shared_ptr<scatterer>&                    m_scatterer);
 
   // perform free flight within the simulation domain
-  void fly(const double& dt,
-           const std::pair<arma::vec, arma::vec>&
-               domain);  // perform free flight within the simulation domain
+  void fly(const double& dt, const std::pair<arma::vec, arma::vec>& domain);
 
   // set the pilot free_flight pointer object
-  void set_pilot(const std::shared_ptr<t_ff>& pilot) {
-    _pilot = pilot;
-  };
+  void set_pilot(free_flight* pilot) { _pilot = pilot; };
 
   // get the pilot free_flight pointer
-  const std::shared_ptr<t_ff>& pilot() const {
-    return _pilot;
-  };
+  const free_flight* pilot() const { return _pilot; };
 
   // set the pointer to the scatterer object
-  void set_scatterer(scatterer* s) { _scat_ptr = s; };
+  void set_scatterer(const scatterer* s) { _scat_ptr = s; };
 
   // return the pointer to the scatterer object
   const scatterer* scat_ptr() const { return _scat_ptr; };
@@ -75,8 +75,8 @@ public:
 
   // set position of the particle and set the old position into _old_pos
   void set_pos(const arma::vec& pos) {
-    _old_pos = _pos;
-    _pos = pos;
+   _old_pos = _pos;
+   _pos = pos;
 	};
 
 	// set an element of particle position and set the old position into _old_pos
@@ -96,9 +96,7 @@ public:
 	};
 
 	// return the free flight time until the next scattering
-	const double& ff_time() const  {
-		return _ff_time;
-	};
+	const double& ff_time() const { return _ff_time; };
 
 	// return the free flight time until the next scattering
 	void set_ff_time(const double& value)  {
@@ -106,15 +104,17 @@ public:
 	};
 
 	// update the _ff_time by calling the underlying scatterer
-	void get_ff_time();
+	void get_ff_time(){
+    _ff_time = _scat_ptr->ff_time();
+  };
 
 	// step particle state for dt in time
   void step(double dt,
             const std::pair<arma::vec, arma::vec>& domain,
             const double& max_hop_radius);
 
-}; //discrete_forster_particle class
+}; //particle class
 
 } //mc namespace
 
-#endif // discrete_forster_particle_h
+#endif // particle_h

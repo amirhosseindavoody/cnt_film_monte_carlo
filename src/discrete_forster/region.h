@@ -7,7 +7,7 @@
 #include <list>
 
 #include "../helper/utility.h"
-#include "./discrete_forster_particle.h"
+#include "./particle.h"
 #include "./scatterer.h"
 
 namespace mc
@@ -24,10 +24,11 @@ private:
 
   int _particle_flow_log; // this is the net number of particles flowing in (positive) or out (negative) of the region, the first component is the particle flow, the second number is the history.
 
-  std::list<std::unique_ptr<mc::discrete_forster_particle>> _particles; // list of particles in the region
-  std::list<std::unique_ptr<mc::discrete_forster_particle>> _new_particles; // list of particles newly entered the region
+  std::list<std::unique_ptr<particle>> _particles; // list of particles in the region
+  std::list<std::unique_ptr<particle>> _new_particles; // list of particles newly entered the region
   std::vector<scatterer*> _scatterer_vector; // list of scatterers
-  std::list<std::shared_ptr<mc::discrete_forster_free_flight>> _pilot_list; // list of free_flight objects
+
+  std::list<free_flight> _pilot_list; // list of free_flight objects
 
 public:
   // default constructor
@@ -67,7 +68,7 @@ public:
   };
 
   // add a particle to the _particles list if the particle is in the region region
-  typedef std::list<std::unique_ptr<mc::discrete_forster_particle>>::iterator pIterator;
+  typedef std::list<std::unique_ptr<particle>>::iterator pIterator;
   bool enlist(pIterator& particle_iterator, region_class* other_region) {
   	bool is_in_region = in_region(*(*particle_iterator));
   	if (is_in_region) {
@@ -86,7 +87,7 @@ public:
   };
 
   // checks if a particle is inside the region
-  bool in_region(const mc::discrete_forster_particle& p) {
+  bool in_region(const mc::particle& p) {
     return (arma::all(p.pos()>=_lower_corner) && arma::all(p.pos()<=_upper_corner));
   };
 
@@ -133,7 +134,7 @@ public:
         (*p)->get_ff_time();
   			++p;
   		} else {
-        _particles.push_back(std::make_unique<mc::discrete_forster_particle>( _scatterer_vector[dice]->pos(), _pilot_list.back(), _scatterer_vector[dice]));
+        _particles.push_back(std::make_unique<particle>( _scatterer_vector[dice]->pos(), &(_pilot_list.back()), _scatterer_vector[dice]));
   		}
   		count++;
   	}
@@ -149,7 +150,7 @@ public:
 
 
   // return _particles list
-  typedef std::list<std::unique_ptr<mc::discrete_forster_particle>> plist;
+  typedef std::list<std::unique_ptr<particle>> plist;
   plist& particles() {
     return _particles;
   };
@@ -177,7 +178,7 @@ public:
 
   // create a list of all free_flight objects
   void create_pilot_list() {
-    _pilot_list.push_back(std::make_shared<mc::discrete_forster_free_flight>());
+    _pilot_list.push_back(free_flight());
   };
 
 }; //region_class

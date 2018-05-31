@@ -14,32 +14,25 @@
 
 #include "../helper/utility.h"
 
-#include "./discrete_forster_particle.h"
+#include "./particle.h"
 #include "./scattering_struct.h"
 
 namespace mc
 {
 
-class scatterer {
+class particle;
 
-  struct neighbor {
-    neighbor(scatterer* s, double d, double rate)
-        : s_ptr(s), distance(d), rate(d){};
-    scatterer* s_ptr;
-    double distance;
-    double rate;
-  };
+class scatterer {
 
 private:
 	double _max_rate; // maximum scattering rate in the scattering table
 	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	arma::vec _pos; // position of the scatterer
   arma::vec _orientation; // orientation of the scattering object site
-  std::list<scatterer::neighbor> _neighbors;
 
 public:
-  std::vector< std::vector<scatterer*>* > close_scats; // index of neighboring grid cells
-  const scattering_struct* scat_tab;
+  std::vector<std::vector<scatterer*>*> close_scats; // index of neighboring grid cells
+  const scattering_struct* scat_tab = nullptr;
 
 	// default constructor
   scatterer(): _max_rate(0), _inverse_max_rate(0) {};
@@ -89,81 +82,24 @@ public:
     return -_inverse_max_rate * std::log(double(r) / double(RAND_MAX));
   };
 
-  // update the final state of the particle
-  void update_state(discrete_forster_particle* p,
-                    const double& max_hopping_radius);
-
-  // add a scattering object and its distance to the neighbors list
-  void add_neighbor(scatterer* neighbor_ptr,
-                    const double& distance, const double& rate) {
-    _neighbors.emplace_back(neighbor_ptr, distance, rate);
-  };
-
-  // get the number of neighbors
-  unsigned number_of_neighbors() { return _neighbors.size(); };
-
-  // sort neighbors in the ascending order of distances
-  void sort_neighbors() {
-    _neighbors.sort([](const auto& n1, const auto& n2) {
-      return n1.distance < n2.distance;
-    });
-  };
-
-  // make a cumulative scattering rate table
-  void make_cumulative_scat_rate() {
-		_max_rate = 0;
-		for (auto& neighbor: _neighbors)
-		{
-      _max_rate += neighbor.rate;
-      neighbor.rate = _max_rate;
-		}
-		_inverse_max_rate = 1/_max_rate;
-	};
-
-  // print neighbor distances
-  void print_neighbor_distances() {
-		std::cout << "...neighbor distances: ";
-		for (const auto& neighbor : _neighbors)
-		{
-      std::cout << neighbor.distance << " , ";
-		}
-		std::cout << std::endl;
-	};
-
-  // print neighbor rates
-  void print_neighbor_rates() {
-		std::cout << "...neighbor rates: ";
-		for (const auto& neighbor : _neighbors)
-		{
-      std::cout << neighbor.rate << " , ";
-		}
-		std::cout << std::endl;
-	};
-
-  // return closest neighbor distance
-  double closest_neighbor() {
-    auto cmp_neighbor = [](const scatterer::neighbor& n1,
-                           const scatterer::neighbor& n2) {
-      return n1.distance < n2.distance;
-    };
-    return std::min_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
-  };
-
-  // return farthest neighbor distance
-  double farthest_neighbor() {
-    auto cmp_neighbor = [](const scatterer::neighbor& n1,
-                           const scatterer::neighbor& n2) {
-      return n1.distance < n2.distance;
-    };
-    return std::max_element(_neighbors.begin(),_neighbors.end(),cmp_neighbor)->distance;
-  };
+  // find a new scattering object by looking at the scattering table
+  const scatterer* update_state(const double& max_hopping_radius) const;
 
   // return the maximum scattering rate
   const double& max_rate() const { return _max_rate; };
 
- private:
+  // set the max scattering rate by finding the neighbors
+  void set_max_rate(const double& max_hopping_radius){
+    auto neighbors = find_neighbors(max_hopping_radius);
+    _max_rate = neighbors.back().first;
+    _inverse_max_rate = 1./_max_rate;
+  };
+
   // find neighbors of the current scatterer and their scattering rates
-  std::vector < std::pair<double, scatterer*>> find_neighbors(const double& max_hopping_radius);
+  std::vector < std::pair<double, scatterer*>> find_neighbors(const double& max_hopping_radius) const;
+
+  // count number of scatterer neighbors
+  int no_of_neighbors(const double& max_hopping_radius) const;
 
 };  // end class scatterer
 

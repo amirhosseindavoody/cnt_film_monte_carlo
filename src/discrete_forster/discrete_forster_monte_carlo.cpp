@@ -8,56 +8,54 @@
 #include <iomanip>
 #include <armadillo>
 
-
+#include "../../lib/json.hpp"
+#include "../exciton_transfer/cnt.h"
 #include "../helper/prepare_directory.hpp"
 #include "../helper/progress.hpp"
-#include "../exciton_transfer/cnt.h"
 #include "discrete_forster_monte_carlo.h"
-
 
 namespace mc
 {
 
   // high level method to calculate proper scattering table
-  scattering_struct discrete_forster_monte_carlo::initialize_scattering_table() {
+  scattering_struct discrete_forster_monte_carlo::create_scattering_table(nlohmann::json j) {
+    if (j.count("rate type")==0)
+      throw std::invalid_argument(
+          "\"rate type\" must be specifieced!!");
+
     std::cout << "\ninitializing scattering table...\n";
 
     scattering_struct scat_tab;
 
-    switch(_scat_t) {
-      case davoody:
-        {
-          // get the parent directory for cnts
-          std::string parent_directory = _json_scat["cnts"]["directory"];
-          _json_scat["cnts"].erase("directory");
+    if (j["rate type"].get<std::string>() == "davoody") {
 
-          // create excitons and calculate exciton dispersions
-          std::vector<cnt> cnts;
-          cnts.reserve(_json_scat["cnts"].size()); // this is reservation of space is crucial to ensure we do not move cnts, since the move constructor is not implemented yet
-          for (const auto& j_cnt: _json_scat["cnts"])
-          {
-            cnts.emplace_back(cnt(j_cnt,parent_directory));
-            cnts.back().calculate_exciton_dispersion();
-          };
-          scat_tab = create_davoody_scatt_table(cnts[0], cnts[0]);
-        }
-        break;
+      // get the parent directory for cnts
+      std::string parent_directory = j["cnts"]["directory"];
+      j["cnts"].erase("directory");
 
-      case forster:
-        scat_tab = create_forster_scatt_table(1.e15, 1.4e9);
-        break;
+      // create excitons and calculate exciton dispersions
+      std::vector<cnt> cnts;
+      cnts.reserve(j["cnts"].size()); // this is reservation of space is crucial to ensure we do not move
+                                      // cnts, since the move constructor is not implemented yet
+      
+      for (const auto& j_cnt : j["cnts"]) {
+        cnts.emplace_back(cnt(j_cnt, parent_directory));
+        cnts.back().calculate_exciton_dispersion();
+      };
+      scat_tab = create_davoody_scatt_table(cnts[0], cnts[0]);
 
-      case wong:
-        scat_tab = create_forster_scatt_table(1.e13, 1.4e9);
-        break;
 
-      default:
-        throw std::logic_error("invalid value for rate type");
+    } else if (j["rate type"].get<std::string>() == "forster") {
+      scat_tab = create_forster_scatt_table(1.e15, 1.4e9);
+    } else if (j["rate type"].get<std::string>() == "wong") {
+      scat_tab = create_forster_scatt_table(1.e13, 1.4e9);
+    } else {
+      throw std::invalid_argument(
+          "rate type must be one of the following: \"davoody\", \"forster\", \"wong\"");
     }
 
     return scat_tab;
   };
-
 
   // method to calculate scattering rate via davoody et al. method
   scattering_struct discrete_forster_monte_carlo::create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt) {
@@ -173,91 +171,6 @@ namespace mc
     return scat_table;
   };
 
-  // find the neighbors of each scattering object
-  void discrete_forster_monte_carlo::find_neighbors(
-      std::vector<scatterer>& scat_list,
-      const double& max_hopping_radius, const double& max_search_radius) {
-    std::cout << "finding neighbors in scatterers list:\n";
-
-		// sort scattering objects to have better performance
-    std::sort(scat_list.begin(), scat_list.end(),
-              [](auto& s1, auto& s2) { return s1.pos(1) < s2.pos(1); });
-
-    int counter = 0;
-    double avg_max_rate = 0;
-    double avg_number_of_neighbors = 0;
-    double another_counter = 0;
-    long total_number_of_neighbors=0;
-
-    for (unsigned i = 0; i < scat_list.size(); ++i) {
-      for (unsigned j = i + 1; j < scat_list.size(); ++j) {
-        arma::vec dR = scat_list[i].pos() - scat_list[j].pos();
-        double distance = arma::norm(dR);
-
-        if ((distance < max_hopping_radius) and (distance > 0.4e-9)) {
-          arma::vec a1 = scat_list[i].orientation();
-          arma::vec a2 = scat_list[j].orientation();
-          double cosTheta = arma::dot(a1, a2);
-          double theta = std::acos(cosTheta);
-          double y1 = arma::dot(a1, dR);
-          double y2 = arma::dot(a2, dR);
-          double sin2Theta = 1 - std::pow(cosTheta, 2);
-          double axis_shift_1 = (y1 + y2 * cosTheta) / sin2Theta;
-          double axis_shift_2 = (y2 + y1 * cosTheta) / sin2Theta;
-          double z_shift = arma::norm((axis_shift_1 * a1 + scat_list[i].pos()) -
-                                      (axis_shift_2 * a2 + scat_list[j].pos()));
-          // check if parallel case has happend
-          if (cosTheta == 1) {
-            axis_shift_1 = 0;
-            axis_shift_2 = arma::dot(dR, a1);
-            theta = 0;
-            z_shift = arma::norm(dR - arma::dot(dR, a1) * a1);
-          }
-
-          double rate =
-              _scat_table.get_rate(theta, z_shift, axis_shift_1, axis_shift_2);
-
-          scat_list[i].add_neighbor(&(scat_list[j]), distance, rate);
-          scat_list[j].add_neighbor(&(scat_list[i]), distance, rate);
-          total_number_of_neighbors++;
-        }
-
-        // break the search if the scatterers are getting too far apart to speed
-        // up the search process
-        if (distance > max_search_radius) {
-          break;
-        }
-      }
-
-      scat_list[i].sort_neighbors();
-      scat_list[i].make_cumulative_scat_rate();
-
-      counter++;
-      avg_number_of_neighbors += scat_list[i].number_of_neighbors();
-      avg_max_rate += scat_list[i].max_rate();
-      another_counter += 1.;
-
-      if (counter % 1000 == 0) {
-        std::cout << "scatterer number:" << counter
-                  << " ... average number of neighbors:"
-                  << (avg_number_of_neighbors / another_counter)
-                  << " ... average max rate = "
-                  << avg_max_rate / another_counter << "                     \r"
-                  << std::flush;
-        avg_max_rate = 0;
-        avg_number_of_neighbors = 0;
-        another_counter = 0;
-      }
-    }
-
-    std::cout << "\n\nfinished finding neighbors:\n"
-              << "total number of neighbor pairs: "
-              << total_number_of_neighbors << "\n"
-              << "average number of neighbors per scatterer: "
-              << (2 * total_number_of_neighbors) / scat_list.size()
-              << "\n\n";
-  };
-
   // create a crystalline mesh structure
 	std::vector<scatterer> discrete_forster_monte_carlo::create_crystalline_structure() {
     std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
@@ -323,138 +236,6 @@ namespace mc
     }
 
     return scatterer_list;
-  };
-
-  // find the neighbors of each scattering object using segmentation method,
-  // first divide the scattering objects into multiple buckets based on their
-  // position in x-z plane, and then search for the neighbor pairs by search only
-  // through the neighboring buckets.
-  void discrete_forster_monte_carlo::find_neighbors_using_bucket(
-      std::vector<scatterer>& scat_list,
-      const double max_hopping_radius) {
-    std::cout << "finding neighbors in scatterers list using buckets:\n";
-
-    double xmin = (_domain.first)(0);
-    double xmax = (_domain.second)(0);
-    int nx = std::ceil((xmax - xmin)/max_hopping_radius)+1;
-
-    double ymin = (_domain.first)(1);
-    double ymax = (_domain.second)(1);
-    int ny = std::ceil((ymax - ymin) / max_hopping_radius)+1;
-
-    double zmin = (_domain.first)(2);
-    double zmax = (_domain.second)(2);
-    int nz = std::ceil((zmax - zmin) / max_hopping_radius)+1;
-
-
-    std::cout << "xmin:" << xmin << " , xmax:" << xmax << "\n";
-    std::cout << "ymin:" << ymin << " , ymax:" << ymax << "\n";
-    std::cout << "zmin:" << zmin << " , zmax:" << zmax << "\n";
-    std::cout << "nx:" << nx << " , ny:" << ny << " , nz:" << nz << "\n";
-
-    typedef scatterer* s_ptr;
-    std::vector<std::vector<std::vector<std::list<s_ptr>>>> grid(
-        nx, std::vector<std::vector<std::list<s_ptr>>>(
-                ny, std::vector<std::list<s_ptr>>(nz, std::list<s_ptr>())));
-
-    for (scatterer& s: scat_list){
-      int ix = (s.pos(0)-xmin)/max_hopping_radius;
-      int iy = (s.pos(1)-ymin)/max_hopping_radius;
-      int iz = (s.pos(2)-zmin)/max_hopping_radius;
-      grid[ix][iy][iz].push_back(&s);
-    }
-
-    auto find_pairs = [&max_hopping_radius, this](std::list<s_ptr>& l1, std::list<s_ptr>& l2) {
-      double cosTheta, theta, y1, y2, sin2Theta, axis_shift_1, axis_shift_2, z_shift;
-
-      for (s_ptr& s1: l1){
-        for (s_ptr& s2: l2){
-          arma::vec dR = s1->pos() - s2->pos();
-          double distance = arma::norm(dR);
-
-          if ((distance < max_hopping_radius) and (distance > 0.4e-9)) {
-            arma::vec a1 = s1->orientation();
-            arma::vec a2 = s2->orientation();
-            cosTheta = arma::dot(a1, a2);
-            // check if parallel case has happend
-            if (cosTheta == 1) {
-              axis_shift_1 = 0;
-              axis_shift_2 = arma::dot(dR, a1);
-              theta = 0;
-              z_shift = arma::norm(dR - arma::dot(dR, a1) * a1);
-            } else {
-              theta = std::acos(cosTheta);
-              y1 = arma::dot(a1, dR);
-              y2 = arma::dot(a2, dR);
-              sin2Theta = 1 - std::pow(cosTheta, 2);
-              axis_shift_1 = (y1 + y2 * cosTheta) / sin2Theta;
-              axis_shift_2 = (y2 + y1 * cosTheta) / sin2Theta;
-              z_shift = arma::norm((axis_shift_1 * a1 + s1->pos()) -
-                                          (axis_shift_2 * a2 + s2->pos()));
-            }
-
-            double rate = _scat_table.get_rate(theta, z_shift, axis_shift_1,
-                                               axis_shift_2);
-
-            s1->add_neighbor(s2, distance, rate);
-          }
-
-        }
-      }
-    };
-
-    for (int ix = 0; ix < nx; ++ix) {
-      std::cout << "ix:" << ix << "\r" << std::flush;
-      for (int iy = 0; iy < ny; ++iy) {
-        for (int iz = 0; iz < nz; ++iz) {
-          // get the nieghbor indices
-          for (int i : {ix - 1, ix, ix + 1}) {
-            for (int j : {iy - 1, iy, iy + 1}) {
-              for (int k : {iz - 1, iz, iz + 1}) {
-                if (i > -1 && i < nx && j > -1 && j < ny && k > -1 && k < nz) {
-                  find_pairs(grid[ix][iy][iz], grid[i][j][k]);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    int counter = 0;
-    double avg_max_rate = 0;
-    double avg_number_of_neighbors = 0;
-    double another_counter = 0;
-    long total_number_of_neighbors = 0;
-
-    for (scatterer& s:scat_list) {
-
-      s.sort_neighbors();
-      s.make_cumulative_scat_rate();
-
-      counter++;
-      avg_number_of_neighbors += s.number_of_neighbors();
-      avg_max_rate += s.max_rate();
-      another_counter += 1.;
-
-      if (counter % 1000 == 0) {
-        std::cout << "scatterer number:" << counter
-                  << " ... average number of neighbors:"
-                  << (avg_number_of_neighbors / another_counter)
-                  << " ... average max rate = "
-                  << avg_max_rate / another_counter << "                     \r"
-                  << std::flush;
-        avg_max_rate = 0;
-        avg_number_of_neighbors = 0;
-        another_counter = 0;
-      }
-    }
-
-    std::cout << "\n\nfinished finding neighbors:\n"
-              << "total number of neighbor pairs: " << total_number_of_neighbors
-              << "\n"
-              << "average number of neighbors per scatterer: "
-              << (2 * total_number_of_neighbors) / scat_list.size() << "\n\n";
   };
 
 } // end of namespace mc

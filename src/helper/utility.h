@@ -15,19 +15,6 @@
 namespace mc
 {
 
-class forster_scatter;
-class forster_free_flight;
-class forster_particle;
-
-class discrete_forster_particle;
-class discrete_forster_free_flight;
-class scatterer;
-
-// use continous forster model
-typedef forster_scatter t_scatter;
-typedef forster_free_flight t_free_flight;
-typedef forster_particle t_particle;
-
 //#################################################################################################
 // custom data types
 //#################################################################################################
