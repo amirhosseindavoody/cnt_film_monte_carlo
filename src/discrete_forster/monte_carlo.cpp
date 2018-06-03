@@ -12,13 +12,13 @@
 #include "../exciton_transfer/cnt.h"
 #include "../helper/prepare_directory.hpp"
 #include "../helper/progress.hpp"
-#include "discrete_forster_monte_carlo.h"
+#include "monte_carlo.h"
 
 namespace mc
 {
 
   // high level method to calculate proper scattering table
-  scattering_struct discrete_forster_monte_carlo::create_scattering_table(nlohmann::json j) {
+  scattering_struct monte_carlo::create_scattering_table(nlohmann::json j) {
     if (j.count("rate type")==0)
       throw std::invalid_argument(
           "\"rate type\" must be specifieced!!");
@@ -58,7 +58,7 @@ namespace mc
   };
 
   // method to calculate scattering rate via davoody et al. method
-  scattering_struct discrete_forster_monte_carlo::create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt) {
+  scattering_struct monte_carlo::create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt) {
     auto zshift_prop = _json_prop["zshift [m]"];
     arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
 
@@ -121,7 +121,7 @@ namespace mc
   };
 
   // method to calculate scattering rate via forster method
-  scattering_struct discrete_forster_monte_carlo::create_forster_scatt_table(double gamma_0, double r_0) {
+  scattering_struct monte_carlo::create_forster_scatt_table(double gamma_0, double r_0) {
     auto zshift_prop = _json_prop["zshift [m]"];
     arma::vec z_shift = arma::linspace<arma::vec>(zshift_prop[0], zshift_prop[1], zshift_prop[2]);
 
@@ -172,7 +172,7 @@ namespace mc
   };
 
   // create a crystalline mesh structure
-	std::vector<scatterer> discrete_forster_monte_carlo::create_crystalline_structure() {
+	std::vector<scatterer> monte_carlo::create_crystalline_structure() {
     std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
 
     std::vector<scatterer> scatterer_list;

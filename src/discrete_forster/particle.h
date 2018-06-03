@@ -35,16 +35,12 @@ private:
   double _ff_time;
 
 public:
+  particle() : _pilot(nullptr), _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0){};
 
-  particle( const arma::vec& pos, const free_flight* pilot, const scatterer* s):
-      _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos) {
+  particle(const arma::vec& pos, const free_flight* pilot, const scatterer* s)
+      : _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos) {
     _ff_time = scat_ptr()->ff_time();
-	};
-
-  // reinitialize particle properties instead of creating new particles
-  void reinitialize(const arma::vec& lower_corner, const arma::vec& upper_corner, const double& beta, const double& mass,
-                    const std::shared_ptr<free_flight>& pilot,
-                    const std::shared_ptr<scatterer>&                    m_scatterer);
+  };
 
   // perform free flight within the simulation domain
   void fly(const double& dt, const std::pair<arma::vec, arma::vec>& domain);
@@ -74,41 +70,24 @@ public:
   const double& old_pos(const int& i) const { return _old_pos(i); };
 
   // set position of the particle and set the old position into _old_pos
-  void set_pos(const arma::vec& pos) {
-   _old_pos = _pos;
-   _pos = pos;
-	};
+  void set_pos(const arma::vec& pos) { _pos = pos; };
 
-	// set an element of particle position and set the old position into _old_pos
-	void set_pos(const int& i, const double& value)  {
-		_old_pos(i) = _pos(i);
-		_pos(i) = value;
-	};
-	
-	// rewind the current position to the old_pos and do not update the old_pos
-	void rewind_pos() {
-		_pos = _old_pos;
-	};
+  // // set an element of particle position and set the old position into _old_pos
+  void set_pos(const int& i, const double& value) { _pos(i) = value; };
 
-	// set the old position of the particle.
-	void set_old_pos(const arma::vec& old_pos) {
-		_old_pos = old_pos;
-	};
+  // // set the old position of the particle.
+  void set_old_pos(const arma::vec& old_pos) { _old_pos = old_pos; };
 
-	// return the free flight time until the next scattering
-	const double& ff_time() const { return _ff_time; };
+  // return the free flight time until the next scattering
+  const double& ff_time() const { return _ff_time; };
 
-	// return the free flight time until the next scattering
-	void set_ff_time(const double& value)  {
-		_ff_time = value;
-	};
+  // return the free flight time until the next scattering
+  void set_ff_time(const double& value) { _ff_time = value; };
 
-	// update the _ff_time by calling the underlying scatterer
-	void get_ff_time(){
-    _ff_time = _scat_ptr->ff_time();
-  };
+  // update the _ff_time by calling the underlying scatterer
+  void get_ff_time() { _ff_time = _scat_ptr->ff_time(); };
 
-	// step particle state for dt in time
+  // step particle state for dt in time
   void step(double dt,
             const std::pair<arma::vec, arma::vec>& domain,
             const double& max_hop_radius);

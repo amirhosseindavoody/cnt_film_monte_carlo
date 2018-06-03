@@ -7,7 +7,7 @@
 #include <experimental/filesystem>
 
 #include "../lib/json.hpp"
-#include "./discrete_forster/discrete_forster_monte_carlo.h"
+#include "./discrete_forster/monte_carlo.h"
 #include "./helper/utility.h"
 
 #include "./exciton_transfer/cnt.h"
@@ -52,33 +52,28 @@ int main(int argc, char *argv[])
 		throw std::invalid_argument("input.json should contain \"exciton monte carlo\" property.");
 	}
 	
-	mc::discrete_forster_monte_carlo sim(json_mc);
+	mc::monte_carlo sim(json_mc);
 
 	// initialize and run simulation for the exciton hopping
 	sim.init();
 	sim.save_json_properties();
 
-	std::fstream population_file;
-	std::fstream current_profile_file;
-	std::fstream region_current_file;
-	std::fstream debug_file;
-
 	double time_step = 1.e-14;
-	unsigned max_history = 1;
 
   std::cout << "running Monte Carlo:\n";
 
 	while (true)
 	{
 		sim.step(time_step);
+    sim.save_metrics();
 		sim.repopulate_contacts();
-		sim.population_profiler(max_history, population_file, debug_file);
-		sim.save_region_current(max_history, region_current_file, time_step);
 
-		// if (int(sim.time() / time_step) % 10 == 0)
-		// {
-			std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... number of particles: " << sim.number_of_particles() <<"\r" << std::flush;
-		// }
+
+    // if (int(sim.time() / time_step) % 10 == 0)
+    // {
+    std::cout << "simulation time [seconds]: " << std::scientific << sim.time()
+              << " .... number of particles: " << sim.number_of_particles() << "\r" << std::flush;
+    // }
 	}
 
 	// print the end time and the runtime

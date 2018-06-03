@@ -54,6 +54,8 @@
             "cnt spacing [m]":2e-9,
             "cnt orientation":[0,1,0],
             "simulation domain dimensions [m]": [20e-9,1000e-9,20e-9]
-        }
+        },
+
+        "number of segments":10
     }
 }

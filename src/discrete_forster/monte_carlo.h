@@ -1,5 +1,5 @@
-#ifndef discrete_forster_monte_carlo_h
-#define discrete_forster_monte_carlo_h
+#ifndef monte_carlo_h
+#define monte_carlo_h
 
 #include <iostream>
 #include <list>
@@ -29,7 +29,7 @@
 namespace mc
 {
 
-class discrete_forster_monte_carlo
+class monte_carlo
 {
 
 private:
@@ -60,7 +60,7 @@ private:
   std::pair<arma::vec, arma::vec> _domain;
 
   // number of particles in the contacts
-  unsigned _number_of_contact1_particles, _number_of_contact2_particles;
+  unsigned _c1_pop, _c2_pop;
 
   // this is the address of the output_directory and input_directory
   std::experimental::filesystem::directory_entry _output_directory, _input_directory;
@@ -77,34 +77,45 @@ private:
                                                        // into multiple buckets based on their position in
                                                        // space
 
+  // pointers to scatterers in contact 1 and 2
+  std::vector<const scatterer*> _c1_scat, _c2_scat;
+
+  // number of segments that defines contacts
+  unsigned _n_seg=0;
+
   std::vector<particle> _particle_list;
 
   free_flight _ff;
 
-public:
-	// default constructor
-	discrete_forster_monte_carlo()=delete;
-	
-	// constructure with json input file
-	discrete_forster_monte_carlo(const nlohmann::json& j) {
-		// store the json properties for use in other methods
-		_json_prop = j;
+  std::fstream _pop_file, _curr_file;
 
-		// set the output directory
-		std::string directory_path = j["output directory"];
-		bool keep_old_data = true;
-		if (j.count("keep old results")==1){
-			keep_old_data = j["keep old results"];
-		}
-		_output_directory = prepare_directory(directory_path,keep_old_data);
+ public:
+  // default constructor
+  monte_carlo() = delete;
 
-		// set the input directory for mesh information
-		directory_path = j["mesh input directory"];
-		_input_directory = check_directory(directory_path,false);
+  // constructure with json input file
+  monte_carlo(const nlohmann::json& j) {
+    // store the json properties for use in other methods
+    _json_prop = j;
 
-		// set maximum hopping radius
+    // set the output directory
+    std::string directory_path = j["output directory"];
+    bool        keep_old_data = true;
+    if (j.count("keep old results") == 1) {
+      keep_old_data = j["keep old results"];
+    }
+    _output_directory = prepare_directory(directory_path, keep_old_data);
+
+    // set the input directory for mesh information
+    directory_path = j["mesh input directory"];
+    _input_directory = check_directory(directory_path, false);
+
+    // set maximum hopping radius
     _max_hopping_radius = double(j["max hopping radius [m]"]);
 		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
+
+    // set the number of segments along y axis
+    _n_seg = j["number of segments"];
 
 	};
 
@@ -159,69 +170,20 @@ public:
     _domain = find_simulation_domain();
 
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
-    // set_max_rate(_max_hopping_radius, _all_scat_list);
+    set_max_rate(_max_hopping_radius, _all_scat_list);
 
-    _number_of_contact1_particles = 1100;
-    _number_of_contact2_particles = 0;
+    _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
+    _c2_scat = contact_scats(_all_scat_list, _n_seg, _n_seg, _domain);
 
-    std::cout << "ready to create particles...\n";
-    std::cin.ignore();
+    _c1_pop = 1100;
+    _c2_pop = 0;
 
     _ff = free_flight();
 
-    _particle_list =
-        create_particles(_domain, _all_scat_list, _number_of_contact1_particles, _number_of_contact2_particles, &_ff);
+    _particle_list = create_particles(_domain, _all_scat_list, _c1_pop, _c2_pop, &_ff);
 
-    std::exit(0);
-
-    double x_min = (_domain.first)(0);
-    double x_max = (_domain.second)(0);
-
-    double y_min = (_domain.first)(1);
-    double y_1 = (_domain.first)(1) + 0.1 * ((_domain.second)(1) - (_domain.first)(1));
-    double y_2 = (_domain.first)(1) + 0.9 * ((_domain.second)(1) - (_domain.first)(1));
-    double y_max = (_domain.second)(1);
-
-    double z_min = (_domain.first)(2);
-    double z_max = (_domain.second)(2);
-
-    arma::vec contact_1_lower_corner = {x_min, y_min, z_min};
-    arma::vec contact_1_upper_corner = {x_max, y_1, z_max};
-    arma::vec bulk_lower_corner = {x_min, y_1, z_min};
-    arma::vec bulk_upper_corner = {x_max, y_2, z_max};
-    arma::vec contact_2_lower_corner = {x_min, y_2, z_min};
-    arma::vec contact_2_upper_corner = {x_max, y_max, z_max};
-
-    _regions[0].set_borders(contact_1_lower_corner, contact_1_upper_corner);
-    _regions[1].set_borders(bulk_lower_corner, bulk_upper_corner);
-    _regions[2].set_borders(contact_2_lower_corner, contact_2_upper_corner);
-
-    for (auto& m_region : _regions) {
-      m_region.create_scatterer_vector(_all_scat_list);
-      m_region.create_pilot_list();
-		}
-
-
-		_number_of_contact1_particles = 1100;
-		_number_of_contact2_particles = 0;
-
-		std::cout << "\n"
-              << "number of particles in the contact 1: " << _number_of_contact1_particles << "\n"
-							<< "number of particles in the contact 2: " << _number_of_contact2_particles << "\n"
-              << "\n";
-
-		_regions.front().populate(_number_of_contact1_particles);
-		_regions.back().populate(_number_of_contact2_particles);
-
-		region_class* bulk = &(_regions[1]);
-
-		_population_probe.number_of_sections = 10;
-		_population_probe.dim = 1;
-		_population_probe.profile = std::vector<unsigned>(_population_probe.number_of_sections, 0);
-		_population_probe.history = 0;
-		_population_probe.dL = (bulk->upper_corner(_population_probe.dim)-bulk->lower_corner(_population_probe.dim))/double(_population_probe.number_of_sections);
-		_population_probe.dV = bulk->volume()/(_population_probe.number_of_sections);
-
+    _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
+    _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
 	};
 
   // high level function to create scatterers vector based on the json inpu
@@ -334,127 +296,63 @@ public:
 	// step the simulation in time
 	void step(double dt) {
 
-		for (auto&& p=_regions[0].particles().begin(); p!=_regions[0].particles().end(); ++p) {
-			(*p)->step(dt,_domain, _max_hopping_radius);
-			_regions[1].enlist(p,&(_regions[0]));
-		}
+    for (auto& p: _particle_list){
+      p.step(dt, _domain, _max_hopping_radius);
+    }
+
+    // increase simulation time
+    _time += dt;
 
 
-		for (auto&& p=_regions[2].particles().begin(); p!=_regions[2].particles().end(); ++p) {
-      (*p)->step(dt, _domain, _max_hopping_radius);
-      _regions[1].enlist(p, &(_regions[2]));
-		}
 
-		for (auto&& p=_regions[1].particles().begin(); p!=_regions[1].particles().end(); ++p) {
-			(*p)->step(dt, _domain, _max_hopping_radius);
-			if (not _regions[2].enlist(p,&(_regions[1]))) {
-				_regions[0].enlist(p,&(_regions[1]));
-			}
-		}
+		// for (auto&& p=_regions[0].particles().begin(); p!=_regions[0].particles().end(); ++p) {
+		// 	(*p)->step(dt,_domain, _max_hopping_radius);
+		// 	_regions[1].enlist(p,&(_regions[0]));
+		// }
 
-		// dump the new particles into the particles list in each region
-		for (auto& m_region: _regions) {
-			m_region.dump_new_particles();
-		}
 
-		increase_time(dt);
+		// for (auto&& p=_regions[2].particles().begin(); p!=_regions[2].particles().end(); ++p) {
+    //   (*p)->step(dt, _domain, _max_hopping_radius);
+    //   _regions[1].enlist(p, &(_regions[2]));
+		// }
+
+		// for (auto&& p=_regions[1].particles().begin(); p!=_regions[1].particles().end(); ++p) {
+		// 	(*p)->step(dt, _domain, _max_hopping_radius);
+		// 	if (! _regions[2].enlist(p,&(_regions[1]))) {
+		// 		_regions[0].enlist(p,&(_regions[1]));
+		// 	}
+		// }
+
+		// // dump the new particles into the particles list in each region
+		// for (auto& m_region: _regions) {
+		// 	m_region.dump_new_particles();
+		// }
+
+		// increase_time(dt);
 
 	};
 
 	// repopulate contacts
 	void repopulate_contacts() {
-		_regions[0].populate(_number_of_contact1_particles);
-		_regions[1].populate(_number_of_contact2_particles);
-	};
 
-	// calculate and save the population profile
-	void population_profiler(const unsigned& max_history, std::fstream& file, std::fstream& debug_file) {
+    double ymin = _domain.first(1);
+    double ymax = _domain.second(1);
+    double dy = (ymax-ymin)/double(_n_seg);
 
-    // open the debug file
-    if (! debug_file.is_open()) {
-      debug_file.open(_output_directory.path() / "debug.dat", std::ios::out);
-      file << std::showpos << std::scientific;
-    }
+    double y1 = ymin;
+    double y2 = ymin + dy;
+    repopulate(y1, y2, _c1_pop, &_ff, _c1_scat, _particle_list);
 
-    region_class* bulk = &(_regions[1]);
-
-    _population_probe.history++;
-
-    unsigned i;
-    for (const auto& p: bulk->particles()) {
-      i = std::floor((p->pos(_population_probe.dim) - bulk->lower_corner(_population_probe.dim))/_population_probe.dL);
-      if ((i >= _population_probe.number_of_sections) or (i<0)) {
-        debug_file << "index out of bound when making population profile\n";
-        debug_file << "particle position = " << p->pos(_population_probe.dim) << " , bulk limits = [ " << bulk->lower_corner(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) << " ]" << std::endl;
-
-        std::cout << "_population_probe.number_of_sections = " << _population_probe.number_of_sections << "\ni = " << i << "\n";
-
-        std::cout << "particle position = " << p->pos(_population_probe.dim) << "\n"
-                  << "bulk limits = [" << bulk->lower_corner(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) << "]\n"
-                  << "bulk limits - particle position = [" << bulk->lower_corner(_population_probe.dim) - p->pos(_population_probe.dim) << " , " << bulk->upper_corner(_population_probe.dim) - p->pos(_population_probe.dim) << "]\n";
-        throw std::range_error("particle is out of bound when calculating population profile");
-
-      } else {
-        _population_probe.profile[i]++;
-      }
-    }
-
-    if (_population_probe.history == max_history) {
-      if (!file.is_open()) {
-        file.open(_output_directory.path() / "population_profile.dat",
-                  std::ios::out);
-        file << std::showpos << std::scientific;
-
-        // store the position of the middle point of each section
-        file << time() << " ";
-        for (unsigned i = 0; i < _population_probe.number_of_sections; ++i) {
-          file << double(i) * _population_probe.dL << " ";
-        }
-        file << std::endl;
-      }
-
-      file << time() << " ";
-      for (auto& element : _population_probe.profile) {
-        file << double(element) / double(_population_probe.history) / _population_probe.dV << " ";
-        element = 0;
-      }
-      file << std::endl;
-
-      _population_probe.history = 0;
-    }
-	};
-
-	// save the net currents for each region calculated by counting in and out flow of particles in each contact
-	void save_region_current(const unsigned& max_history, std::fstream& current_file, const double& time_step) {
-
-    _history_of_region_currents++;
-
-		if (_history_of_region_currents%max_history==0) {
-			if (! current_file.is_open()) {
-				current_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
-				current_file << std::showpos << std::scientific;
-			}
-
-			region_class* bulk = &(_regions[1]);
-			double cross_section = (bulk->upper_corner(0)-bulk->lower_corner(0)) * (bulk->upper_corner(2)-bulk->lower_corner(2));
-			double elapsed_time = double(_history_of_region_currents)*time_step;
-
-			current_file << time() << " ";
-			for (auto&& m_region: _regions) {
-				current_file << double(m_region.particle_flow())/elapsed_time/cross_section;
-				current_file << " ";
-				m_region.reset_particle_flow();
-			}
-			current_file << std::endl;
-		}
+    y1 = ymin + double(_n_seg-1)*dy;
+    y2 = ymax;
+    repopulate(y1, y2, _c2_pop, &_ff, _c2_scat, _particle_list);
 	};
 
   // read in the coordinate of all the cnt segments or molecules and
   // create the scatterer objects that manage particle hopping between the
   // sites
-  void create_scatterers_with_orientation(
-      const std::experimental::filesystem::path& input_path,
-      const std::experimental::filesystem::path& output_path) {
+  typedef std::experimental::filesystem::path path;
+  void create_scatterers_with_orientation( const path& input_path, const path& output_path) {
     std::cout << "this is the input path: " << input_path << std::endl;
     std::ifstream file;
     std::string line;
@@ -604,10 +502,10 @@ public:
     return scat_list;
   };
 
-  // divide scatterers into buckets based on their location, and set the
-  // pointers to enclosing and neighboring buckets for each scatterer object
-  void create_scatterer_buckets(const std::pair<arma::vec, arma::vec> domain, const double max_hopping_radius, std::vector<scatterer>& scat_list,
-                                std::vector<std::vector<scatterer*>>& scat_buckets) {
+  // divide scatterers into buckets based on their location, and set the pointers to enclosing and neighboring buckets
+  // for each scatterer object
+  void create_scatterer_buckets(const std::pair<arma::vec, arma::vec> domain, const double max_hopping_radius,
+                                std::vector<scatterer>& scat_list, std::vector<std::vector<scatterer*>>& scat_buckets) {
     using namespace std;
     
     std::cout << "\n" 
@@ -657,8 +555,7 @@ public:
   }
 
   // set the pointer to scattering table struct for all scatterer objects
-  void set_scat_table(const scattering_struct& scat_tab,
-                      std::vector<scatterer>& scat_list) {
+  void set_scat_table(const scattering_struct& scat_tab, std::vector<scatterer>& scat_list) {
     for (auto& s : scat_list) {
       s.scat_tab = &scat_tab;
     }
@@ -675,8 +572,138 @@ public:
     }
   }
 
-}; // end class discrete_forster_monte_carlo
+  // take all the particles between ymin and ymax region and recycle them and populate the region with new particles
+  void repopulate(const double ymin, const double ymax, const unsigned n_particle, const free_flight* ff,
+                  const std::vector<const scatterer*>& s_list,
+                  std::vector<particle>& p_list) {
+    
+    unsigned j=p_list.size();
+
+    for (unsigned i = 0; i < j;) {
+      if (_particle_list[i].pos(1) >= ymin && _particle_list[i].pos(1) <= ymax) {
+        --j;
+        std::swap(_particle_list[i], _particle_list[j]);
+      } else {
+        ++i;
+      }
+    }
+
+    int dice=0;
+    unsigned n=0;
+    unsigned final_size = j+n_particle;
+
+    unsigned j_lim = std::min(int(p_list.size()), int(final_size));
+    
+    for (;j < j_lim; ++j, ++n) {
+      dice = std::rand() % s_list.size();
+      p_list[j] = particle(s_list[dice]->pos(), ff, s_list[dice]);
+    }
+
+    for (;n<n_particle; ++n){
+      dice = std::rand() % s_list.size();
+      p_list.emplace_back(particle(s_list[dice]->pos(), ff, s_list[dice]));
+    }
+
+    p_list.resize(final_size);
+  }
+
+  // create a list of scatterer pointers in the contact number i
+  std::vector<const scatterer*> contact_scats(const std::vector<scatterer>& s_list, const unsigned n_seg, const unsigned i,
+                                        const std::pair<arma::vec, arma::vec>& domain) {
+    
+    if (i==0 || i>n_seg)
+      throw std::logic_error("input \"i\" must be between 1 and number of segments \"n_seg\"");
+    
+    double ymin = domain.first(1);
+    double ymax = domain.second(1);
+    double dy = (ymax-ymin)/double(n_seg);
+
+    double y1 = ymin + double(i - 1) * dy;
+    double y2 = ymin + double(i) * dy;
+
+    std::vector<const scatterer*> c_list;
+
+    for (auto& s: s_list){
+      if (s.pos(1)>=y1 && s.pos(1)<=y2){
+        c_list.push_back(&s);
+      }
+    }
+
+    return c_list;
+  }
+
+  // calculate all the metrics needed from the experiment
+  void save_metrics() {
+    save_population_profile(_n_seg);
+    save_currents(_n_seg);
+  }
+
+  // calculate and save population profile
+  void save_population_profile(unsigned n) {
+    std::vector<int> pop(n, 0);
+
+    double ymax = (_domain.second)(1);
+    double ymin = (_domain.first)(1);
+
+    double dy = (ymax - ymin) / double(n);
+
+    int i = 0;
+
+    for (auto p : _particle_list) {
+      i = (p.pos(1) - ymin) / dy;
+      if (i > -1 && i < int(n)) {
+        pop[i]++;
+      }
+    }
+
+    if (!_pop_file.is_open()) {
+      throw std::logic_error("Population file is not open: _pop_file !!!");
+    }
+
+    for (int& p : pop) {
+      _pop_file << std::showpos << std::scientific << p << " ";
+    }
+    _pop_file << "\n";
+  }
+
+  // calculate and save population profile
+  void save_currents(unsigned n) {
+    double ymax = (_domain.second)(1);
+    double ymin = (_domain.first)(1);
+    double dy = (ymax - ymin) / double(n);
+
+    if (n < 4) {
+      throw std::invalid_argument(
+          "number of segments should be larger than 4 for the \"save_currents\" function: \"n\"");
+    }
+
+    std::vector<double> y = {ymin + 2 * dy, ymin + double(n - 2) * dy};
+
+    std::vector<int> curr(2, 0);
+    int              i = 0;
+
+    for (i = 0; i < 2; ++i) {
+      for (auto p : _particle_list) {
+        if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
+          curr[i]++;
+        } else if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
+          curr[i]--;
+        }
+      }
+    }
+
+    if (!_curr_file.is_open()) {
+      throw std::logic_error("Current file is not open: _curr_file !!!");
+    }
+
+    for (auto& c : curr) {
+      _curr_file << std::showpos << std::scientific << c << " ";
+    }
+    _curr_file << "\n";
+  }
+
+}; // end class monte_carlo
 
 } // end namespace mc
 
-#endif // discrete_forster_monte_carlo_h
+#endif // monte_carlo_h

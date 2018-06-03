@@ -130,6 +130,7 @@ public:
       dice = std::rand()%_number_of_scatterers;
   		if (p!= _particles.end()) {
         (*p)->set_pos(_scatterer_vector[dice]->pos());
+        (*p)->set_old_pos(_scatterer_vector[dice]->pos());
         (*p)->set_scatterer(_scatterer_vector[dice]);
         (*p)->get_ff_time();
   			++p;
