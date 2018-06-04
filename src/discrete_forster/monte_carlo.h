@@ -50,7 +50,7 @@ private:
   std::vector<scatterer> _all_scat_list;
 
   // minimum and maximum coordinates of the simulation domain
-  domain_t_domain;
+  domain_t _domain;
 
   // number of particles in the contacts
   unsigned _c1_pop, _c2_pop;
