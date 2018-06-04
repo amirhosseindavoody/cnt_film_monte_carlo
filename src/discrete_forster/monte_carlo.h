@@ -33,31 +33,24 @@ class monte_carlo
 {
 
 private:
-  struct population_profile {
-    std::vector<unsigned> profile;  // number of particles in each segment
-    unsigned number_of_sections=0;    // number of sections in the profiler
-    unsigned history=0;               // history of the population_profiler
-    double dL;     // length of each segment in population profiler
-    double dV;     // volume of each segment in population profiler
-    unsigned dim;  // this is the dimension along which the population profiler
-                    // is working
-  };
+  typedef std::experimental::filesystem::path  path_t;
+  typedef std::pair<arma::vec, arma::vec>      domain_t;
+  typedef std::vector<std::vector<scatterer*>> bucket_t;
 
+  // elapsed simulation time
   double _time;
+
+  // maximum hopping radius considered in the simulation
   double _max_hopping_radius;
 
-  nlohmann::json _json_prop;  // input properties of the whole mc simulation in json format
+  // input properties of the whole mc simulation in json format
+  nlohmann::json _json_prop;  
 
-  std::array<region_class, 3> _regions;  // simulation regions: contacts and bulk. Since
-                                         // discrete_forster_region data type has unique_ptr as data
-                                         // members, we can't use vectors and dynamically push_back new
-                                         // regions. If we want to do that we need to implement the move
-                                         // and copy constructors explicitly.
-
+  // list of all scatterer object in the simulation
   std::vector<scatterer> _all_scat_list;
 
-
-  std::pair<arma::vec, arma::vec> _domain;
+  // minimum and maximum coordinates of the simulation domain
+  domain_t_domain;
 
   // number of particles in the contacts
   unsigned _c1_pop, _c2_pop;
@@ -65,17 +58,11 @@ private:
   // this is the address of the output_directory and input_directory
   std::experimental::filesystem::directory_entry _output_directory, _input_directory;
 
-  unsigned _history_of_region_currents = 0;  // this is the number of steps that the net
-                                             // _current in the regions have‍‍‍‍ been recorded
-  population_profile _population_probe;  // this is the population profile of particles through
-                                         // the simulation domain along the z-axis
+  // instantiation of the scattering table for discrete mesh points
+  scattering_struct _scat_table;
 
-  scattering_struct _scat_table;  // instantiation of the scattering table for
-                                  // discrete mesh points
-
-  std::vector<std::vector<scatterer*>> _scat_buckets;  // pointers to scatterers to divide the scatterers
-                                                       // into multiple buckets based on their position in
-                                                       // space
+  // pointers to scatterers to divide the scatterers into multiple buckets based on their position in space
+  bucket_t _scat_buckets;  
 
   // pointers to scatterers in contact 1 and 2
   std::vector<const scatterer*> _c1_scat, _c2_scat;
@@ -83,10 +70,13 @@ private:
   // number of segments that defines contacts
   unsigned _n_seg=0;
 
+  // list of all particles in the simulation
   std::vector<particle> _particle_list;
 
+  // pilot object for the free flight section of the monte carlo
   free_flight _ff;
 
+  // file objects for saving population profile and current data
   std::fstream _pop_file, _curr_file;
 
  public:
@@ -120,47 +110,28 @@ private:
 	};
 
 	// get the mc simulation time
-	const double& time() const {
-		return _time;
-	};
+  const double& time() const { return _time; };
 
-	// increase simulation time by dt
-	void increase_time(const double& dt) {
-		_time += dt;
-	};
+  // increase simulation time by dt
+  void increase_time(const double& dt) { _time += dt; };
 
-	// get constant reference to the output_directory
-	const std::experimental::filesystem::directory_entry& output_directory() const{
-		return _output_directory;
-	};
+  // get constant reference to the output_directory
+  const std::experimental::filesystem::directory_entry& output_directory() const { return _output_directory; };
 
-	// get constant reference to the input_directory
-	const std::experimental::filesystem::directory_entry& input_directory() const{
-		return _input_directory;
-	};
+  // get constant reference to the input_directory
+  const std::experimental::filesystem::directory_entry& input_directory() const { return _input_directory; };
 
-	// get constant reference to the output_directory
-	const std::experimental::filesystem::path& output_path() const{
-		return _output_directory.path();
-	};
+  // get constant reference to the output_directory
+  const path_t& output_path() const { return _output_directory.path(); };
 
-	// get constant reference to the input_directory
-	const std::experimental::filesystem::path& input_path() const {
-		return _input_directory.path();
-	};
+  // get constant reference to the input_directory
+  const path_t& input_path() const { return _input_directory.path(); };
 
-	// returns the number of particles
-	unsigned number_of_particles() const {
-		unsigned number_of_particles = 0;
-		for (const auto& m_region: _regions)
-		{
-			number_of_particles += m_region.number_of_particles();
-		}
-		return number_of_particles;
-	};
+  // returns the number of particles
+  unsigned number_of_particles() const { return _particle_list.size(); };
 
-	//initialize the simulation condition
-	void init() {
+  // initialize the simulation condition
+  void init() {
 
     _scat_table = create_scattering_table(_json_prop);
     _all_scat_list = create_scatterers(_json_prop);
@@ -209,7 +180,7 @@ private:
   }
 
   // create particles with a linear density profile in y direction
-  std::vector<particle> create_particles( const std::pair<arma::vec, arma::vec>& domain,
+  std::vector<particle> create_particles( const domain_t& domain,
       const std::vector<scatterer>& scat_list, int left_pop, int right_pop, const free_flight* ff) {
 
     std::cout << "\n"
@@ -260,15 +231,11 @@ private:
 		json_file.close();
 	};
 
-  // find minimum of the minimum coordinates of the scattering objects,
-  // this function will effectively give us the simulation domain
-	std::pair<arma::vec, arma::vec> find_simulation_domain() {
-		
+  // find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the
+  // simulation domain
+  domain_t find_simulation_domain() {
     arma::vec min_coor = _all_scat_list.front().pos();
     arma::vec max_coor = _all_scat_list.front().pos();
-
-    std::pair<arma::vec, arma::vec> minmax_coordinates(_all_scat_list.front().pos(),
-																											 _all_scat_list.front().pos());
 
     for (const auto& s : _all_scat_list) {
       for (int i = 0; i < 3; ++i) {
@@ -277,23 +244,20 @@ private:
       }
     }
 
-    std::ios::fmtflags f(
-        std::cout.flags());  // save cout flags to be reset after printing
+    std::ios::fmtflags f(std::cout.flags());  // save cout flags to be reset after printing
 
     std::cout << "\n simulation domain:\n";
-    std::cout << "    x (" << std::fixed << std::showpos << min_coor(0) * 1e9
-              << " , " << max_coor(0) * 1e9 << ") [nm]\n";
-    std::cout << "    y (" << std::fixed << min_coor(1) * 1e9 << " , "
-              << max_coor(1) * 1e9 << ") [nm]\n";
-    std::cout << "    z (" << std::fixed << min_coor(2) * 1e9 << " , "
-              << max_coor(2) * 1e9 << ") [nm]\n";
+    std::cout << "    x (" << std::fixed << std::showpos << min_coor(0) * 1e9 << " , " << max_coor(0) * 1e9
+              << ") [nm]\n";
+    std::cout << "    y (" << std::fixed << min_coor(1) * 1e9 << " , " << max_coor(1) * 1e9 << ") [nm]\n";
+    std::cout << "    z (" << std::fixed << min_coor(2) * 1e9 << " , " << max_coor(2) * 1e9 << ") [nm]\n";
 
     std::cout.flags(f);  // reset the cout flags
 
     return {min_coor, max_coor};
-	};
+  };
 
-	// step the simulation in time
+  // step the simulation in time
 	void step(double dt) {
 
     for (auto& p: _particle_list){
@@ -302,34 +266,6 @@ private:
 
     // increase simulation time
     _time += dt;
-
-
-
-		// for (auto&& p=_regions[0].particles().begin(); p!=_regions[0].particles().end(); ++p) {
-		// 	(*p)->step(dt,_domain, _max_hopping_radius);
-		// 	_regions[1].enlist(p,&(_regions[0]));
-		// }
-
-
-		// for (auto&& p=_regions[2].particles().begin(); p!=_regions[2].particles().end(); ++p) {
-    //   (*p)->step(dt, _domain, _max_hopping_radius);
-    //   _regions[1].enlist(p, &(_regions[2]));
-		// }
-
-		// for (auto&& p=_regions[1].particles().begin(); p!=_regions[1].particles().end(); ++p) {
-		// 	(*p)->step(dt, _domain, _max_hopping_radius);
-		// 	if (! _regions[2].enlist(p,&(_regions[1]))) {
-		// 		_regions[0].enlist(p,&(_regions[1]));
-		// 	}
-		// }
-
-		// // dump the new particles into the particles list in each region
-		// for (auto& m_region: _regions) {
-		// 	m_region.dump_new_particles();
-		// }
-
-		// increase_time(dt);
-
 	};
 
 	// repopulate contacts
@@ -348,21 +284,19 @@ private:
     repopulate(y1, y2, _c2_pop, &_ff, _c2_scat, _particle_list);
 	};
 
-  // read in the coordinate of all the cnt segments or molecules and
-  // create the scatterer objects that manage particle hopping between the
-  // sites
-  typedef std::experimental::filesystem::path path;
-  void create_scatterers_with_orientation( const path& input_path, const path& output_path) {
+  // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
+  // particle hopping between the sites
+  
+  void create_scatterers_with_orientation(const path_t& input_path, const path_t& output_path) {
     std::cout << "this is the input path: " << input_path << std::endl;
     std::ifstream file;
-    std::string line;
+    std::string   line;
 
-    int num = 1;
-    int max_num = 5;  // maximum number of files to read
+    int         num = 1;
+    int         max_num = 5;  // maximum number of files to read
     std::string base = "tube";
     std::string extension = ".dat";
-    std::string filename =
-        input_path / (base + std::to_string(num) + extension);
+    std::string filename = input_path / (base + std::to_string(num) + extension);
 
     file.open(filename);
     std::regex tube_rgx("tube");
@@ -372,8 +306,8 @@ private:
     // num1 , num2"
     auto get_nodes = [](std::string str) -> std::list<std::string> {
       std::list<std::string> output;
-      std::istringstream iss(str);
-      std::string token;
+      std::istringstream     iss(str);
+      std::string            token;
       while (std::getline(iss, token, ';')) {
         int count = 0;
         for (auto t : token) {
@@ -396,7 +330,7 @@ private:
       arma::rowvec pos(3);
       if (count == 2) {
         std::istringstream iss(str);
-        std::string token;
+        std::string        token;
         std::getline(iss, token, ',');
         pos(0) = std::stod(token);
         std::getline(iss, token, ',');
@@ -410,8 +344,7 @@ private:
 
     // loop over files
     while ((file.is_open()) and (num <= max_num)) {
-      std::cout << "reading data from file: \"" << filename << "\"\r"
-                << std::flush;
+      std::cout << "reading data from file: \"" << filename << "\"\r" << std::flush;
 
       while (std::getline(file, line, '\n')) {
         // find the new tube coordinates by finding the keywork "tube"
@@ -419,7 +352,7 @@ private:
           auto nodes = get_nodes(line);
 
           arma::mat tube_coordinates(nodes.size(), 3);
-          unsigned i = 0;
+          unsigned  i = 0;
           for (const auto& node : nodes) {
             tube_coordinates.row(i) = get_position(node);
             i++;
@@ -468,7 +401,7 @@ private:
 
   // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
   // particle hopping between the sites
-  std::vector<scatterer> create_scatterer_from_fiber(const std::experimental::filesystem::path& input_path) {
+  std::vector<scatterer> create_scatterer_from_fiber(const path_t& input_path) {
     std::cout << "\n"
               << "create scatterers in fiber sctructure:\n"
               << "input path " << input_path << std::endl;
@@ -504,8 +437,8 @@ private:
 
   // divide scatterers into buckets based on their location, and set the pointers to enclosing and neighboring buckets
   // for each scatterer object
-  void create_scatterer_buckets(const std::pair<arma::vec, arma::vec> domain, const double max_hopping_radius,
-                                std::vector<scatterer>& scat_list, std::vector<std::vector<scatterer*>>& scat_buckets) {
+  void create_scatterer_buckets(const domain_t domain, const double radius, std::vector<scatterer>& scat_list,
+                                bucket_t& scat_buckets) {
     using namespace std;
     
     std::cout << "\n" 
@@ -513,30 +446,30 @@ private:
 
     double xmin = (domain.first)(0);
     double xmax = (domain.second)(0);
-    int nx = std::ceil((xmax - xmin) / max_hopping_radius) + 1;
+    int nx = std::ceil((xmax - xmin) / radius) + 1;
 
     double ymin = (domain.first)(1);
     double ymax = (domain.second)(1);
-    int ny = std::ceil((ymax - ymin) / max_hopping_radius) + 1;
+    int    ny = std::ceil((ymax - ymin) / radius) + 1;
 
     double zmin = (domain.first)(2);
     double zmax = (domain.second)(2);
-    int nz = std::ceil((zmax - zmin) / max_hopping_radius) + 1;
+    int    nz = std::ceil((zmax - zmin) / radius) + 1;
 
     scat_buckets.resize(nx*ny*nz);
 
     for (scatterer& s : scat_list) {
-      int ix = (s.pos(0) - xmin) / max_hopping_radius;
-      int iy = (s.pos(1) - ymin) / max_hopping_radius;
-      int iz = (s.pos(2) - zmin) / max_hopping_radius;
+      int ix = (s.pos(0) - xmin) / radius;
+      int iy = (s.pos(1) - ymin) / radius;
+      int iz = (s.pos(2) - zmin) / radius;
       int idx = ix + iy * nx + iz * nx * ny;
       scat_buckets[idx].push_back(&s);
     }
 
     for (scatterer& s : scat_list) {
-      int ix = (s.pos(0) - xmin) / max_hopping_radius;
-      int iy = (s.pos(1) - ymin) / max_hopping_radius;
-      int iz = (s.pos(2) - zmin) / max_hopping_radius;
+      int ix = (s.pos(0) - xmin) / radius;
+      int iy = (s.pos(1) - ymin) / radius;
+      int iz = (s.pos(2) - zmin) / radius;
 
       for (int i : {ix - 1, ix, ix + 1}) {
         for (int j : {iy - 1, iy, iy + 1}) {
@@ -609,7 +542,7 @@ private:
 
   // create a list of scatterer pointers in the contact number i
   std::vector<const scatterer*> contact_scats(const std::vector<scatterer>& s_list, const unsigned n_seg, const unsigned i,
-                                        const std::pair<arma::vec, arma::vec>& domain) {
+                                        const domain_t& domain) {
     
     if (i==0 || i>n_seg)
       throw std::logic_error("input \"i\" must be between 1 and number of segments \"n_seg\"");
