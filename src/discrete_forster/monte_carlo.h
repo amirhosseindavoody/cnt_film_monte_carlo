@@ -155,7 +155,7 @@ private:
 
     _ff = free_flight();
 
-    _particle_list = create_particles(_domain, _all_scat_list, _c1_pop, _c2_pop, &_ff);
+    _particle_list = create_particles(_domain, _n_seg, _all_scat_list, _c1_pop, _c2_pop, &_ff);
 
     _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
     _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
@@ -184,28 +184,29 @@ private:
   }
 
   // create particles with a linear density profile in y direction
-  std::vector<particle> create_particles( const domain_t& domain,
+  std::vector<particle> create_particles( const domain_t& domain, const unsigned n_seg,
       const std::vector<scatterer>& scat_list, int left_pop, int right_pop, const free_flight* ff) {
 
     std::cout << "\n"
-              << "create particles list: ";
+              << "create particles list:...";
 
     std::vector<particle> p_list;
-    int no_of_sections = 10;
 
     double y_min = domain.first(1);
     double y_max = domain.second(1);
 
-    for (int i=0; i<no_of_sections; ++i){
+    double dy = (y_max - y_min) / double(n_seg);
+    double dp = double(right_pop - left_pop) / (double(n_seg) - 1);
 
-      std::cout << i << ",";
+    for (unsigned i=0; i<n_seg; ++i){
 
-      double dp = double(right_pop - left_pop) / double(no_of_sections - 1);
-      int n_particle = std::round(left_pop + i * dp);
 
-      double dy = (y_max-y_min)/no_of_sections;
-      double y1 = y_min+i*dy;
-      double y2 = y_min+(i+1)*dy;
+      int n_particle = std::round(left_pop + double(i) * dp);
+
+      std::cout << "("<< i << "," << n_particle << ") ,";
+      
+      double y1 = y_min + double(i) * dy;
+      double y2 = y1 + dy;
 
       std::vector<const scatterer*> s_list;
       for (const scatterer& s: scat_list){
@@ -250,11 +251,12 @@ private:
 
     std::ios::fmtflags f(std::cout.flags());  // save cout flags to be reset after printing
 
+    std::cout << std::fixed << std::showpos;
+
     std::cout << "\n simulation domain:\n";
-    std::cout << "    x (" << std::fixed << std::showpos << min_coor(0) * 1e9 << " , " << max_coor(0) * 1e9
-              << ") [nm]\n";
-    std::cout << "    y (" << std::fixed << min_coor(1) * 1e9 << " , " << max_coor(1) * 1e9 << ") [nm]\n";
-    std::cout << "    z (" << std::fixed << min_coor(2) * 1e9 << " , " << max_coor(2) * 1e9 << ") [nm]\n";
+    std::cout << "    x (" << min_coor(0) * 1e9 << " , " << max_coor(0) * 1e9 << ") [nm]\n";
+    std::cout << "    y (" << min_coor(1) * 1e9 << " , " << max_coor(1) * 1e9 << ") [nm]\n";
+    std::cout << "    z (" << min_coor(2) * 1e9 << " , " << max_coor(2) * 1e9 << ") [nm]\n";
 
     std::cout.flags(f);  // reset the cout flags
 
@@ -270,22 +272,6 @@ private:
 
     // increase simulation time
     _time += dt;
-	};
-
-	// repopulate contacts
-	void repopulate_contacts() {
-
-    double ymin = _domain.first(1);
-    double ymax = _domain.second(1);
-    double dy = (ymax-ymin)/double(_n_seg);
-
-    double y1 = ymin;
-    double y2 = ymin + dy;
-    repopulate(y1, y2, _c1_pop, &_ff, _c1_scat, _particle_list);
-
-    y1 = ymin + double(_n_seg-1)*dy;
-    y2 = ymax;
-    repopulate(y1, y2, _c2_pop, &_ff, _c2_scat, _particle_list);
 	};
 
   // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
@@ -509,6 +495,21 @@ private:
     }
   }
 
+  // repopulate contacts
+  void repopulate_contacts() {
+    double ymin = _domain.first(1);
+    double ymax = _domain.second(1);
+    double dy = (ymax - ymin) / double(_n_seg);
+
+    double y1 = ymin;
+    double y2 = ymin + dy;
+    repopulate(y1, y2, _c1_pop, &_ff, _c1_scat, _particle_list);
+
+    y1 = ymin + double(_n_seg - 1) * dy;
+    y2 = ymax;
+    repopulate(y1, y2, _c2_pop, &_ff, _c2_scat, _particle_list);
+  };
+
   // take all the particles between ymin and ymax region and recycle them and populate the region with new particles
   void repopulate(const double ymin, const double ymax, const unsigned n_particle, const free_flight* ff,
                   const std::vector<const scatterer*>& s_list,
@@ -517,9 +518,9 @@ private:
     unsigned j=p_list.size();
 
     for (unsigned i = 0; i < j;) {
-      if (_particle_list[i].pos(1) >= ymin && _particle_list[i].pos(1) <= ymax) {
+      if (p_list[i].pos(1) >= ymin && p_list[i].pos(1) <= ymax) {
         --j;
-        std::swap(_particle_list[i], _particle_list[j]);
+        std::swap(p_list[i], p_list[j]);
       } else {
         ++i;
       }
@@ -531,9 +532,10 @@ private:
 
     unsigned j_lim = std::min(int(p_list.size()), int(final_size));
     
-    for (;j < j_lim; ++j, ++n) {
+    for (;j < j_lim; ++j) {
       dice = std::rand() % s_list.size();
       p_list[j] = particle(s_list[dice]->pos(), ff, s_list[dice]);
+      ++n;
     }
 
     for (;n<n_particle; ++n){
@@ -597,6 +599,14 @@ private:
       throw std::logic_error("Population file is not open: _pop_file !!!");
     }
 
+    // std::cout << std::endl;
+    // std::cout << "population profile:" << _time << "...";
+    // for (unsigned i=0; i<pop.size(); ++i){
+    //   std::cout << "(" << i << ","<< pop[i] << ") ,";
+    // }
+    // std::cout << std::endl;
+
+    _pop_file << std::showpos << std::scientific << _time << " ";
     for (int& p : pop) {
       _pop_file << std::showpos << std::scientific << p << " ";
     }
@@ -633,10 +643,39 @@ private:
       throw std::logic_error("Current file is not open: _curr_file !!!");
     }
 
+    _curr_file << std::showpos << std::scientific << _time << " ";
     for (auto& c : curr) {
       _curr_file << std::showpos << std::scientific << c << " ";
     }
     _curr_file << std::endl;
+  }
+
+  void get_scatterer_distribution(){
+    double ymin = _domain.first(1);
+    double ymax = _domain.second(1);
+    double dy = (ymax - ymin) / double(_n_seg);
+
+    std::vector<long> pop(_n_seg, 0);
+
+    for (auto& s:_all_scat_list){
+      int i = int(std::abs(s.pos(1) - ymin) / dy)%_n_seg;
+      pop[i]++;
+    }
+
+    std::vector<double> pos(_n_seg, 0);
+    for (unsigned i=0; i<pos.size(); ++i){
+      pos[i] = ymin + (double(i) + 0.5) * dy;
+    }
+
+    std::fstream f;
+    f.open(_output_directory.path() / "scatterer_distribution.dat", std::ios::out);
+
+    f << "position        population\n";
+    for (unsigned i=0; i<pop.size(); ++i){
+      f << std::scientific << pos[i] << " " << double(pop[i])/double(_all_scat_list.size()) << "\n";
+    }
+    f.close();
+    
   }
 
 }; // end class monte_carlo
