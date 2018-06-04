@@ -33,9 +33,10 @@ class monte_carlo
 {
 
 private:
-  typedef std::experimental::filesystem::path  path_t;
-  typedef std::pair<arma::vec, arma::vec>      domain_t;
-  typedef std::vector<std::vector<scatterer*>> bucket_t;
+  typedef std::experimental::filesystem::path            path_t;
+  typedef std::experimental::filesystem::directory_entry directory_t;
+  typedef std::pair<arma::vec, arma::vec>                domain_t;
+  typedef std::vector<std::vector<scatterer*>>           bucket_t;
 
   // elapsed simulation time
   double _time;
@@ -56,7 +57,7 @@ private:
   unsigned _c1_pop, _c2_pop;
 
   // this is the address of the output_directory and input_directory
-  std::experimental::filesystem::directory_entry _output_directory, _input_directory;
+  directory_t _output_directory, _input_directory;
 
   // instantiation of the scattering table for discrete mesh points
   scattering_struct _scat_table;
@@ -85,6 +86,11 @@ private:
 
   // constructure with json input file
   monte_carlo(const nlohmann::json& j) {
+
+    std::cout << "\n"
+              << "ready properties from json file"
+              << "\n";
+
     // store the json properties for use in other methods
     _json_prop = j;
 
@@ -106,20 +112,18 @@ private:
 
     // set the number of segments along y axis
     _n_seg = j["number of segments"];
+    std::cout << "number of segments: " << _n_seg << std::endl;
 
 	};
 
 	// get the mc simulation time
   const double& time() const { return _time; };
 
-  // increase simulation time by dt
-  void increase_time(const double& dt) { _time += dt; };
-
   // get constant reference to the output_directory
-  const std::experimental::filesystem::directory_entry& output_directory() const { return _output_directory; };
+  const directory_t& output_directory() const { return _output_directory; };
 
   // get constant reference to the input_directory
-  const std::experimental::filesystem::directory_entry& input_directory() const { return _input_directory; };
+  const directory_t& input_directory() const { return _input_directory; };
 
   // get constant reference to the output_directory
   const path_t& output_path() const { return _output_directory.path(); };
@@ -425,7 +429,7 @@ private:
 
     scat_list.resize(pos.n_rows);
 
-    for (unsigned i = 0; i < pos.n_rows; ++i) {
+    for (unsigned i = 0; i < scat_list.size(); ++i) {
       scat_list[i].set_pos(pos.row(i).t());
       scat_list[i].set_orientation(orient.row(i).t());
     }
@@ -596,7 +600,7 @@ private:
     for (int& p : pop) {
       _pop_file << std::showpos << std::scientific << p << " ";
     }
-    _pop_file << "\n";
+    _pop_file << std::endl;
   }
 
   // calculate and save population profile
@@ -632,7 +636,7 @@ private:
     for (auto& c : curr) {
       _curr_file << std::showpos << std::scientific << c << " ";
     }
-    _curr_file << "\n";
+    _curr_file << std::endl;
   }
 
 }; // end class monte_carlo
