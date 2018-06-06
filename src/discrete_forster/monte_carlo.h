@@ -640,7 +640,7 @@ private:
       for (auto p : _particle_list) {
         if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
           curr[i]++;
-        } else if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
+        } else if (p.old_pos(1) >= y[i] && p.pos(1) < y[i]) {
           curr[i]--;
         }
       }
@@ -654,6 +654,7 @@ private:
     for (auto& c : curr) {
       _curr_file << std::showpos << std::scientific << c << " ";
     }
+
     _curr_file << std::endl;
   }
 
