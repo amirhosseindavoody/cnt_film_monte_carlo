@@ -56,6 +56,11 @@
             "simulation domain dimensions [m]": [20e-9,1000e-9,20e-9]
         },
 
-        "number of segments":10
+        "number of segments":10,
+        "trim limits":{
+          "xlim":[-1.5e-6, 1.5e-6],
+          "ylim":[0, 1e-7],
+          "zlim":[-1.5e-6, 1.5e-6]
+        }
     }
 }

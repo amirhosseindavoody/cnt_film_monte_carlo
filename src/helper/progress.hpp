@@ -10,7 +10,7 @@
 class progress_bar {
  private:
   const int   _barWidth = 100;
-  int         _pos = 0;
+  int         _pos = -1;
   float       _progress = 0;
   std::string _title = "";
   int         _i_max = 0;
@@ -63,7 +63,14 @@ class progress_bar {
     if (_is_silent) return;
 
     _progress = float(_i) / float(_i_max);
-    _pos = _progress * _barWidth;
+    _i++;
+    
+
+    int new_pos = _progress * _barWidth;
+
+    if (new_pos == _pos) return;
+
+    _pos = new_pos;
     std::cout << "[";
     for (int j = 0; j < _barWidth; ++j) {
       if (j < _pos)
@@ -74,10 +81,9 @@ class progress_bar {
         std::cout << " ";
     }
     std::cout << "] " << int((_progress)*100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
-    if (_i == _i_max) {
+    if (_i >= _i_max) {
       std::cout << std::endl;
     }
-    _i++;
   };
 
   // stepping function to pass progress level explicitly and do the rest internally

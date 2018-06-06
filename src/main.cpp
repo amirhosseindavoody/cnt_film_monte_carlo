@@ -57,7 +57,6 @@ int main(int argc, char *argv[])
 	// initialize and run simulation for the exciton hopping
 	sim.init();
 	sim.save_json_properties();
-  sim.get_scatterer_distribution();
 
 	double time_step = 1.e-14;
 
@@ -65,9 +64,11 @@ int main(int argc, char *argv[])
 
 	while (true)
 	{
-		sim.step(time_step);
-		sim.repopulate_contacts();
+		
+    sim.step(time_step);
     sim.save_metrics();
+
+		sim.repopulate_contacts();
 
 
     std::cout << "simulation time [seconds]: " << std::scientific << sim.time()

@@ -37,6 +37,7 @@ private:
   typedef std::experimental::filesystem::directory_entry directory_t;
   typedef std::pair<arma::vec, arma::vec>                domain_t;
   typedef std::vector<std::vector<scatterer*>>           bucket_t;
+  typedef std::pair<double, double> limit_t;
 
   // elapsed simulation time
   double _time;
@@ -140,12 +141,22 @@ private:
     _scat_table = create_scattering_table(_json_prop);
     _all_scat_list = create_scatterers(_json_prop);
 
+    limit_t xlim = _json_prop["trim limits"]["xlim"];
+    limit_t ylim = _json_prop["trim limits"]["ylim"];
+    limit_t zlim = _json_prop["trim limits"]["zlim"];
+
+    trim_scats(xlim, ylim, zlim, _all_scat_list);
+    
+    std::cout << "total number of scatterers: " << _all_scat_list.size() << std::endl;
+
     set_scat_table(_scat_table, _all_scat_list);
 
     _domain = find_simulation_domain();
 
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
     set_max_rate(_max_hopping_radius, _all_scat_list);
+
+    get_scatterer_distribution();
 
     _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
     _c2_scat = contact_scats(_all_scat_list, _n_seg, _n_seg, _domain);
@@ -650,6 +661,7 @@ private:
     _curr_file << std::endl;
   }
 
+  // calculate and save distribution function of all scatterer objects
   void get_scatterer_distribution(){
     double ymin = _domain.first(1);
     double ymax = _domain.second(1);
@@ -676,6 +688,32 @@ private:
     }
     f.close();
     
+  }
+
+  // trim all the scatterer objects outside a particular region.
+  void trim_scats(const limit_t xlim, const limit_t ylim, const limit_t zlim,
+                  std::vector<scatterer>& s_list) {
+    
+    std::cout << std::endl
+              << "triming scattering list..."
+              << std::flush;
+
+    unsigned j = s_list.size();
+    
+    for (unsigned i=0; i<j;){
+      if (s_list[i].pos(0) < xlim.first  || s_list[i].pos(1) < ylim.first  || s_list[i].pos(2) < zlim.first ||
+          s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
+        --j;
+        std::swap(s_list[i],s_list[j]);
+      } else {
+        ++i;
+      }
+    }
+
+    s_list.resize(j);
+
+    std::cout << "...done!"
+              << std::endl;
   }
 
 }; // end class monte_carlo
