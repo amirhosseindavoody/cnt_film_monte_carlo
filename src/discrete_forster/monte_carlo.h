@@ -287,7 +287,6 @@ private:
 
   // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
   // particle hopping between the sites
-  
   void create_scatterers_with_orientation(const path_t& input_path, const path_t& output_path) {
     std::cout << "this is the input path: " << input_path << std::endl;
     std::ifstream file;
@@ -589,7 +588,7 @@ private:
   }
 
   // calculate and save population profile
-  void save_population_profile(unsigned n) {
+  void save_population_profile(int n) {
     std::vector<int> pop(n, 0);
 
     double ymax = (_domain.second)(1);
@@ -601,27 +600,24 @@ private:
 
     for (auto p : _particle_list) {
       i = (p.pos(1) - ymin) / dy;
-      if (i > -1 && i < int(n)) {
-        pop[i]++;
-      }
+      
+      i = i > -1 ? i : 0;
+      i = i < n ? i : n - 1;
+
+      pop[i]++;
     }
 
     if (!_pop_file.is_open()) {
       throw std::logic_error("Population file is not open: _pop_file !!!");
     }
 
-    // std::cout << std::endl;
-    // std::cout << "population profile:" << _time << "...";
-    // for (unsigned i=0; i<pop.size(); ++i){
-    //   std::cout << "(" << i << ","<< pop[i] << ") ,";
-    // }
-    // std::cout << std::endl;
-
     _pop_file << std::showpos << std::scientific << _time << " ";
     for (int& p : pop) {
-      _pop_file << std::showpos << std::scientific << p << " ";
+      _pop_file << p << " ";
     }
-    _pop_file << std::endl;
+
+    _pop_file << "... total particle no: "  << _particle_list.size()
+              << std::endl;
   }
 
   // calculate and save population profile

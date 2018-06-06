@@ -72,7 +72,9 @@ int main(int argc, char *argv[])
 
 
     std::cout << "simulation time [seconds]: " << std::scientific << sim.time()
-              << " .... number of particles: " << sim.number_of_particles() << "\r" << std::flush;
+              << " .... "
+              << "number of particles: " << sim.number_of_particles()
+              << "\r" << std::flush;
 	}
 
 	// print the end time and the runtime
