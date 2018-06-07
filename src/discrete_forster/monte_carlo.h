@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <armadillo>
 #include <algorithm>
+#include <thread>
 
 #include "../helper/utility.h"
 #include "../helper/prepare_directory.hpp"
@@ -33,10 +34,10 @@ class monte_carlo
 {
 
 private:
-  typedef std::experimental::filesystem::path            path_t;
+  typedef std::experimental::filesystem::path path_t;
   typedef std::experimental::filesystem::directory_entry directory_t;
-  typedef std::pair<arma::vec, arma::vec>                domain_t;
-  typedef std::vector<std::vector<scatterer*>>           bucket_t;
+  typedef std::pair<arma::vec, arma::vec> domain_t;
+  typedef std::vector<std::vector<scatterer*>> bucket_t;
   typedef std::pair<double, double> limit_t;
 
   // elapsed simulation time
@@ -496,13 +497,47 @@ private:
 
   // set the max scattering rate for all the scatterers
   void set_max_rate(const double max_hopping_radius, std::vector<scatterer>& scat_list){
-    std::cout << "\nsetting max rate in scatterers:" << std::endl;
-    progress_bar prog(scat_list.size(), "setting max rate in scatterers");
     
-    for (auto& s: scat_list){
-      s.set_max_rate(max_hopping_radius);
-      prog.step();
+    std::cout << "\nsetting max rate in scatterers:" << std::endl;
+    std::time_t start_time = std::time(nullptr);
+
+    typedef unsigned size_t;
+
+    auto calc_max_rate = [&scat_list, &max_hopping_radius](size_t begin, size_t end) {
+      for (size_t i = begin; i < end; ++i) {
+        scat_list[i].set_max_rate(max_hopping_radius);
+      }
+    };
+
+    size_t n_core = std::thread::hardware_concurrency();
+    n_core--;
+    size_t dn = (scat_list.size() + n_core - 1) / n_core;
+
+    std::vector<std::thread> t;
+    t.reserve(n_core);
+
+    for (size_t i=0; i<n_core; ++i){
+      size_t begin = i*dn;
+      size_t end = (i+1)*dn;
+      end = scat_list.size()>end ? end : scat_list.size();
+      t.emplace_back(calc_max_rate, begin, end);
     }
+
+    for (auto& tt:t){
+      if (tt.joinable()){
+        tt.join();
+      }
+    }
+
+    std::time_t end_time = std::time(nullptr);
+    std::cout << "\nfinished setting max rate in: " << std::difftime(end_time, start_time) << " seconds" << std::endl;
+
+    // progress_bar prog(scat_list.size(), "setting max rate in scatterers");
+    
+    // for (auto& s: scat_list){
+    //   s.set_max_rate(max_hopping_radius);
+    //   prog.step();
+    // }
   }
 
   // repopulate contacts
