@@ -498,7 +498,7 @@ private:
   // set the max scattering rate for all the scatterers
   void set_max_rate(const double max_hopping_radius, std::vector<scatterer>& scat_list){
     
-    std::cout << "\nsetting max rate in scatterers:" << std::endl;
+    std::cout << "\nsetting max rate in scatterers ..." << std::flush;
     std::time_t start_time = std::time(nullptr);
 
     typedef unsigned size_t;
@@ -530,14 +530,7 @@ private:
     }
 
     std::time_t end_time = std::time(nullptr);
-    std::cout << "\nfinished setting max rate in: " << std::difftime(end_time, start_time) << " seconds" << std::endl;
-
-    // progress_bar prog(scat_list.size(), "setting max rate in scatterers");
-    
-    // for (auto& s: scat_list){
-    //   s.set_max_rate(max_hopping_radius);
-    //   prog.step();
-    // }
+    std::cout << "finished in " << std::difftime(end_time, start_time) << " [sec]" << std::endl;
   }
 
   // repopulate contacts
