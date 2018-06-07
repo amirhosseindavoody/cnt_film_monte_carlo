@@ -13,6 +13,8 @@ ifeq ($(OS_NAME),Darwin)
 	LFLAGS = -lm -larmadillo  -lstdc++fs -std=c++17
 endif
 
+CFLAGS += -D parallel
+
 CC+= -O3 -Wall
 # CC+= -O0 -g -Wall # for debuging using gdb
 
