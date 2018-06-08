@@ -34,12 +34,21 @@ private:
   // free flight time until next scattering event
   double _ff_time;
 
-public:
-  particle() : _pilot(nullptr), _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0){};
+  // boolean determining the direction of the movement of particle in the cnt
+  bool _heading_right;
+  
+  scatterer* _next_scat=nullptr;
 
-  particle(const arma::vec& pos, const free_flight* pilot, const scatterer* s)
-      : _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos) {
+  // 
+  double _velocity;
+
+public:
+  particle() : _pilot(nullptr), _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0), _heading_right(true), _velocity(0){};
+
+  particle(const arma::vec& pos, const free_flight* pilot, const scatterer* s, const double& velocity)
+      : _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos), _velocity(velocity) {
     _ff_time = scat_ptr()->ff_time();
+    _heading_right = std::rand()%2;
   };
 
   // perform free flight within the simulation domain

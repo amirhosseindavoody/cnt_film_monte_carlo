@@ -29,13 +29,24 @@ private:
 	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
 	arma::vec _pos; // position of the scatterer
   arma::vec _orientation; // orientation of the scattering object site
-
+  
 public:
-  std::vector<std::vector<scatterer*>*> close_scats; // index of neighboring grid cells
+  // pointer to the scatterer on the right side (one side) of the current scatterer
+  scatterer* right=nullptr; 
+
+  // pointer to the scatterer on the left side (other side) of the current scatterer
+  scatterer* left=nullptr;
+
+  // index of neighboring grid cells
+  std::vector<std::vector<scatterer*>*> close_scats; 
+
+  // pointer to the scattering struct
   const scattering_struct* scat_tab = nullptr;
 
+public:
+
 	// default constructor
-  scatterer(): _max_rate(0), _inverse_max_rate(0) {};
+  scatterer(): _max_rate(0), _inverse_max_rate(0), right(nullptr), left(nullptr), scat_tab(nullptr) {};
 
   // set position of the scatterer
   void set_pos(const arma::vec& position) { _pos = position; };

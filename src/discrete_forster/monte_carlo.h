@@ -22,7 +22,6 @@
 
 #include "../exciton_transfer/cnt.h"
 #include "../exciton_transfer/exciton_transfer.h"
-#include "./region.h"
 #include "./particle.h"
 #include "./scatterer.h"
 #include "./scattering_struct.h"
@@ -82,6 +81,8 @@ private:
   // file objects for saving population profile and current data
   std::fstream _pop_file, _curr_file;
 
+  double _particle_velocity=0;
+
  public:
   // default constructor
   monte_carlo() = delete;
@@ -116,7 +117,9 @@ private:
     _n_seg = j["number of segments"];
     std::cout << "number of segments: " << _n_seg << std::endl;
 
-	};
+    _particle_velocity = j["exciton velocity [m/s]"];
+    std::cout << "exciton velocity [m/s]: " << _particle_velocity << std::endl;
+  };
 
 	// get the mc simulation time
   const double& time() const { return _time; };
@@ -231,7 +234,7 @@ private:
         int dice = std::rand()%s_list.size();
         const scatterer* s = s_list[dice];
         arma::vec pos = s->pos();
-        p_list.push_back(particle(pos,ff,s));
+        p_list.push_back(particle(pos,ff,s,_particle_velocity));
       }
     }
 
@@ -437,32 +440,66 @@ private:
   // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
   // particle hopping between the sites
   std::vector<scatterer> create_scatterer_from_fiber(const path_t& input_path) {
-    std::cout << "\n"
-              << "create scatterers in fiber sctructure:\n"
-              << "input path " << input_path << std::endl;
+    std::cout << std::endl
+              << "create scatterers in fiber sctructure ... " << std::flush;
 
     std::ifstream pos_file;
-    pos_file.open(input_path / "single_cnt.pos.dat");
     std::ifstream orient_file;
-    orient_file.open(input_path / "single_cnt.orient.dat");
 
-    arma::mat pos;
-    pos.load(pos_file);
-    pos *= 1.e-9;
+    // x axis
+    pos_file.open(input_path / "single_cnt.pos.x.dat");
+    orient_file.open(input_path / "single_cnt.orient.x.dat");
 
-    arma::mat orient;
-    orient.load(orient_file);
+    arma::mat xcoor;
+    xcoor.load(pos_file);
+    xcoor *= 1.e-9;
+
+    arma::mat xorient;
+    xorient.load(orient_file);
 
     pos_file.close();
     orient_file.close();
 
-    std::vector<scatterer> scat_list;
+    // y axis
+    pos_file.open(input_path / "single_cnt.pos.y.dat");
+    orient_file.open(input_path / "single_cnt.orient.y.dat");
 
-    scat_list.resize(pos.n_rows);
+    arma::mat ycoor;
+    ycoor.load(pos_file);
+    ycoor *= 1.e-9;
 
-    for (unsigned i = 0; i < scat_list.size(); ++i) {
-      scat_list[i].set_pos(pos.row(i).t());
-      scat_list[i].set_orientation(orient.row(i).t());
+    arma::mat yorient;
+    yorient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    // z axis
+    pos_file.open(input_path / "single_cnt.pos.z.dat");
+    orient_file.open(input_path / "single_cnt.orient.z.dat");
+
+    arma::mat zcoor;
+    zcoor.load(pos_file);
+    zcoor *= 1.e-9;
+
+    arma::mat zorient;
+    zorient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    std::vector<scatterer> scat_list(xcoor.n_elem);
+
+    for (unsigned i=0; i<xcoor.n_rows; ++i){
+      for (unsigned j=0; j<xcoor.n_cols; ++j){
+        unsigned n = i*xcoor.n_cols + j;
+        scat_list[n].set_pos({xcoor(i,j), ycoor(i,j), zcoor(i,j)});
+        scat_list[n].set_orientation({xorient(i,j), yorient(i,j), zorient(i,j)});
+        if (j>0)
+          scat_list[n].left = &(scat_list[n-1]);
+        if (j+1<xcoor.n_cols)
+          scat_list[n].right = &(scat_list[n+1]);
+      }
     }
 
     std::cout << "done!!!" << std::endl;
@@ -619,13 +656,13 @@ private:
     
     for (;j < j_lim; ++j) {
       dice = std::rand() % s_list.size();
-      p_list[j] = particle(s_list[dice]->pos(), ff, s_list[dice]);
+      p_list[j] = particle(s_list[dice]->pos(), ff, s_list[dice], _particle_velocity);
       ++n;
     }
 
     for (;n<n_particle; ++n){
       dice = std::rand() % s_list.size();
-      p_list.emplace_back(particle(s_list[dice]->pos(), ff, s_list[dice]));
+      p_list.emplace_back(particle(s_list[dice]->pos(), ff, s_list[dice], _particle_velocity));
     }
 
     p_list.resize(final_size);
@@ -776,7 +813,28 @@ private:
       if (s_list[i].pos(0) < xlim.first  || s_list[i].pos(1) < ylim.first  || s_list[i].pos(2) < zlim.first ||
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
-        std::swap(s_list[i],s_list[j]);
+
+        // std::swap(s_list[i],s_list[j]);
+        scatterer t = s_list[i];
+        s_list[i] = s_list[j];
+        s_list[j] = t;
+
+        if (s_list[i].left) {
+          s_list[i].left->right = &(s_list[i]);
+        }
+
+        if (s_list[i].right) {
+          s_list[i].right->left = &(s_list[i]);
+        }
+
+        if (s_list[j].left) {
+          s_list[j].left->right = &(s_list[j]);
+        }
+
+        if (s_list[j].right) {
+          s_list[j].right->left = &(s_list[j]);
+        }
+
       } else {
         ++i;
       }

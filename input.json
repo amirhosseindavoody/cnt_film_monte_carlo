@@ -61,6 +61,8 @@
           "xlim":[-1.5e-6, 1.5e-6],
           "ylim":[0, 1e-7],
           "zlim":[-1.5e-6, 1.5e-6]
-        }
+        },
+
+        "exciton velocity [m/s]":2e5
     }
 }
