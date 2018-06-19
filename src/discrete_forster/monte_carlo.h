@@ -670,7 +670,7 @@ private:
 
   // create a list of scatterer pointers in the contact number i
   std::vector<const scatterer*> contact_scats(const std::vector<scatterer>& s_list, const unsigned n_seg, const unsigned i,
-                                        const domain_t& domain) {
+                                              const domain_t& domain) {
     
     if (i==0 || i>n_seg)
       throw std::logic_error("input \"i\" must be between 1 and number of segments \"n_seg\"");
@@ -809,16 +809,17 @@ private:
 
     unsigned j = s_list.size();
     
-    for (unsigned i=0; i<j;){
+    for (unsigned i=0; i<j; ){
       if (s_list[i].pos(0) < xlim.first  || s_list[i].pos(1) < ylim.first  || s_list[i].pos(2) < zlim.first ||
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
 
-        // std::swap(s_list[i],s_list[j]);
+        // swap scatterers
         scatterer t = s_list[i];
         s_list[i] = s_list[j];
         s_list[j] = t;
 
+        // update pointers to left and right scatterers for i'th scatterer
         if (s_list[i].left) {
           s_list[i].left->right = &(s_list[i]);
         }
@@ -827,6 +828,7 @@ private:
           s_list[i].right->left = &(s_list[i]);
         }
 
+        // update pointers to left and right scatterers for j'th scatterer
         if (s_list[j].left) {
           s_list[j].left->right = &(s_list[j]);
         }

@@ -75,6 +75,7 @@ namespace mc
       }
     }
 
+    // make accumulative scattering table
     for (unsigned i = 1; i < neighbors_list.size(); ++i) {
       neighbors_list[i].first += neighbors_list[i - 1].first;
     }

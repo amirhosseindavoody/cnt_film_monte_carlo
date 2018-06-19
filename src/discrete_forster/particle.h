@@ -52,7 +52,7 @@ public:
   };
 
   // perform free flight within the simulation domain
-  void fly(const double& dt, const std::pair<arma::vec, arma::vec>& domain);
+  void fly(double dt, const std::pair<arma::vec, arma::vec>& domain);
 
   // set the pilot free_flight pointer object
   void set_pilot(free_flight* pilot) { _pilot = pilot; };
