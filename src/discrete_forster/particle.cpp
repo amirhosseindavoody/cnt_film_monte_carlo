@@ -59,7 +59,7 @@ namespace mc
     while (_ff_time <= dt) {
       dt -= _ff_time;
       
-      fly(_ff_time, domain);
+      // fly(_ff_time, domain);
       
       new_scat_ptr = _scat_ptr->update_state(max_hop_radius);
       
@@ -71,7 +71,7 @@ namespace mc
       _ff_time = _scat_ptr->ff_time();
     }
     
-    fly(dt, domain);
+    // fly(dt, domain);
 
     _ff_time -= dt;
 	};
