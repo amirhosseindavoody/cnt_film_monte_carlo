@@ -322,7 +322,9 @@ private:
     // #endif
 
     for (auto& p: _particle_list){
+      std::cout << "new particle" << std::endl;
       p.step(dt, _domain, _max_hopping_radius);
+      std::cin.ignore();
     }
 
     // increase simulation time
