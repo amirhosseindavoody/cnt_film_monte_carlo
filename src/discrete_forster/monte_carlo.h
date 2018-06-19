@@ -830,13 +830,13 @@ private:
           s_list[i].right->left = &(s_list[i]);
         }
 
-        // update pointers to left and right scatterers for j'th scatterer
+        // update pointers to left and right scatterers for j'th scatterer to null as it is going to be deleted later.
         if (s_list[j].left) {
-          s_list[j].left->right = &(s_list[j]);
+          s_list[j].left->right = nullptr;
         }
 
         if (s_list[j].right) {
-          s_list[j].right->left = &(s_list[j]);
+          s_list[j].right->left = nullptr;
         }
 
       } else {
