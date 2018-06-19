@@ -281,45 +281,49 @@ private:
   // step the simulation in time
 	void step(double dt) {
 
-    #ifdef parallel
+    // #ifdef parallel
       
-      typedef unsigned size_t;
+    //   typedef unsigned size_t;
 
-      size_t n = std::thread::hardware_concurrency();
+    //   size_t n = std::thread::hardware_concurrency();
 
-      std::cout << "number of threads: " << n << std::endl;
+    //   std::cout << "number of threads: " << n << std::endl;
 
-      std::vector<std::thread> t;
-      t.reserve(n);
+    //   std::vector<std::thread> t;
+    //   t.reserve(n);
 
-      size_t d = (_particle_list.size()+n-1)/n;
+    //   size_t d = (_particle_list.size()+n-1)/n;
 
-      auto step_particles = [this, &dt](size_t begin, size_t end) {
-        for (size_t i=begin; i<end; ++i){
-          _particle_list[i].step(dt, _domain, _max_hopping_radius);
-        }
-      };
+    //   auto step_particles = [this, &dt](size_t begin, size_t end) {
+    //     for (size_t i=begin; i<end; ++i){
+    //       _particle_list[i].step(dt, _domain, _max_hopping_radius);
+    //     }
+    //   };
 
-      for (size_t i=0; i<n; ++i){
-        size_t begin = i * d;
-        size_t end = (i+1) * d;
-        end = end < _particle_list.size() ? end : _particle_list.size();
-        t.emplace_back(std::thread(step_particles, begin, end));
-      }
+    //   for (size_t i=0; i<n; ++i){
+    //     size_t begin = i * d;
+    //     size_t end = (i+1) * d;
+    //     end = end < _particle_list.size() ? end : _particle_list.size();
+    //     t.emplace_back(std::thread(step_particles, begin, end));
+    //   }
 
-      for (auto& tt:t){
-        if (tt.joinable()){
-          tt.join();
-        }
-      }
+    //   for (auto& tt:t){
+    //     if (tt.joinable()){
+    //       tt.join();
+    //     }
+    //   }
 
-    #else
+    // #else
 
-      for (auto& p: _particle_list){
-        p.step(dt, _domain, _max_hopping_radius);
-      }
+    //   for (auto& p: _particle_list){
+    //     p.step(dt, _domain, _max_hopping_radius);
+    //   }
 
-    #endif
+    // #endif
+
+    for (auto& p: _particle_list){
+      p.step(dt, _domain, _max_hopping_radius);
+    }
 
     // increase simulation time
     _time += dt;

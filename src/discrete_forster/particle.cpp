@@ -10,6 +10,8 @@ namespace mc
 
     // arma::vec prev_pos = _pos;
 
+    std::cout << "new free fly:" << std::endl;
+
     scatterer* next_scat = nullptr;
 
     while (true){
@@ -35,6 +37,8 @@ namespace mc
         _heading_right = false;
 
       double dist = arma::norm(_pos - next_scat->pos());
+
+      std::cout << dt << "," << dist << std::endl;
 
       if (dist / _velocity < dt) {
         _pos = next_scat->pos();
