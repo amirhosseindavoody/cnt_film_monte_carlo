@@ -10,7 +10,9 @@ namespace mc
 
     std::cout << "new free fly:" << std::endl;
 
+    std::cout << "1" << std::endl;
     scatterer* next_scat = nullptr;
+    std::cout << "2" << std::endl;
 
     while (true){
       if (_scat_ptr == nullptr) {
