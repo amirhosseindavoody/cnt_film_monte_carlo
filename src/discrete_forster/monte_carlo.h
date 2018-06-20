@@ -850,8 +850,14 @@ private:
       }
     }
 
+    std::cout << "j=" << j << std::endl;
+    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity()  << std::endl;
+
     s_list.resize(j);
+    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
     s_list.shrink_to_fit();
+    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
+    std::cin.ignore();
 
     std::cout << "...done!"
               << std::endl;
