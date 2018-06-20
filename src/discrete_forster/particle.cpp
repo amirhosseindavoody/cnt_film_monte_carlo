@@ -12,12 +12,12 @@ namespace mc
 
     std::cout << "1" << std::endl;
     scatterer* next_scat = nullptr;
-    std::cout << "2" << std::endl;
 
     while (true){
       if (_scat_ptr == nullptr) {
         std::cout << "_scat_ptr is NULL!!!" << std::endl;
       }
+      std::cout << "2" << std::endl;
 
       // determine next scatterer
       if (_heading_right) {
