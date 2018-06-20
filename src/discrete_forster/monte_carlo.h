@@ -861,7 +861,13 @@ private:
     s_list.shrink_to_fit();
     std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
     std::cout << &(s_list[0]) << std::endl;
-    
+
+    for (int i=0; i<s_list.size(); ++i){
+      std::cout << i << std::endl;
+      s_list[i].left->pos();
+      s_list[i].right->pos();
+    }
+
     std::cin.ignore();
 
     std::cout << "...done!"
