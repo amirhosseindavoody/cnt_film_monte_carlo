@@ -75,9 +75,6 @@ private:
   // list of all particles in the simulation
   std::vector<particle> _particle_list;
 
-  // pilot object for the free flight section of the monte carlo
-  free_flight _ff;
-
   // file objects for saving population profile and current data
   std::fstream _pop_file, _curr_file;
 
@@ -168,9 +165,7 @@ private:
     _c1_pop = 1100;
     _c2_pop = 0;
 
-    _ff = free_flight();
-
-    _particle_list = create_particles(_domain, _n_seg, _all_scat_list, _c1_pop, _c2_pop, &_ff);
+    _particle_list = create_particles(_domain, _n_seg, _all_scat_list, _c1_pop, _c2_pop);
 
     _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
     _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
@@ -200,7 +195,7 @@ private:
 
   // create particles with a linear density profile in y direction
   std::vector<particle> create_particles( const domain_t& domain, const unsigned n_seg,
-      const std::vector<scatterer>& scat_list, int left_pop, int right_pop, const free_flight* ff) {
+      const std::vector<scatterer>& scat_list, int left_pop, int right_pop) {
 
     std::cout << "\n"
               << "create particles list:...";
@@ -234,7 +229,7 @@ private:
         int dice = std::rand()%s_list.size();
         const scatterer* s = s_list[dice];
         arma::vec pos = s->pos();
-        p_list.push_back(particle(pos,ff,s,_particle_velocity));
+        p_list.push_back(particle(pos,s,_particle_velocity));
       }
     }
 
@@ -633,15 +628,15 @@ private:
 
     double y1 = ymin;
     double y2 = ymin + dy;
-    repopulate(y1, y2, _c1_pop, &_ff, _c1_scat, _particle_list);
+    repopulate(y1, y2, _c1_pop, _c1_scat, _particle_list);
 
     y1 = ymin + double(_n_seg - 1) * dy;
     y2 = ymax;
-    repopulate(y1, y2, _c2_pop, &_ff, _c2_scat, _particle_list);
+    repopulate(y1, y2, _c2_pop, _c2_scat, _particle_list);
   };
 
   // take all the particles between ymin and ymax region and recycle them and populate the region with new particles
-  void repopulate(const double ymin, const double ymax, const unsigned n_particle, const free_flight* ff,
+  void repopulate(const double ymin, const double ymax, const unsigned n_particle,
                   const std::vector<const scatterer*>& s_list,
                   std::vector<particle>& p_list) {
     
@@ -664,13 +659,13 @@ private:
     
     for (;j < j_lim; ++j) {
       dice = std::rand() % s_list.size();
-      p_list[j] = particle(s_list[dice]->pos(), ff, s_list[dice], _particle_velocity);
+      p_list[j] = particle(s_list[dice]->pos(), s_list[dice], _particle_velocity);
       ++n;
     }
 
     for (;n<n_particle; ++n){
       dice = std::rand() % s_list.size();
-      p_list.emplace_back(particle(s_list[dice]->pos(), ff, s_list[dice], _particle_velocity));
+      p_list.emplace_back(particle(s_list[dice]->pos(), s_list[dice], _particle_velocity));
     }
 
     p_list.resize(final_size);
