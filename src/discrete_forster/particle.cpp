@@ -17,9 +17,9 @@ namespace mc
       if (_scat_ptr == nullptr) {
         std::cout << "_scat_ptr is NULL!!!" << std::endl;
       }
-      std::cout << "2" << std::endl;
 
       try{
+
         // determine next scatterer
         if (_heading_right) {
           if (_scat_ptr->right){
@@ -40,7 +40,11 @@ namespace mc
         std::exit(0);
       }
 
-      if (next_scat==nullptr){
+      if (next_scat == nullptr) {
+        std::cout << "next_scat is nullptr!!!" << std::endl;
+      }
+
+      if (next_scat == NULL) {
         std::cout << "next_scat is NULL!!!" << std::endl;
       }
 
@@ -50,7 +54,16 @@ namespace mc
       else
         _heading_right = false;
 
-      double dist = arma::norm(_pos - next_scat->pos());
+      std::cout << "next_scat=" << next_scat << std::endl;
+      
+      double dist;
+      std::cout << "2" << std::endl;
+      try {
+        dist = arma::norm(_pos - next_scat->pos());
+      } catch (...) {
+        std::cout << "failed here!!!" << std::endl;
+        std::exit(0);
+      }
 
       std::cout << dt << "," << dist << std::endl;
 
