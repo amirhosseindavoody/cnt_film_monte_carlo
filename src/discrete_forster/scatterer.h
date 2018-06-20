@@ -91,9 +91,12 @@ public:
 
   // set the max scattering rate by finding the neighbors
   void set_max_rate(const double& max_hopping_radius){
-    auto neighbors = find_neighbors(max_hopping_radius);
-    _max_rate = neighbors.back().first;
-    _inverse_max_rate = 1./_max_rate;
+    // auto neighbors = find_neighbors(max_hopping_radius);
+    // _max_rate = neighbors.back().first;
+    // _inverse_max_rate = 1./_max_rate;
+
+    _max_rate = 1.e15;
+    _inverse_max_rate = 1. / _max_rate;
   };
 
   // find neighbors of the current scatterer and their scattering rates
