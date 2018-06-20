@@ -19,19 +19,25 @@ namespace mc
       }
       std::cout << "2" << std::endl;
 
-      // determine next scatterer
-      if (_heading_right) {
-        if (_scat_ptr->right){
-          next_scat = _scat_ptr->right;
+      try{
+        // determine next scatterer
+        if (_heading_right) {
+          if (_scat_ptr->right){
+            next_scat = _scat_ptr->right;
+          } else {
+            next_scat = _scat_ptr->left;
+          }
         } else {
-          next_scat = _scat_ptr->left;
+          if (_scat_ptr->left) {
+            next_scat = _scat_ptr->left;
+          } else {
+            next_scat = _scat_ptr->right;
+          }
         }
-      } else {
-        if (_scat_ptr->left) {
-          next_scat = _scat_ptr->left;
-        } else {
-          next_scat = _scat_ptr->right;
-        }
+
+      } catch (...){
+        std::cout << "failed!!!" << std::endl;
+        std::exit(0);
       }
 
       if (next_scat==nullptr){
