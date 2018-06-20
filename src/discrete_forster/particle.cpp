@@ -59,7 +59,8 @@ namespace mc
       double dist;
       std::cout << "2" << std::endl;
       try {
-        dist = arma::norm(_pos - next_scat->pos());
+        // dist = arma::norm(_pos - next_scat->pos());
+        dist = arma::norm(_pos - arma::vec({0,0,0}));
       } catch (...) {
         std::cout << "failed here!!!" << std::endl;
         std::exit(0);
