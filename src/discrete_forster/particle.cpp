@@ -30,6 +30,10 @@ namespace mc
         }
       }
 
+      if (next_scat==nullptr){
+        std::cout << "next_scat is NULL!!!" << std::endl;
+      }
+
       // determine the movement direction
       if (next_scat==_scat_ptr->right)
         _heading_right = true;
