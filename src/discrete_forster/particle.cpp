@@ -15,6 +15,10 @@ namespace mc
     scatterer* next_scat = nullptr;
 
     while (true){
+      if (_scat_ptr == nullptr) {
+        std::cout << "_scat_ptr is NULL!!!" << std::endl;
+      }
+
       // determine next scatterer
       if (_heading_right) {
         if (_scat_ptr->right){

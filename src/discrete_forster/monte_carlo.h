@@ -851,7 +851,7 @@ private:
     }
 
     s_list.resize(j);
-    // s_list.shrink_to_fit();
+    s_list.shrink_to_fit();
 
     std::cout << "...done!"
               << std::endl;
