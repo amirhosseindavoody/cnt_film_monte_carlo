@@ -857,13 +857,13 @@ private:
     std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
     std::cout << &(s_list[0]) << std::endl;
 
-    // for (unsigned i=0; i<s_list.size(); ++i){
-    //   std::cout << i << std::endl;
-    //   s_list[i].left->pos();
-    //   s_list[i].right->pos();
-    // }
+    for (unsigned i=0; i<s_list.size(); ++i){
+      // std::cout << i << std::endl;
+      arma::vec t = s_list[i].left->pos();
+      t = s_list[i].right->pos();
+    }
 
-    // std::cin.ignore();
+    std::cin.ignore();
 
     std::cout << "...done!"
               << std::endl;
