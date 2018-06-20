@@ -19,9 +19,6 @@ class particle
 
 private:
 
-  // pointer to free_flight object for driving the particle
-  const free_flight* _pilot=nullptr;
-
   // pointer to scatter object for scattering the particle
   const scatterer* _scat_ptr=nullptr;
 
@@ -43,22 +40,16 @@ private:
   double _velocity;
 
 public:
-  particle() : _pilot(nullptr), _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0), _heading_right(true), _velocity(0){};
+  particle() : _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0), _heading_right(true), _velocity(0){};
 
-  particle(const arma::vec& pos, const free_flight* pilot, const scatterer* s, const double& velocity)
-      : _pilot(pilot), _scat_ptr(s), _pos(pos), _old_pos(pos), _velocity(velocity) {
+  particle(const arma::vec& pos, const scatterer* s, const double& velocity)
+      : _scat_ptr(s), _pos(pos), _old_pos(pos), _velocity(velocity) {
     _ff_time = scat_ptr()->ff_time();
     _heading_right = std::rand()%2;
   };
 
   // perform free flight within the simulation domain
   void fly(double dt, const std::pair<arma::vec, arma::vec>& domain);
-
-  // set the pilot free_flight pointer object
-  void set_pilot(free_flight* pilot) { _pilot = pilot; };
-
-  // get the pilot free_flight pointer
-  const free_flight* pilot() const { return _pilot; };
 
   // set the pointer to the scatterer object
   void set_scatterer(const scatterer* s) { _scat_ptr = s; };

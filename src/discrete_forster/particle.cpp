@@ -10,42 +10,23 @@ namespace mc
 
     std::cout << "new free fly:" << std::endl;
 
-    std::cout << "1" << std::endl;
     scatterer* next_scat = nullptr;
 
     while (true){
-      if (_scat_ptr == nullptr) {
-        std::cout << "_scat_ptr is NULL!!!" << std::endl;
-      }
 
-      try{
-
-        // determine next scatterer
-        if (_heading_right) {
-          if (_scat_ptr->right){
-            next_scat = _scat_ptr->right;
-          } else {
-            next_scat = _scat_ptr->left;
-          }
+      // determine next scatterer
+      if (_heading_right) {
+        if (_scat_ptr->right){
+          next_scat = _scat_ptr->right;
         } else {
-          if (_scat_ptr->left) {
-            next_scat = _scat_ptr->left;
-          } else {
-            next_scat = _scat_ptr->right;
-          }
+          next_scat = _scat_ptr->left;
         }
-
-      } catch (...){
-        std::cout << "failed!!!" << std::endl;
-        std::exit(0);
-      }
-
-      if (next_scat == nullptr) {
-        std::cout << "next_scat is nullptr!!!" << std::endl;
-      }
-
-      if (next_scat == NULL) {
-        std::cout << "next_scat is NULL!!!" << std::endl;
+      } else {
+        if (_scat_ptr->left) {
+          next_scat = _scat_ptr->left;
+        } else {
+          next_scat = _scat_ptr->right;
+        }
       }
 
       // determine the movement direction
@@ -53,20 +34,9 @@ namespace mc
         _heading_right = true;
       else
         _heading_right = false;
-
-      std::cout << "next_scat=" << next_scat << std::endl;
       
-      double dist;
-      std::cout << "2" << std::endl;
-      try {
-        // dist = arma::norm(_pos - next_scat->pos());
-        dist = arma::norm(_pos - arma::vec({0,0,0}));
-      } catch (...) {
-        std::cout << "failed here!!!" << std::endl;
-        std::exit(0);
-      }
-
-      std::cout << dt << "," << dist << std::endl;
+      arma::vec t = next_scat->pos();
+      double dist = arma::norm(_pos - t);
 
       if (dist / _velocity < dt) {
         _pos = next_scat->pos();
