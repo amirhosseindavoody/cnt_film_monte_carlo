@@ -8,8 +8,6 @@ namespace mc
   // perform free flight within the simulation domain
   void particle::fly(double dt, const std::pair<arma::vec, arma::vec>& domain) {
 
-    // arma::vec prev_pos = _pos;
-
     std::cout << "new free fly:" << std::endl;
 
     scatterer* next_scat = nullptr;
