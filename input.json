@@ -42,9 +42,9 @@
         "output directory": "~/research/monte_carlo_fiber",
         "keep old results":true,
         "rate type":"davoody",
-        "zshift [m]": [1.5e-9, 10e-9, 3],
-        "axis shift 1 [m]": [-10e-9, 10e-9, 3],
-        "axis shift 2 [m]": [-10e-9, 10e-9, 3],
+        "zshift [m]": [1.5e-9, 10e-9, 11],
+        "axis shift 1 [m]": [-10e-9, 10e-9, 11],
+        "axis shift 2 [m]": [-10e-9, 10e-9, 11],
         "theta [degrees]": [0, 180, 9],
         "max hopping radius [m]": 20e-9,
         "max neighbor search radius [m]": 10000e-9,
@@ -58,9 +58,9 @@
 
         "number of segments":10,
         "trim limits":{
-          "xlim":[-0.5e-6, 0.5e-6],
+          "xlim":[-1.5e-6, 1.5e-6],
           "ylim":[0, 1e-7],
-          "zlim":[-0.5e-6, 0.5e-6]
+          "zlim":[-1.5e-6, 1.5e-6]
         },
 
         "exciton velocity [m/s]":2e5
