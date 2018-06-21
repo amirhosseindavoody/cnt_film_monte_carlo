@@ -282,7 +282,7 @@ private:
 
       size_t n = std::thread::hardware_concurrency();
 
-      std::cout << "number of threads: " << n << std::endl;
+      // std::cout << "number of threads: " << n << std::endl;
 
       std::vector<std::thread> t;
       t.reserve(n);

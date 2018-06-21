@@ -33,11 +33,11 @@ namespace mc
       else
         _heading_right = false;
       
-      if (next<0){
-        std::cout << "next is less than zero!!!" << std::endl;
-        std::cout << "_scat_ptr->left: " << _scat_ptr->left << std::endl;
-        std::cout << "_scat_ptr->right: " << _scat_ptr->right << std::endl;
-      }
+      // if (next<0){
+      //   std::cout << "next is less than zero!!!" << std::endl;
+      //   std::cout << "_scat_ptr->left: " << _scat_ptr->left << std::endl;
+      //   std::cout << "_scat_ptr->right: " << _scat_ptr->right << std::endl;
+      // }
 
       if (next < 0) return;
 
