@@ -109,7 +109,7 @@ public:
 
 };  // end class scatterer
 
-void swap(scatterer& s1, scatterer& s2) {
+inline void swap(scatterer& s1, scatterer& s2) {
   
   std::swap(s1._max_rate, s2._max_rate);
   std::swap(s1._inverse_max_rate, s2._inverse_max_rate);
