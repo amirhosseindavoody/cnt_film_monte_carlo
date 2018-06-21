@@ -105,7 +105,40 @@ public:
   // count number of scatterer neighbors
   int no_of_neighbors(const double& max_hopping_radius) const;
 
+  friend void swap(scatterer& s1, scatterer& s2);
+
 };  // end class scatterer
+
+void swap(scatterer& s1, scatterer& s2) {
+  
+
+  // pointer to the scattering struct
+  const scattering_struct* scat_tab = nullptr;
+
+  
+  std::swap(s1._max_rate, s2._max_rate);
+  std::swap(s1._inverse_max_rate, s2._inverse_max_rate);
+  
+  arma::vec p = s1._pos;
+  s1._pos = s2._pos;
+  s2._pos = p;
+
+  arma::vec o = s1._orientation;
+  s1._orientation = s2._orientation;
+  s2._orientation = o;
+  
+  scatterer* right = s1.right;
+  s1.right = s2.right;
+  s2.right = right;
+
+  scatterer* left = s1.left;
+  s1.left = s2.left;
+  s2.left = left;
+
+  const scattering_struct* scat_tab = s1.scat_tab;
+  s1.scat_tab = s2.scat_tab;
+  s2.scat_tab = scat_tab;
+}
 
 } // end namespace mc
 

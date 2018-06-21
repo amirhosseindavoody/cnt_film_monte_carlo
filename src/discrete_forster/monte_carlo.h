@@ -817,10 +817,12 @@ private:
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
 
-        // swap scatterers
-        scatterer t = s_list[i];
-        s_list[i] = s_list[j];
-        s_list[j] = t;
+        // // swap scatterers
+        // scatterer t = s_list[i];
+        // s_list[i] = s_list[j];
+        // s_list[j] = t;
+
+        swap(s_list[i], s_list[j]);
 
         // update pointers to left and right scatterers for i'th scatterer
         if (s_list[i].left) {
