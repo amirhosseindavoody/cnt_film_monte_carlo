@@ -842,6 +842,8 @@ private:
           s_list[j].right->left = nullptr;
         }
 
+        s_list[j].set_pos({INT_MIN, INT_MIN, INT_MIN});
+
       } else {
         ++i;
       }
@@ -852,10 +854,6 @@ private:
     std::cout << &(s_list[0]) << std::endl;
 
     s_list.resize(j);
-    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
-    std::cout << &(s_list[0]) << std::endl;
-
-    s_list.shrink_to_fit();
     std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
     std::cout << &(s_list[0]) << std::endl;
 
