@@ -7,9 +7,7 @@ namespace mc
 {
   // perform free flight within the simulation domain
   void particle::fly(double dt, const std::vector<scatterer>& s_list) {
-
-    std::cout << "new free fly:" << std::endl;
-
+    
     int next;
 
     while (true){

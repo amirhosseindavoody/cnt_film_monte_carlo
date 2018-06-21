@@ -316,12 +316,6 @@ private:
 
     #endif
 
-    // for (auto& p: _particle_list){
-    //   std::cout << "new particle" << std::endl;
-    //   p.step(dt, _all_scat_list, _max_hopping_radius);
-    //   std::cin.ignore();
-    // }
-
     // increase simulation time
     _time += dt;
 	};
@@ -836,8 +830,6 @@ private:
       s_list[j] = t;
     };
 
-    auto s_list_copy = s_list;
-
     int j = s_list.size();
     
     for (int i=0; i<j; ){
@@ -846,27 +838,14 @@ private:
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
 
-
-        // using namespace std;
-        // cout << "before:\n";
-        // cout << "i:" << i << ", left:" << s_list[i].left << ", right:" << s_list[i].right << endl;
-        // cout << "j:" << j << ", left:" << s_list[j].left << ", right:" << s_list[j].right << endl;
-
-        swap_scatterers(i,j);
         swap_scatterers(i,j);
 
-        // s_list[s_list[j].left].right = -1;
-        // s_list[s_list[j].right].left = -1;
+        // delete the links to scatterer objects at location j.
+        if (s_list[j].left > -1) s_list[s_list[j].left].right = -1;
+        if (s_list[j].right > -1) s_list[s_list[j].right].left = -1;
 
       } else {
         ++i;
-      }
-    }
-
-    for (int i=0; i<s_list.size(); ++i){
-      if (s_list[i].left != s_list_copy[i].left || s_list[i].right != s_list_copy[i].right){
-        std::cout << "Error: s_list not conserved!" << std::endl;
-        std::exit(0);
       }
     }
 
@@ -875,8 +854,6 @@ private:
 
     std::cout << "...done!"
               << std::endl;
-
-    std::exit(0);
   }
 
 }; // end class monte_carlo
