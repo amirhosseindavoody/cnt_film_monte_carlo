@@ -496,12 +496,15 @@ private:
     for (unsigned i=0; i<xcoor.n_rows; ++i){
       for (unsigned j=0; j<xcoor.n_cols; ++j){
         unsigned n = i*xcoor.n_cols + j;
+
         scat_list[n].set_pos({xcoor(i,j), ycoor(i,j), zcoor(i,j)});
         scat_list[n].set_orientation({xorient(i,j), yorient(i,j), zorient(i,j)});
-        if (j>0)
+        if (j>0){
           scat_list[n].left = n-1;
-        if (j+1<xcoor.n_cols)
+        }
+        if (j+1<xcoor.n_cols){
           scat_list[n].right = n+1;
+        }
       }
     }
 
@@ -810,70 +813,70 @@ private:
               << "triming scattering list..."
               << std::flush;
 
+    // swap two scatterer objects in scatterer_list and update the index of right and left scatterer objects
+    auto swap_scatterers = [&s_list] (int i, int j){
+      
+      int iLeft = s_list[i].left;
+      int iRight = s_list[i].right;
+
+      int jLeft = s_list[j].left;
+      int jRight = s_list[j].right;
+
+      int new_i = j;
+      int new_j = i;
+
+      s_list[iLeft].right = new_i;
+      s_list[iRight].left = new_i;
+
+      s_list[jLeft].right = new_j;
+      s_list[jRight].left = new_j;
+
+      scatterer t = s_list[i];
+      s_list[i] = s_list[j];
+      s_list[j] = t;
+    };
+
+    auto s_list_copy = s_list;
+
     int j = s_list.size();
     
     for (int i=0; i<j; ){
-      
-      if (s_list[i].left == i || s_list[i].right == i){
-        std::cout << "self citation: " << i << std::endl;
-        std::cin.ignore();
-      }
 
       if (s_list[i].pos(0) < xlim.first  || s_list[i].pos(1) < ylim.first  || s_list[i].pos(2) < zlim.first ||
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
 
-        // // swap scatterers
-        scatterer t = s_list[i];
-        s_list[i] = s_list[j];
-        s_list[j] = t;
 
-        // update pointers to left and right scatterers for i'th scatterer
-        if (s_list[i].left>-1) {
-          s_list[s_list[i].left].right = i;
-        }
+        // using namespace std;
+        // cout << "before:\n";
+        // cout << "i:" << i << ", left:" << s_list[i].left << ", right:" << s_list[i].right << endl;
+        // cout << "j:" << j << ", left:" << s_list[j].left << ", right:" << s_list[j].right << endl;
 
-        if (s_list[i].right>-1) {
-          s_list[s_list[i].right].left = i;
-        }
+        swap_scatterers(i,j);
+        swap_scatterers(i,j);
 
-        // update pointers to left and right scatterers for j'th scatterer to null as it is going to be deleted later.
-        if (s_list[j].left>-1) {
-          s_list[s_list[j].left].right = -1;
-        }
-
-        if (s_list[j].right > -1) {
-          s_list[s_list[j].right].left = -1;
-        }
-
-        s_list[j].set_pos({INT_MIN, INT_MIN, INT_MIN});
+        // s_list[s_list[j].left].right = -1;
+        // s_list[s_list[j].right].left = -1;
 
       } else {
         ++i;
       }
     }
 
-    // std::cout << "j=" << j << std::endl;
-    // std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity()  << std::endl;
-    // std::cout << &(s_list[0]) << std::endl;
+    for (int i=0; i<s_list.size(); ++i){
+      if (s_list[i].left != s_list_copy[i].left || s_list[i].right != s_list_copy[i].right){
+        std::cout << "Error: s_list not conserved!" << std::endl;
+        std::exit(0);
+      }
+    }
 
     s_list.resize(j);
-    // std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
-    // std::cout << &(s_list[0]) << std::endl;
-
     s_list.shrink_to_fit();
-
-    // for (unsigned i=0; i<s_list.size(); ++i){
-    //   // std::cout << i << std::endl;
-    //   arma::vec t;
-    //   if (s_list[i].left>-1) t = s_list[s_list[i].left].pos();
-    //   if (s_list[i].right>-1) t = s_list[s_list[i].right].pos();
-    // }
-
-    // std::cin.ignore();
 
     std::cout << "...done!"
               << std::endl;
+
+    std::exit(0);
   }
 
 }; // end class monte_carlo
