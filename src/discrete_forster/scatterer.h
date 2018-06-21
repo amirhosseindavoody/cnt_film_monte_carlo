@@ -32,10 +32,10 @@ private:
   
 public:
   // pointer to the scatterer on the right side (one side) of the current scatterer
-  scatterer* right=nullptr; 
+  int right=-1; 
 
   // pointer to the scatterer on the left side (other side) of the current scatterer
-  scatterer* left=nullptr;
+  int left=-1;
 
   // index of neighboring grid cells
   std::vector<std::vector<scatterer*>*> close_scats; 
@@ -46,7 +46,7 @@ public:
 public:
 
 	// default constructor
-  scatterer(): _max_rate(0), _inverse_max_rate(0), right(nullptr), left(nullptr), scat_tab(nullptr) {};
+  scatterer(): _max_rate(0), _inverse_max_rate(0), right(-1), left(-1), scat_tab(nullptr) {};
 
   // set position of the scatterer
   void set_pos(const arma::vec& position) { _pos = position; };
@@ -105,35 +105,7 @@ public:
   // count number of scatterer neighbors
   int no_of_neighbors(const double& max_hopping_radius) const;
 
-  friend void swap(scatterer& s1, scatterer& s2);
-
 };  // end class scatterer
-
-inline void swap(scatterer& s1, scatterer& s2) {
-  
-  std::swap(s1._max_rate, s2._max_rate);
-  std::swap(s1._inverse_max_rate, s2._inverse_max_rate);
-  
-  arma::vec p = s1._pos;
-  s1._pos = s2._pos;
-  s2._pos = p;
-
-  arma::vec o = s1._orientation;
-  s1._orientation = s2._orientation;
-  s2._orientation = o;
-  
-  scatterer* right = s1.right;
-  s1.right = s2.right;
-  s2.right = right;
-
-  scatterer* left = s1.left;
-  s1.left = s2.left;
-  s2.left = left;
-
-  const scattering_struct* scat_tab = s1.scat_tab;
-  s1.scat_tab = s2.scat_tab;
-  s2.scat_tab = scat_tab;
-}
 
 } // end namespace mc
 

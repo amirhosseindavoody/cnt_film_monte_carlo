@@ -6,44 +6,44 @@
 namespace mc
 {
   // perform free flight within the simulation domain
-  void particle::fly(double dt, const std::pair<arma::vec, arma::vec>& domain) {
+  void particle::fly(double dt, const std::vector<scatterer>& s_list) {
 
     std::cout << "new free fly:" << std::endl;
 
-    scatterer* next_scat = nullptr;
+    int next;
 
     while (true){
 
       // determine next scatterer
       if (_heading_right) {
-        if (_scat_ptr->right){
-          next_scat = _scat_ptr->right;
+        if (_scat_ptr->right>-1){
+          next = _scat_ptr->right;
         } else {
-          next_scat = _scat_ptr->left;
+          next = _scat_ptr->left;
         }
       } else {
-        if (_scat_ptr->left) {
-          next_scat = _scat_ptr->left;
+        if (_scat_ptr->left>-1) {
+          next = _scat_ptr->left;
         } else {
-          next_scat = _scat_ptr->right;
+          next = _scat_ptr->right;
         }
       }
 
       // determine the movement direction
-      if (next_scat==_scat_ptr->right)
+      if (next==_scat_ptr->right)
         _heading_right = true;
       else
         _heading_right = false;
       
-      arma::vec t = next_scat->pos();
+      arma::vec t = s_list[next].pos();
       double dist = arma::norm(_pos - t);
 
       if (dist / _velocity < dt) {
-        _pos = next_scat->pos();
-        _scat_ptr = next_scat;
+        _pos = s_list[next].pos();
+        _scat_ptr = &(s_list[next]);
         dt -= dist / _velocity;
       } else {
-        arma::vec d = arma::normalise(next_scat->pos() - _pos);
+        arma::vec d = arma::normalise(s_list[next].pos() - _pos);
         _pos += (_velocity * dt * d);
         return;
       }
@@ -53,7 +53,7 @@ namespace mc
   }
 
   // step particle state for dt in time
-  void particle::step(double dt, const std::pair<arma::vec, arma::vec>& domain, const double& max_hop_radius) {
+  void particle::step(double dt, const std::vector<scatterer>& s_list, const double& max_hop_radius) {
     
     _old_pos = _pos;
     const scatterer* new_scat_ptr = nullptr;
@@ -61,7 +61,7 @@ namespace mc
     while (_ff_time <= dt) {
       dt -= _ff_time;
       
-      fly(_ff_time, domain);
+      fly(_ff_time, s_list);
       
       new_scat_ptr = _scat_ptr->update_state(max_hop_radius);
       
@@ -73,7 +73,7 @@ namespace mc
       _ff_time = _scat_ptr->ff_time();
     }
     
-    fly(dt, domain);
+    fly(dt, s_list);
 
     _ff_time -= dt;
 	};

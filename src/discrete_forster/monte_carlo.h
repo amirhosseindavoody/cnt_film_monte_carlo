@@ -318,7 +318,7 @@ private:
 
     for (auto& p: _particle_list){
       std::cout << "new particle" << std::endl;
-      p.step(dt, _domain, _max_hopping_radius);
+      p.step(dt, _all_scat_list, _max_hopping_radius);
       std::cin.ignore();
     }
 
@@ -499,9 +499,9 @@ private:
         scat_list[n].set_pos({xcoor(i,j), ycoor(i,j), zcoor(i,j)});
         scat_list[n].set_orientation({xorient(i,j), yorient(i,j), zorient(i,j)});
         if (j>0)
-          scat_list[n].left = &(scat_list[n-1]);
+          scat_list[n].left = n-1;
         if (j+1<xcoor.n_cols)
-          scat_list[n].right = &(scat_list[n+1]);
+          scat_list[n].right = n+1;
       }
     }
 
@@ -810,16 +810,11 @@ private:
               << "triming scattering list..."
               << std::flush;
 
-    unsigned j = s_list.size();
+    int j = s_list.size();
     
-    for (unsigned i=0; i<j; ){
+    for (int i=0; i<j; ){
       
-      if (s_list[i].left && s_list[i].left == &(s_list[i])){
-        std::cout << "self citation" << std::endl;
-        std::cin.ignore();
-      }
-
-      if (s_list[i].right && s_list[i].right == &(s_list[i])) {
+      if (s_list[i].left == i || s_list[i].right == i){
         std::cout << "self citation" << std::endl;
         std::cin.ignore();
       }
@@ -829,28 +824,26 @@ private:
         --j;
 
         // // swap scatterers
-        // scatterer t = s_list[i];
-        // s_list[i] = s_list[j];
-        // s_list[j] = t;
-
-        swap(s_list[i], s_list[j]);
+        scatterer t = s_list[i];
+        s_list[i] = s_list[j];
+        s_list[j] = t;
 
         // update pointers to left and right scatterers for i'th scatterer
-        if (s_list[i].left) {
-          s_list[i].left->right = &(s_list[i]);
+        if (s_list[i].left>-1) {
+          s_list[s_list[i].left].right = i;
         }
 
-        if (s_list[i].right) {
-          s_list[i].right->left = &(s_list[i]);
+        if (s_list[i].right>-1) {
+          s_list[s_list[i].right].left = i;
         }
 
         // update pointers to left and right scatterers for j'th scatterer to null as it is going to be deleted later.
-        if (s_list[j].left) {
-          s_list[j].left->right = nullptr;
+        if (s_list[j].left>-1) {
+          s_list[s_list[j].left].right = -1;
         }
 
-        if (s_list[j].right) {
-          s_list[j].right->left = nullptr;
+        if (s_list[j].right > -1) {
+          s_list[s_list[j].right].left = -1;
         }
 
         s_list[j].set_pos({INT_MIN, INT_MIN, INT_MIN});
@@ -860,22 +853,24 @@ private:
       }
     }
 
-    std::cout << "j=" << j << std::endl;
-    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity()  << std::endl;
-    std::cout << &(s_list[0]) << std::endl;
+    // std::cout << "j=" << j << std::endl;
+    // std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity()  << std::endl;
+    // std::cout << &(s_list[0]) << std::endl;
 
     s_list.resize(j);
-    std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
-    std::cout << &(s_list[0]) << std::endl;
+    // std::cout << "s_list.size()=" << s_list.size() << " , s_list.capacity()=" << s_list.capacity() << std::endl;
+    // std::cout << &(s_list[0]) << std::endl;
 
-    for (unsigned i=0; i<s_list.size(); ++i){
-      // std::cout << i << std::endl;
-      arma::vec t;
-      if (s_list[i].left) t = s_list[i].left->pos();
-      if (s_list[i].left) t = s_list[i].right->pos();
-    }
+    s_list.shrink_to_fit();
 
-    std::cin.ignore();
+    // for (unsigned i=0; i<s_list.size(); ++i){
+    //   // std::cout << i << std::endl;
+    //   arma::vec t;
+    //   if (s_list[i].left>-1) t = s_list[s_list[i].left].pos();
+    //   if (s_list[i].right>-1) t = s_list[s_list[i].right].pos();
+    // }
+
+    // std::cin.ignore();
 
     std::cout << "...done!"
               << std::endl;

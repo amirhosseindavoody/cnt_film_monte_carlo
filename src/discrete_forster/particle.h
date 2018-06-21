@@ -49,7 +49,7 @@ public:
   };
 
   // perform free flight within the simulation domain
-  void fly(double dt, const std::pair<arma::vec, arma::vec>& domain);
+  void fly(double dt, const std::vector<scatterer>& s_list);
 
   // set the pointer to the scatterer object
   void set_scatterer(const scatterer* s) { _scat_ptr = s; };
@@ -88,7 +88,7 @@ public:
   void get_ff_time() { _ff_time = _scat_ptr->ff_time(); };
 
   // step particle state for dt in time
-  void step(double dt, const std::pair<arma::vec, arma::vec>& domain, const double& max_hop_radius);
+  void step(double dt, const std::vector<scatterer>& s_list, const double& max_hop_radius);
 
 }; //particle class
 
