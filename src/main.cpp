@@ -64,17 +64,10 @@ int main(int argc, char *argv[])
 
 	while (true)
 	{
-		
-    // std::cout << "simulation time [seconds]: " << std::scientific << sim.time()
-    //           << " .... "
-    //           << "number of particles: " << sim.number_of_particles()
-    //           << std::endl;
-
     sim.step(time_step);
     sim.save_metrics();
 
 		sim.repopulate_contacts();
-
 
     std::cout << "simulation time [seconds]: " << std::scientific << sim.time()
               << " .... "

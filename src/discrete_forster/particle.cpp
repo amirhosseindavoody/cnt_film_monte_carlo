@@ -8,6 +8,9 @@ namespace mc
   // perform free flight within the simulation domain
   void particle::fly(double dt, const std::vector<scatterer>& s_list) {
 
+    if (_scat_ptr->left<0 && _scat_ptr->right<0)
+      return;
+
     int next;
 
     while (true){
@@ -32,28 +35,16 @@ namespace mc
         _heading_right = true;
       else
         _heading_right = false;
-      
-      // if (next<0){
-      //   std::cout << "next is less than zero!!!" << std::endl;
-      //   std::cout << "_scat_ptr->left: " << _scat_ptr->left << std::endl;
-      //   std::cout << "_scat_ptr->right: " << _scat_ptr->right << std::endl;
-      // }
-
-      if (next < 0) return;
 
       arma::vec t = s_list[next].pos();
-      // arma::vec t = s_list.at(next).pos();
       double dist = arma::norm(_pos - t);
 
       if (dist / _velocity < dt) {
         _pos = s_list[next].pos();
         _scat_ptr = &(s_list[next]);
-        // _pos = s_list.at(next).pos();
-        // _scat_ptr = &(s_list.at(next));
         dt -= dist / _velocity;
       } else {
         arma::vec d = arma::normalise(s_list[next].pos() - _pos);
-        // arma::vec d = arma::normalise(s_list.at(next).pos() - _pos);
         _pos += (_velocity * dt * d);
         return;
       }

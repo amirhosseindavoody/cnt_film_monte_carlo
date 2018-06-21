@@ -858,10 +858,6 @@ private:
         count++;
     }
 
-    std::cout << std::endl;
-    std::cout << "fraction of alone sites: " << double(count)/double(s_list.size()) << std::endl;
-    std::cin.ignore();
-
     std::cout << "...done!"
               << std::endl;
   }
