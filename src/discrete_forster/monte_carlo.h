@@ -813,6 +813,17 @@ private:
     unsigned j = s_list.size();
     
     for (unsigned i=0; i<j; ){
+      
+      if (s_list[i].left && s_list[i].left == &(s_list[i])){
+        std::cout << "self citation" << std::endl;
+        std::cin.ignore();
+      }
+
+      if (s_list[i].right && s_list[i].right == &(s_list[i])) {
+        std::cout << "self citation" << std::endl;
+        std::cin.ignore();
+      }
+
       if (s_list[i].pos(0) < xlim.first  || s_list[i].pos(1) < ylim.first  || s_list[i].pos(2) < zlim.first ||
           s_list[i].pos(0) > xlim.second || s_list[i].pos(1) > ylim.second || s_list[i].pos(2) > zlim.second) {
         --j;
