@@ -859,8 +859,9 @@ private:
 
     for (unsigned i=0; i<s_list.size(); ++i){
       // std::cout << i << std::endl;
-      arma::vec t = s_list[i].left->pos();
-      t = s_list[i].right->pos();
+      arma::vec t;
+      if (s_list[i].left) t = s_list[i].left->pos();
+      if (s_list[i].left) t = s_list[i].right->pos();
     }
 
     std::cin.ignore();
