@@ -819,11 +819,11 @@ private:
       int new_i = j;
       int new_j = i;
 
-      s_list[iLeft].right = new_i;
-      s_list[iRight].left = new_i;
+      if (iLeft > -1) s_list[iLeft].right = new_i;
+      if (iRight > -1) s_list[iRight].left = new_i;
 
-      s_list[jLeft].right = new_j;
-      s_list[jRight].left = new_j;
+      if (jLeft > -1) s_list[jLeft].right = new_j;
+      if (jRight > -1) s_list[jRight].left = new_j;
 
       scatterer t = s_list[i];
       s_list[i] = s_list[j];
