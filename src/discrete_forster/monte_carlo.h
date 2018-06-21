@@ -815,7 +815,7 @@ private:
     for (int i=0; i<j; ){
       
       if (s_list[i].left == i || s_list[i].right == i){
-        std::cout << "self citation" << std::endl;
+        std::cout << "self citation: " << i << std::endl;
         std::cin.ignore();
       }
 
