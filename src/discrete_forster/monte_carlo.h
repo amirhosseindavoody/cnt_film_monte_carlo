@@ -291,7 +291,7 @@ private:
 
       auto step_particles = [this, &dt](size_t begin, size_t end) {
         for (size_t i=begin; i<end; ++i){
-          _particle_list[i].step(dt, _domain, _max_hopping_radius);
+          _particle_list[i].step(dt, _all_scat_list, _max_hopping_radius);
         }
       };
 
@@ -311,7 +311,7 @@ private:
     #else
 
       for (auto& p: _particle_list){
-        p.step(dt, _domain, _max_hopping_radius);
+        p.step(dt, _all_scat_list, _max_hopping_radius);
       }
 
     #endif
