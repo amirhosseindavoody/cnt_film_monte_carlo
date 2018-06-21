@@ -111,11 +111,6 @@ public:
 
 void swap(scatterer& s1, scatterer& s2) {
   
-
-  // pointer to the scattering struct
-  const scattering_struct* scat_tab = nullptr;
-
-  
   std::swap(s1._max_rate, s2._max_rate);
   std::swap(s1._inverse_max_rate, s2._inverse_max_rate);
   
