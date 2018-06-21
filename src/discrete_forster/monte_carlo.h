@@ -852,6 +852,16 @@ private:
     s_list.resize(j);
     s_list.shrink_to_fit();
 
+    unsigned count(0);
+    for (int i=0; i<s_list.size(); ++i){
+      if (s_list[i].left == -1 && s_list[i].right == -1)
+        count++;
+    }
+
+    std::cout << std::endl;
+    std::cout << "fraction of alone sites: " << double(count)/double(s_list.size()) << std::endl;
+    std::cin.ignore();
+
     std::cout << "...done!"
               << std::endl;
   }
