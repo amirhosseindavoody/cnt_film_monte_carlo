@@ -62,23 +62,28 @@ int main(int argc, char *argv[])
 
   std::cout << "running Monte Carlo:\n";
 
-	while (true)
-	{
-    sim.step(time_step);
-    sim.save_metrics();
+  // while (true) {
+  //   sim.step(time_step);
+  //   sim.save_metrics();
 
-		sim.repopulate_contacts();
+  //   sim.repopulate_contacts();
 
-    std::cout << "simulation time [seconds]: " << std::scientific << sim.time()
-              << " .... "
-              << "number of particles: " << sim.number_of_particles()
-              << "\r" << std::flush;
-	}
+  //   std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... "
+  //             << "number of particles: " << sim.number_of_particles() << "\r" << std::flush;
+  // }
 
-	// print the end time and the runtime
-	std::time_t end_time = std::time(nullptr);
-	std::cout << "\nruntime: " << std::difftime(end_time,start_time) << " seconds" << std::endl;
-	std::cout << "\n***\nend time:\n" << std::asctime(std::localtime(&end_time)) << "***\n\n";
 
-	return 0;
+  for (int n_particles=0; n_particles<10; ++n_particles){
+    sim.track_particle(time_step);
+  }
+  
+
+
+
+  // print the end time and the runtime
+  std::time_t end_time = std::time(nullptr);
+  std::cout << "\nruntime: " << std::difftime(end_time, start_time) << " seconds" << std::endl;
+  std::cout << "\n***\nend time:\n" << std::asctime(std::localtime(&end_time)) << "***\n\n";
+
+  return 0;
 }

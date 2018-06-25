@@ -1,16 +1,17 @@
 #ifndef monte_carlo_h
 #define monte_carlo_h
 
-#include <iostream>
-#include <list>
-#include <experimental/filesystem>
-#include <fstream>
-#include <map>
+#include <algorithm>
+#include <armadillo>
+#include <cassert>
 #include <chrono>
 #include <cmath>
+#include <experimental/filesystem>
+#include <fstream>
 #include <iomanip>
-#include <armadillo>
-#include <algorithm>
+#include <iostream>
+#include <list>
+#include <map>
 #include <thread>
 
 #include "../helper/utility.h"
@@ -853,13 +854,46 @@ private:
     s_list.shrink_to_fit();
 
     unsigned count(0);
-    for (int i=0; i<s_list.size(); ++i){
+    for (unsigned i=0; i<s_list.size(); ++i){
       if (s_list[i].left == -1 && s_list[i].right == -1)
         count++;
     }
 
     std::cout << "...done!"
               << std::endl;
+  }
+
+  // this function, adds a particle from the left contact, tracks its position while it has not entered the right
+  // contact and saves its position
+  void track_particle(double dt){
+
+    // assert(_particle_list.empty() && "particle list is not empty!");
+
+    double ymin = _domain.first(1);
+    double ymax = _domain.second(1);
+    double dy = (ymax - ymin) / double(_n_seg);
+
+    double y1 = ymin;
+    double y2 = ymin + dy;
+    
+    unsigned c1_pop = 1;
+    std::vector<particle> p_list;
+    repopulate(y1, y2, c1_pop, _c1_scat, p_list);
+
+
+    std::string filename = _output_directory.path() / "particle_path.dat";
+    std::ofstream file(filename.c_str(), std::ios::ate);
+
+    file << "...particle" << std::endl;
+
+
+    y1 = ymin + double(_n_seg - 1) * dy;
+    y2 = ymax;
+    while (p_list.front().pos(1)<y1){
+      p_list.front().step(dt, _all_scat_list, _max_hopping_radius);
+      file << "   " << p_list.front().pos() << "\n";
+    }
+    file << std::endl;
   }
 
 }; // end class monte_carlo
