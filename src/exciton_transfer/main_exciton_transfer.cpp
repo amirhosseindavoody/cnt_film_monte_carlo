@@ -5,7 +5,7 @@
 #include "cnt.h"
 #include "exciton_transfer.h"
 #include "constants.h"
-#include "../lib/json.hpp"
+#include "../../lib/json.hpp"
 
 int main_exciton_transfer(int argc, char *argv[])
 {

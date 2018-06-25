@@ -6,9 +6,9 @@
 
 #include <experimental/filesystem>
 
+#include "../lib/json.hpp"
+#include "./discrete_forster/monte_carlo.h"
 #include "./helper/utility.h"
-#include "./discrete_forster/discrete_forster_monte_carlo.h"
-#include "./lib/json.hpp"
 
 #include "./exciton_transfer/cnt.h"
 #include "./helper/prepare_directory.hpp"
@@ -52,37 +52,38 @@ int main(int argc, char *argv[])
 		throw std::invalid_argument("input.json should contain \"exciton monte carlo\" property.");
 	}
 	
-	mc::discrete_forster_monte_carlo sim(json_mc);
+	mc::monte_carlo sim(json_mc);
 
 	// initialize and run simulation for the exciton hopping
 	sim.init();
 	sim.save_json_properties();
 
-	std::fstream population_file;
-	std::fstream current_profile_file;
-	std::fstream region_current_file;
-	std::fstream debug_file;
+	double time_step = 1.e-14;
 
-	mc::t_float time_step = 1.e-14;
-	mc::t_uint max_history = 100;
+  std::cout << "running Monte Carlo:\n";
 
-	while (true)
-	{
-		sim.step(time_step);
-		sim.repopulate_contacts();
-		sim.population_profiler(max_history, population_file, debug_file);
-		sim.save_region_current(max_history, region_current_file, time_step);
+  // while (true) {
+  //   sim.step(time_step);
+  //   sim.save_metrics();
 
-		if (int(sim.time() / time_step) % 10 == 0)
-		{
-			std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... number of particles: " << sim.number_of_particles() <<"\r" << std::flush;
-		}
-	}
+  //   sim.repopulate_contacts();
 
-	// print the end time and the runtime
-	std::time_t end_time = std::time(nullptr);
-	std::cout << "\nruntime: " << std::difftime(end_time,start_time) << " seconds" << std::endl;
-	std::cout << "\n***\nend time:\n" << std::asctime(std::localtime(&end_time)) << "***\n\n";
+  //   std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... "
+  //             << "number of particles: " << sim.number_of_particles() << "\r" << std::flush;
+  // }
 
-	return 0;
+
+  for (int n_particles=0; n_particles<10; ++n_particles){
+    sim.track_particle(time_step);
+  }
+  
+
+
+
+  // print the end time and the runtime
+  std::time_t end_time = std::time(nullptr);
+  std::cout << "\nruntime: " << std::difftime(end_time, start_time) << " seconds" << std::endl;
+  std::cout << "\n***\nend time:\n" << std::asctime(std::localtime(&end_time)) << "***\n\n";
+
+  return 0;
 }
