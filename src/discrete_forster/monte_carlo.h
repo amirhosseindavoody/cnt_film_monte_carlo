@@ -882,16 +882,17 @@ private:
 
 
     std::string filename = _output_directory.path() / "particle_path.dat";
-    std::ofstream file(filename.c_str(), std::ios::ate);
+    std::ofstream file(filename.c_str(), std::ios::app);
 
     file << "...particle" << std::endl;
+    file << std::scientific << std::showpos << std::scientific;
 
 
     y1 = ymin + double(_n_seg - 1) * dy;
     y2 = ymax;
     while (p_list.front().pos(1)<y1){
       p_list.front().step(dt, _all_scat_list, _max_hopping_radius);
-      file << "   " << p_list.front().pos() << "\n";
+      file << "   " << p_list.front().pos(0) << " " << p_list.front().pos(1) << " " << p_list.front().pos(2) << "\n";
     }
     file << std::endl;
   }

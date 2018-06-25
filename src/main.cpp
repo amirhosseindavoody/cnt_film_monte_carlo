@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	sim.init();
 	sim.save_json_properties();
 
-	double time_step = 1.e-14;
+  double time_step = json_mc["monte carlo time step"];
 
   std::cout << "running Monte Carlo:\n";
 

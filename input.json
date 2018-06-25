@@ -63,6 +63,7 @@
           "zlim":[-1.5e-6, 1.5e-6]
         },
 
-        "exciton velocity [m/s]":2e5
+        "exciton velocity [m/s]":2e5, 
+        "monte carlo time step":1e-15
     }
 }
