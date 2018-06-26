@@ -20,6 +20,8 @@ int main(int argc, char *argv[])
 	std::time_t start_time = std::time(nullptr);
 	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
 
+  std::srand(100);
+
 	// get the input JSON filename
 	std::string filename;
 	if (argc <= 1){
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
 
 
   for (int n_particles=0; n_particles<10; ++n_particles){
-    sim.track_particle(time_step);
+    sim.track_particle(time_step, n_particles);
   }
   
 

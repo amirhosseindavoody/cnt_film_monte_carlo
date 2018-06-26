@@ -12,6 +12,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <sstream>
 #include <thread>
 
 #include "../helper/utility.h"
@@ -865,7 +866,7 @@ private:
 
   // this function, adds a particle from the left contact, tracks its position while it has not entered the right
   // contact and saves its position
-  void track_particle(double dt){
+  void track_particle(double dt, int fileNo){
 
     // assert(_particle_list.empty() && "particle list is not empty!");
 
@@ -880,11 +881,11 @@ private:
     std::vector<particle> p_list;
     repopulate(y1, y2, c1_pop, _c1_scat, p_list);
 
+    std::stringstream filename;
+    std::ofstream file;
+    filename << (_output_directory.path() / "particle_path.") << fileNo << ".dat";
+    file.open(filename.str().c_str(), std::ios::out);
 
-    std::string filename = _output_directory.path() / "particle_path.dat";
-    std::ofstream file(filename.c_str(), std::ios::app);
-
-    file << "...particle" << std::endl;
     file << std::scientific << std::showpos << std::scientific;
 
 
