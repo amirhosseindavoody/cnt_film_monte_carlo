@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   // }
 
 
-  for (int n_particles=0; n_particles<10; ++n_particles){
+  for (int n_particles=0; n_particles<100; ++n_particles){
     sim.track_particle(time_step, n_particles);
   }
   
