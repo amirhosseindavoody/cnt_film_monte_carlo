@@ -36,7 +36,7 @@ class monte_carlo
 private:
   typedef std::experimental::filesystem::path path_t;
   typedef std::experimental::filesystem::directory_entry directory_t;
-  typedef std::pair<arma::vec, arma::vec> domain_t;
+  typedef std::pair<std::valarray<double>, std::valarray<double>> domain_t;
   typedef std::vector<std::vector<scatterer*>> bucket_t;
   typedef std::pair<double, double> limit_t;
 
@@ -203,8 +203,8 @@ private:
 
     std::vector<particle> p_list;
 
-    double y_min = domain.first(1);
-    double y_max = domain.second(1);
+    double y_min = domain.first[1];
+    double y_max = domain.second[1];
 
     double dy = (y_max - y_min) / double(n_seg);
     double dp = double(right_pop - left_pop) / (double(n_seg) - 1);
@@ -229,7 +229,7 @@ private:
       for (int n=0; n<n_particle; n++){
         int dice = std::rand()%s_list.size();
         const scatterer* s = s_list[dice];
-        arma::vec pos = s->pos();
+        std::valarray<double> pos = s->pos();
         p_list.push_back(particle(pos,s,_particle_velocity));
       }
     }
@@ -250,13 +250,13 @@ private:
   // find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the
   // simulation domain
   domain_t find_simulation_domain() {
-    arma::vec min_coor = _all_scat_list.front().pos();
-    arma::vec max_coor = _all_scat_list.front().pos();
+    std::valarray<double> min_coor = _all_scat_list.front().pos();
+    std::valarray<double> max_coor = _all_scat_list.front().pos();
 
     for (const auto& s : _all_scat_list) {
       for (int i = 0; i < 3; ++i) {
-        min_coor(i) = min_coor(i) > s.pos(i) ? s.pos(i) : min_coor(i);
-        max_coor(i) = max_coor(i) < s.pos(i) ? s.pos(i) : max_coor(i);
+        min_coor[i] = min_coor[i] > s.pos(i) ? s.pos(i) : min_coor[i];
+        max_coor[i] = max_coor[i] < s.pos(i) ? s.pos(i) : max_coor[i];
       }
     }
 
@@ -265,9 +265,9 @@ private:
     std::cout << std::fixed << std::showpos;
 
     std::cout << "\n simulation domain:\n";
-    std::cout << "    x (" << min_coor(0) * 1e9 << " , " << max_coor(0) * 1e9 << ") [nm]\n";
-    std::cout << "    y (" << min_coor(1) * 1e9 << " , " << max_coor(1) * 1e9 << ") [nm]\n";
-    std::cout << "    z (" << min_coor(2) * 1e9 << " , " << max_coor(2) * 1e9 << ") [nm]\n";
+    std::cout << "    x (" << min_coor[0] * 1e9 << " , " << max_coor[0] * 1e9 << ") [nm]\n";
+    std::cout << "    y (" << min_coor[1] * 1e9 << " , " << max_coor[1] * 1e9 << ") [nm]\n";
+    std::cout << "    z (" << min_coor[2] * 1e9 << " , " << max_coor[2] * 1e9 << ") [nm]\n";
 
     std::cout.flags(f);  // reset the cout flags
 
@@ -363,16 +363,16 @@ private:
       for (auto s : str) {
         if (s == ',') count++;
       }
-      arma::rowvec pos(3);
+      std::valarray<double> pos(3,0);
       if (count == 2) {
         std::istringstream iss(str);
         std::string        token;
         std::getline(iss, token, ',');
-        pos(0) = std::stod(token);
+        pos[0] = std::stod(token);
         std::getline(iss, token, ',');
-        pos(1) = std::stod(token);
+        pos[1] = std::stod(token);
         std::getline(iss, token);
-        pos(2) = std::stod(token);
+        pos[2] = std::stod(token);
       }
       pos = pos * 1.e-9;
       return pos;
@@ -387,31 +387,32 @@ private:
         if (std::regex_search(line, tube_rgx)) {
           auto nodes = get_nodes(line);
 
-          arma::mat tube_coordinates(nodes.size(), 3);
+          std::vector<std::valarray<double>> tube_coordinates(nodes.size(), std::valarray<double>(3,0));
           unsigned  i = 0;
           for (const auto& node : nodes) {
-            tube_coordinates.row(i) = get_position(node);
+            tube_coordinates[i] = get_position(node);
             i++;
           }
 
-          for (unsigned i = 0; i < tube_coordinates.n_rows; i++) {
-            arma::rowvec pos1;
-            arma::rowvec pos2;
+          for (unsigned i = 0; i < tube_coordinates.size(); i++) {
+            std::valarray<double> pos1;
+            std::valarray<double> pos2;
             if (i == 0) {
-              pos1 = tube_coordinates.row(i);
-              pos2 = tube_coordinates.row(i + 1);
-            } else if (i == (tube_coordinates.n_rows - 1)) {
-              pos1 = tube_coordinates.row(i - 1);
-              pos2 = tube_coordinates.row(i);
+              pos1 = tube_coordinates[i];
+              pos2 = tube_coordinates[i + 1];
+            } else if (i == (tube_coordinates.size() - 1)) {
+              pos1 = tube_coordinates[i - 1];
+              pos2 = tube_coordinates[i];
             } else {
-              pos1 = tube_coordinates.row(i - 1);
-              pos2 = tube_coordinates.row(i + 1);
+              pos1 = tube_coordinates[i - 1];
+              pos2 = tube_coordinates[i + 1];
             }
-            arma::rowvec orientation = arma::normalise(pos2 - pos1);
+            std::valarray <double> orientation = pos2-pos1;
+            orientation /= std::sqrt((orientation*orientation).sum());
 
             _all_scat_list.push_back(scatterer());
-            _all_scat_list.back().set_pos(tube_coordinates.row(i).t());
-            _all_scat_list.back().set_orientation(orientation.t());
+            _all_scat_list.back().set_pos(tube_coordinates[i]);
+            _all_scat_list.back().set_orientation(orientation);
           }
         }
       }
@@ -517,16 +518,16 @@ private:
     std::cout << "\n" 
               << "finding scatterer buckets: ";
 
-    double xmin = (domain.first)(0);
-    double xmax = (domain.second)(0);
+    double xmin = domain.first[0];
+    double xmax = domain.second[0];
     int nx = std::ceil((xmax - xmin) / radius) + 1;
 
-    double ymin = (domain.first)(1);
-    double ymax = (domain.second)(1);
+    double ymin = domain.first[1];
+    double ymax = domain.second[1];
     int    ny = std::ceil((ymax - ymin) / radius) + 1;
 
-    double zmin = (domain.first)(2);
-    double zmax = (domain.second)(2);
+    double zmin = domain.first[2];
+    double zmax = domain.second[2];
     int    nz = std::ceil((zmax - zmin) / radius) + 1;
 
     scat_buckets.resize(nx*ny*nz);
@@ -620,8 +621,8 @@ private:
 
   // repopulate contacts
   void repopulate_contacts() {
-    double ymin = _domain.first(1);
-    double ymax = _domain.second(1);
+    double ymin = _domain.first[1];
+    double ymax = _domain.second[1];
     double dy = (ymax - ymin) / double(_n_seg);
 
     double y1 = ymin;
@@ -676,8 +677,8 @@ private:
     if (i==0 || i>n_seg)
       throw std::logic_error("input \"i\" must be between 1 and number of segments \"n_seg\"");
     
-    double ymin = domain.first(1);
-    double ymax = domain.second(1);
+    double ymin = domain.first[1];
+    double ymax = domain.second[1];
     double dy = (ymax-ymin)/double(n_seg);
 
     double y1 = ymin + double(i - 1) * dy;
@@ -704,8 +705,8 @@ private:
   void save_population_profile(int n) {
     std::vector<int> pop(n, 0);
 
-    double ymax = (_domain.second)(1);
-    double ymin = (_domain.first)(1);
+    double ymax = _domain.second[1];
+    double ymin = _domain.first[1];
 
     double dy = (ymax - ymin) / double(n);
 
@@ -735,8 +736,8 @@ private:
 
   // calculate and save population profile
   void save_currents(unsigned n) {
-    double ymax = (_domain.second)(1);
-    double ymin = (_domain.first)(1);
+    double ymax = _domain.second[1];
+    double ymin = _domain.first[1];
     double dy = (ymax - ymin) / double(n);
 
     if (n < 4) {
@@ -773,8 +774,8 @@ private:
 
   // calculate and save distribution function of all scatterer objects
   void get_scatterer_distribution(){
-    double ymin = _domain.first(1);
-    double ymax = _domain.second(1);
+    double ymin = _domain.first[1];
+    double ymax = _domain.second[1];
     double dy = (ymax - ymin) / double(_n_seg);
 
     std::vector<long> pop(_n_seg, 0);
@@ -869,8 +870,8 @@ private:
 
     // assert(_particle_list.empty() && "particle list is not empty!");
 
-    double ymin = _domain.first(1);
-    double ymax = _domain.second(1);
+    double ymin = _domain.first[1];
+    double ymax = _domain.second[1];
     double dy = (ymax - ymin) / double(_n_seg);
 
     double y1 = ymin;

@@ -230,7 +230,7 @@ namespace mc
 
           unsigned idx = ix + iy*n_tubes(0) + iz * n_tubes(0) * n_tubes(1);
           scatterer_list[idx].set_pos({x,y,z});
-          scatterer_list[idx].set_orientation(orientation);
+          scatterer_list[idx].set_orientation({orientation(0), orientation(1), orientation(2)});
         }
       }
     }

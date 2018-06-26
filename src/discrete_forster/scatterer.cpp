@@ -38,27 +38,27 @@ namespace mc
     auto check_neighbor = [&max_hopping_radius, &neighbors_list, this](scatterer& s2) {
       double cosTheta, theta, y1, y2, sin2Theta, axis_shift_1, axis_shift_2, z_shift;
 
-      arma::vec dR = this->pos() - s2.pos();
-      double    distance = arma::norm(dR);
+      std::valarray<double> dR = this->pos() - s2.pos();
+      double distance = std::sqrt((dR*dR).sum());
 
       if ((distance < max_hopping_radius) && (distance > 0.4e-9)) {
-        arma::vec a1 = this->orientation();
-        arma::vec a2 = s2.orientation();
-        cosTheta = arma::dot(a1, a2);
+        std::valarray<double> a1 = this->orientation();
+        std::valarray<double> a2 = s2.orientation();
+        cosTheta = (a1*a2).sum();
         // check if parallel case has happend
         if (cosTheta == 1) {
           axis_shift_1 = 0;
-          axis_shift_2 = arma::dot(dR, a1);
+          axis_shift_2 = (dR * a1).sum();
           theta = 0;
-          z_shift = arma::norm(dR - arma::dot(dR, a1) * a1);
+          z_shift = std::sqrt(std::pow(dR - (dR*a1).sum()*a1, 2).sum());
         } else {
           theta = std::acos(cosTheta);
-          y1 = arma::dot(a1, dR);
-          y2 = arma::dot(a2, dR);
+          y1 = (a1*dR).sum();
+          y2 = (a1*dR).sum();
           sin2Theta = 1 - std::pow(cosTheta, 2);
           axis_shift_1 = (y1 + y2 * cosTheta) / sin2Theta;
           axis_shift_2 = (y2 + y1 * cosTheta) / sin2Theta;
-          z_shift = arma::norm((axis_shift_1 * a1 + this->pos()) - (axis_shift_2 * a2 + s2.pos()));
+          z_shift = std::sqrt(std::pow((axis_shift_1 * a1 + this->pos()) - (axis_shift_2 * a2 + s2.pos()), 2).sum());
         }
 
         double rate = scat_tab->get_rate(theta, z_shift, axis_shift_1, axis_shift_2);
@@ -87,8 +87,8 @@ namespace mc
     int count=0;
     
     auto check_neighbor = [&max_hopping_radius, this, &count](scatterer* s2) {
-      arma::vec dR = this->pos() - s2->pos();
-      double    distance = arma::norm(dR);
+      std::valarray<double> dR = this->pos() - s2->pos();
+      double distance = std::sqrt((dR*dR).sum());
 
       if ((distance < max_hopping_radius) && (distance > 0.4e-9)) {
         count++;

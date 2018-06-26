@@ -1,16 +1,16 @@
 #ifndef scatterer_h
 #define scatterer_h
 
-#include <iostream>
 #include <array>
-#include <fstream>
+#include <exception>
 #include <experimental/filesystem>
+#include <fstream>
+#include <iostream>
 #include <regex>
 #include <sstream>
-#include <exception>
 #include <stdexcept>
 #include <tuple>
-#include <armadillo>
+#include <valarray>
 
 #include "../helper/utility.h"
 
@@ -27,8 +27,8 @@ class scatterer {
 private:
 	double _max_rate; // maximum scattering rate in the scattering table
 	double _inverse_max_rate; // inverse of the maximum scattering rate which is the lifetime
-	arma::vec _pos; // position of the scatterer
-  arma::vec _orientation; // orientation of the scattering object site
+	std::valarray<double> _pos; // position of the scatterer
+  std::valarray<double> _orientation; // orientation of the scattering object site
   
 public:
   // pointer to the scatterer on the right side (one side) of the current scatterer
@@ -49,29 +49,29 @@ public:
   scatterer(): _max_rate(0), _inverse_max_rate(0), right(-1), left(-1), scat_tab(nullptr) {};
 
   // set position of the scatterer
-  void set_pos(const arma::vec& position) { _pos = position; };
+  void set_pos(const std::valarray<double>& position) { _pos = position; };
 
   // set a component of the scatterer position
-  void set_pos(const unsigned& i, const double& value) { _pos(i) = value; };
+  void set_pos(const unsigned& i, const double& value) { _pos[i] = value; };
 
   // get position of the scatterer
-  const arma::vec& pos() const { return _pos; };
+  const std::valarray<double>& pos() const { return _pos; };
 
   // get i'th component of position of the scatterer
-  const double& pos(const unsigned& i) const { return _pos(i); };
+  const double& pos(const unsigned& i) const { return _pos[i]; };
 
   // set the orientation of the scatterer object
-  void set_orientation(const arma::vec& m_orientation) { _orientation = m_orientation; };
+  void set_orientation(const std::valarray<double>& m_orientation) { _orientation = m_orientation; };
 
   // set the i'th element of the orientation of the scatterer object
-  void set_orientation(const mc::t_uint& i, const double& value) { _orientation(i) = value; };
+  void set_orientation(const mc::t_uint& i, const double& value) { _orientation[i] = value; };
 
   // get the orientation of the scatterer object
-  const arma::vec& orientation() const { return _orientation; };
+  const std::valarray<double>& orientation() const { return _orientation; };
 
   // get the i'th element of the orientation of the scatterer object
   const double& orientation(const unsigned& i) const {
-    return _orientation(i);
+    return _orientation[i];
   };
 
   // get random free flight time

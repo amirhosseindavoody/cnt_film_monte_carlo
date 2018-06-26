@@ -36,15 +36,16 @@ namespace mc
       else
         _heading_right = false;
 
-      arma::vec t = s_list[next].pos();
-      double dist = arma::norm(_pos - t);
+      std::valarray<double> t = s_list[next].pos();
+      double dist = std::sqrt(std::pow(_pos - t, 2).sum());
 
       if (dist / _velocity < dt) {
         _pos = s_list[next].pos();
         _scat_ptr = &(s_list[next]);
         dt -= dist / _velocity;
       } else {
-        arma::vec d = arma::normalise(s_list[next].pos() - _pos);
+        std::valarray<double> d = (s_list[next].pos() - _pos);
+        d /= std::sqrt((d*d).sum());
         _pos += (_velocity * dt * d);
         return;
       }
