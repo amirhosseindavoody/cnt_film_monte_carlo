@@ -881,8 +881,9 @@ private:
     std::vector<particle> p_list;
     repopulate(y1, y2, c1_pop, _c1_scat, p_list);
 
+    std::string base = _output_directory.path() / "particle_path.";
     std::stringstream filename;
-    filename << (_output_directory.path() / "particle_path.") << fileNo << ".dat";
+    filename << base << fileNo << ".dat";
     std::ofstream file(filename.str().c_str(), std::ios::out);
 
     file << std::scientific << std::showpos << std::scientific;
