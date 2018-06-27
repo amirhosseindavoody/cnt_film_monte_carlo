@@ -882,9 +882,8 @@ private:
     repopulate(y1, y2, c1_pop, _c1_scat, p_list);
 
     std::stringstream filename;
-    std::ofstream file;
     filename << (_output_directory.path() / "particle_path.") << fileNo << ".dat";
-    file.open(filename.str().c_str(), std::ios::out);
+    std::ofstream file(filename.str().c_str(), std::ios::out);
 
     file << std::scientific << std::showpos << std::scientific;
 
@@ -896,6 +895,8 @@ private:
       file << "   " << p_list.front().pos(0) << " " << p_list.front().pos(1) << " " << p_list.front().pos(2) << "\n";
     }
     file << std::endl;
+
+    file.close();
   }
 
 }; // end class monte_carlo
