@@ -7,12 +7,14 @@
 #include <cmath>
 #include <iomanip>
 #include <armadillo>
+#include <omp.h>
 
 #include "../../lib/json.hpp"
 #include "../exciton_transfer/cnt.h"
 #include "../helper/prepare_directory.hpp"
 #include "../helper/progress.hpp"
 #include "monte_carlo.h"
+
 
 namespace mc
 {
@@ -76,46 +78,46 @@ namespace mc
 
     exciton_transfer ex_transfer(d_cnt, a_cnt);
 
-    progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create davoody scattering table");
+    // progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create davoody scattering table");
+    progress_bar prog(theta.n_elem, "create davoody scattering table");
 
-    double max_rate = 0;
-    double min_rate = 10e15;
-
-    unsigned i_th=0;
-    for (const auto& th: theta)
+    #pragma omp parallel
     {
-      unsigned i_zsh=0;
-      for (const auto& zsh: z_shift)
-      {
-        unsigned i_ash1=0;
-        for (const auto& ash1: axis_shift_1)
-        {
-          unsigned i_ash2=0;
-          for (const auto& ash2: axis_shift_2)
-          {
-            prog.step();
-            rate(i_th)(i_zsh,i_ash1,i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+      double th, zsh, ash1, ash2;
 
-            if (rate(i_th)(i_zsh,i_ash1,i_ash2) > max_rate) {
-              max_rate = rate(i_th)(i_zsh,i_ash1,i_ash2);
-            }
-            if (rate(i_th)(i_zsh,i_ash1,i_ash2) < min_rate) {
-              min_rate = rate(i_th)(i_zsh,i_ash1,i_ash2);
-            }
+      #pragma omp for
+      for (unsigned i_th = 0; i_th<theta.n_elem; ++i_th) {
 
-            i_ash2++;
+        th = theta(i_th);
+        for (unsigned i_zsh = 0; i_zsh < z_shift.n_elem; ++i_zsh) {
+          zsh = z_shift(i_zsh);
+          for (unsigned i_ash1 = 0; i_ash1 < axis_shift_1.n_elem; ++i_ash1) {
+            ash1 = axis_shift_1(i_ash1);
+            for (unsigned i_ash2 = 0; i_ash2 < axis_shift_2.n_elem; ++i_ash2) {
+              ash2 = axis_shift_2(i_ash2);
+              // prog.step();
+              rate(i_th)(i_zsh, i_ash1, i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+            }
           }
-          i_ash1++;
         }
-        i_zsh++;
+
+        #pragma omp critical
+        prog.step();
       }
-      i_th++;
     }
 
     scattering_struct scat_table(rate,theta,z_shift,axis_shift_1,axis_shift_2);
 
-    std::cout << "\nmax rate in davoody scattering table: " << max_rate << " [1/s]\n";
-    std::cout << "min rate in davoody scattering table: " << min_rate << " [1/s]\n\n";
+    double max_rate = 0;
+    double min_rate = 10e15;
+    rate.for_each([&min_rate](arma::cube& c) { min_rate = min_rate < c.min() ? min_rate : c.min(); });
+    rate.for_each([&max_rate](arma::cube& c) { max_rate = max_rate > c.max() ? max_rate : c.max(); });
+    
+    std::cout << std::endl
+              << "max rate in davoody scattering table: " << max_rate << " [1/s]" << std::endl
+              << "min rate in davoody scattering table: " << min_rate << " [1/s]"
+              << std::endl
+              << std::endl;
 
     return scat_table;
   };

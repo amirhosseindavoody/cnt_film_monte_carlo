@@ -14,6 +14,7 @@
 #include <map>
 #include <sstream>
 #include <thread>
+#include <omp.h>
 
 #include "../helper/utility.h"
 #include "../helper/prepare_directory.hpp"
@@ -82,7 +83,7 @@ private:
 
   double _particle_velocity=0;
 
- public:
+public:
   // default constructor
   monte_carlo() = delete;
 
@@ -278,45 +279,53 @@ private:
   // step the simulation in time
 	void step(double dt) {
 
-    #ifdef parallel
+    // #ifdef myparallel
       
-      typedef unsigned size_t;
+    //   typedef unsigned size_t;
 
-      size_t n = std::thread::hardware_concurrency();
+    //   size_t n = std::thread::hardware_concurrency();
 
-      // std::cout << "number of threads: " << n << std::endl;
+    //   // std::cout << "number of threads: " << n << std::endl;
 
-      std::vector<std::thread> t;
-      t.reserve(n);
+    //   std::vector<std::thread> t;
+    //   t.reserve(n);
 
-      size_t d = (_particle_list.size()+n-1)/n;
+    //   size_t d = (_particle_list.size()+n-1)/n;
 
-      auto step_particles = [this, &dt](size_t begin, size_t end) {
-        for (size_t i=begin; i<end; ++i){
-          _particle_list[i].step(dt, _all_scat_list, _max_hopping_radius);
-        }
-      };
+    //   auto step_particles = [this, &dt](size_t begin, size_t end) {
+    //     for (size_t i=begin; i<end; ++i){
+    //       _particle_list[i].step(dt, _all_scat_list, _max_hopping_radius);
+    //     }
+    //   };
 
-      for (size_t i=0; i<n; ++i){
-        size_t begin = i * d;
-        size_t end = (i+1) * d;
-        end = end < _particle_list.size() ? end : _particle_list.size();
-        t.emplace_back(std::thread(step_particles, begin, end));
+    //   for (size_t i=0; i<n; ++i){
+    //     size_t begin = i * d;
+    //     size_t end = (i+1) * d;
+    //     end = end < _particle_list.size() ? end : _particle_list.size();
+    //     t.emplace_back(std::thread(step_particles, begin, end));
+    //   }
+
+    //   for (auto& tt:t){
+    //     if (tt.joinable()){
+    //       tt.join();
+    //     }
+    //   }
+
+    // #else
+
+    //   for (auto& p: _particle_list){
+    //     p.step(dt, _all_scat_list, _max_hopping_radius);
+    //   }
+
+    // #endif
+
+    # pragma omp parallel
+    {
+      #pragma omp for
+      for (unsigned i=0; i<_particle_list.size(); ++i){
+        _particle_list[i].step(dt, _all_scat_list, _max_hopping_radius);
       }
-
-      for (auto& tt:t){
-        if (tt.joinable()){
-          tt.join();
-        }
-      }
-
-    #else
-
-      for (auto& p: _particle_list){
-        p.step(dt, _all_scat_list, _max_hopping_radius);
-      }
-
-    #endif
+    }
 
     // increase simulation time
     _time += dt;
@@ -571,52 +580,65 @@ private:
   // set the max scattering rate for all the scatterers
   void set_max_rate(const double max_hopping_radius, std::vector<scatterer>& scat_list){
     
-    #ifdef parallel
+    // #ifdef myparallel
 
-      std::cout << "\nsetting max rate in scatterers ..." << std::flush;
-      std::time_t start_time = std::time(nullptr);
+    //   std::cout << "\nsetting max rate in scatterers ..." << std::flush;
+    //   std::time_t start_time = std::time(nullptr);
 
-      typedef unsigned size_t;
+    //   typedef unsigned size_t;
 
-      auto calc_max_rate = [&scat_list, &max_hopping_radius](size_t begin, size_t end) {
-        for (size_t i = begin; i < end; ++i) {
-          scat_list[i].set_max_rate(max_hopping_radius);
-        }
-      };
+    //   auto calc_max_rate = [&scat_list, &max_hopping_radius](size_t begin, size_t end) {
+    //     for (size_t i = begin; i < end; ++i) {
+    //       scat_list[i].set_max_rate(max_hopping_radius);
+    //     }
+    //   };
 
-      size_t n_core = std::thread::hardware_concurrency();
-      n_core--;
-      size_t dn = (scat_list.size() + n_core - 1) / n_core;
+    //   size_t n_core = std::thread::hardware_concurrency();
+    //   n_core--;
+    //   size_t dn = (scat_list.size() + n_core - 1) / n_core;
 
-      std::vector<std::thread> t;
-      t.reserve(n_core);
+    //   std::vector<std::thread> t;
+    //   t.reserve(n_core);
 
-      for (size_t i=0; i<n_core; ++i){
-        size_t begin = i*dn;
-        size_t end = (i+1)*dn;
-        end = scat_list.size()>end ? end : scat_list.size();
-        t.emplace_back(calc_max_rate, begin, end);
-      }
+    //   for (size_t i=0; i<n_core; ++i){
+    //     size_t begin = i*dn;
+    //     size_t end = (i+1)*dn;
+    //     end = scat_list.size()>end ? end : scat_list.size();
+    //     t.emplace_back(calc_max_rate, begin, end);
+    //   }
 
-      for (auto& tt:t){
-        if (tt.joinable()){
-          tt.join();
-        }
-      }
+    //   for (auto& tt:t){
+    //     if (tt.joinable()){
+    //       tt.join();
+    //     }
+    //   }
 
-      std::time_t end_time = std::time(nullptr);
-      std::cout << "finished in " << std::difftime(end_time, start_time) << " [sec]" << std::endl;
+    //   std::time_t end_time = std::time(nullptr);
+    //   std::cout << "finished in " << std::difftime(end_time, start_time) << " [sec]" << std::endl;
 
-    #else
+    // #else
 
-      progress_bar prog(scat_list.size(),"setting max rate in scatterers");
+    //   progress_bar prog(scat_list.size(),"setting max rate in scatterers");
 
-      for (auto& s: scat_list){
-        s.set_max_rate(max_hopping_radius);
+    //   for (auto& s: scat_list){
+    //     s.set_max_rate(max_hopping_radius);
+    //     prog.step();
+    //   }
+
+    // #endif
+
+    progress_bar prog(scat_list.size(), "setting max rate in scatterers");
+
+    # pragma omp parallel
+    {
+      # pragma omp for
+      for (unsigned i=0; i<scat_list.size(); ++i) {
+        scat_list[i].set_max_rate(max_hopping_radius);
+
+        #pragma omp critical
         prog.step();
       }
-
-    #endif
+    }
   }
 
   // repopulate contacts

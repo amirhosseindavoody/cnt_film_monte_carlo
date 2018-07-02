@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <chrono>
 #include <ctime>
+#include <omp.h>
+#include <thread>
 
 #include <experimental/filesystem>
 
@@ -13,12 +15,15 @@
 #include "./exciton_transfer/cnt.h"
 #include "./helper/prepare_directory.hpp"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
+  // set the number of threads for the parallel regions
+  int o = omp_get_max_threads();
+  omp_set_num_threads(o);
 
-	// print the start time and start recording the run time
-	std::time_t start_time = std::time(nullptr);
-	std::cout << "\n***\nstart time:\n" <<  std::asctime(std::localtime(&start_time)) << "***\n\n";
+
+  // print the start time and start recording the run time
+  std::time_t start_time = std::time(nullptr);
+  std::cout << "\n***\nstart time:\n" << std::asctime(std::localtime(&start_time)) << "***\n\n";
 
   std::srand(100);
 

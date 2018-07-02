@@ -13,12 +13,12 @@ ifeq ($(OS_NAME),Darwin)
 	LFLAGS = -lm -larmadillo  -lstdc++fs -std=c++17 -fopenmp
 endif
 
-CFLAGS += -D myparallel
+CFLAGS += -D parallel
 
 CC+= -O3 -Wall
 # CC+= -O0 -g -Wall # for debuging using gdb
 
-SRCDIR = ./src/*.cpp ./src/exciton_transfer/*.cpp ./src/discrete_forster/*.cpp ./src/helper/*.cpp
+SRCDIR = ./*.cpp
 OBJDIR = ./obj
 
 BUILD_DIR ?= ./build
