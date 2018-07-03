@@ -163,8 +163,8 @@ public:
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
     set_max_rate(_max_hopping_radius, _all_scat_list);
 
-    get_scatterer_distribution();
     _area = get_area(_n_seg);
+    get_scatterer_distribution(_n_seg, _area);
 
 
     _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
@@ -840,7 +840,10 @@ public:
   }
 
   // calculate and save distribution function of all scatterer objects
-  void get_scatterer_distribution(){
+  void get_scatterer_distribution(const unsigned n_seg, const std::vector<double>& area){
+    assert(n_seg > 0);
+    assert(n_seg == area.size());
+
     double ymin = _domain.first(1);
     double ymax = _domain.second(1);
     double dy = (ymax - ymin) / double(_n_seg);
@@ -860,12 +863,11 @@ public:
     std::fstream f;
     f.open(_output_directory.path() / "scatterer_distribution.dat", std::ios::out);
 
-    f << "position        population\n";
+    f << "position         population          density\n";
     for (unsigned i=0; i<pop.size(); ++i){
-      f << std::scientific << pos[i] << " " << double(pop[i])/double(_all_scat_list.size()) << "\n";
+      f << std::scientific << pos[i] << " " << double(pop[i])/double(_all_scat_list.size()) << " " << double(pop[i])/(area[i]*dy) << "\n";
     }
     f.close();
-    
   }
 
   // trim all the scatterer objects outside a particular region.
