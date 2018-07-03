@@ -17,8 +17,8 @@
 
 int main(int argc, char *argv[]) {
   // set the number of threads for the parallel regions
-  int o = omp_get_max_threads();
-  omp_set_num_threads(o);
+  int n_threads = omp_get_max_threads();
+  omp_set_num_threads(n_threads);
 
 
   // print the start time and start recording the run time
@@ -67,22 +67,27 @@ int main(int argc, char *argv[]) {
 
   double time_step = json_mc["monte carlo time step"];
 
-  std::cout << "running Monte Carlo:\n";
-
-  // while (true) {
-  //   sim.step(time_step);
-  //   sim.save_metrics();
-
-  //   sim.repopulate_contacts();
-
-  //   std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... "
-  //             << "number of particles: " << sim.number_of_particles() << "\r" << std::flush;
-  // }
-
-
-  for (int n_particles=0; n_particles<100; ++n_particles){
+  std::cout << "saving particle trajectories ...";
+  for (int n_particles = 0; n_particles < 100; ++n_particles) {
     sim.track_particle(time_step, n_particles);
   }
+  std::cout << "done!" << std::endl;
+
+
+  std::cout << "\nrunning Monte Carlo:" << std::endl;
+
+  while (true) {
+    sim.step(time_step);
+    sim.save_metrics(time_step);
+
+    sim.repopulate_contacts();
+
+    std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... "
+              << "number of particles: " << sim.number_of_particles() << "\r" << std::flush;
+  }
+
+
+  
   
 
 

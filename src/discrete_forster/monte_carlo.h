@@ -1,6 +1,7 @@
 #ifndef monte_carlo_h
 #define monte_carlo_h
 
+#include <omp.h>
 #include <algorithm>
 #include <armadillo>
 #include <cassert>
@@ -14,7 +15,6 @@
 #include <map>
 #include <sstream>
 #include <thread>
-#include <omp.h>
 
 #include "../helper/utility.h"
 #include "../helper/prepare_directory.hpp"
@@ -74,6 +74,9 @@ private:
 
   // number of segments that defines contacts
   unsigned _n_seg=0;
+
+  // area profile of the structure along the y-axis
+  std::vector<double> _area;
 
   // list of all particles in the simulation
   std::vector<particle> _particle_list;
@@ -161,6 +164,8 @@ public:
     set_max_rate(_max_hopping_radius, _all_scat_list);
 
     get_scatterer_distribution();
+    _area = get_area(_n_seg);
+
 
     _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
     _c2_scat = contact_scats(_all_scat_list, _n_seg, _n_seg, _domain);
@@ -718,13 +723,17 @@ public:
   }
 
   // calculate all the metrics needed from the experiment
-  void save_metrics() {
-    save_population_profile(_n_seg);
-    save_currents(_n_seg);
+  void save_metrics(double dt) {
+    save_population_profile(_n_seg, dt);
+    save_currents(_n_seg, dt);
   }
 
   // calculate and save population profile
-  void save_population_profile(int n) {
+  void save_population_profile(unsigned n, double dt) {
+    assert(n>0);
+    assert(_area.size()==n);
+    assert(_pop_file.is_open());
+
     std::vector<int> pop(n, 0);
 
     double ymax = (_domain.second)(1);
@@ -736,20 +745,15 @@ public:
 
     for (auto p : _particle_list) {
       i = (p.pos(1) - ymin) / dy;
-      
-      i = i > -1 ? i : 0;
-      i = i < n ? i : n - 1;
+      i = i < 0 ? 0 : (i < int(n) ? i : int(n) - 1);
 
       pop[i]++;
     }
 
-    if (!_pop_file.is_open()) {
-      throw std::logic_error("Population file is not open: _pop_file !!!");
-    }
 
     _pop_file << std::showpos << std::scientific << _time << " ";
-    for (int& p : pop) {
-      _pop_file << p << " ";
+    for (unsigned j=0; j<pop.size(); ++j) {
+      _pop_file << double(pop[j])/(_area[j]*dy) << " ";
     }
 
     _pop_file << "... total particle no: "  << _particle_list.size()
@@ -757,22 +761,22 @@ public:
   }
 
   // calculate and save population profile
-  void save_currents(unsigned n) {
-    double ymax = (_domain.second)(1);
-    double ymin = (_domain.first)(1);
+  void save_currents(unsigned n, double dt) {
+    assert(n>5);
+    assert(_area.size()==n);
+    assert(_curr_file.is_open());
+
+    double ymax = _domain.second(1);
+    double ymin = _domain.first(1);
     double dy = (ymax - ymin) / double(n);
 
-    if (n < 4) {
-      throw std::invalid_argument(
-          "number of segments should be larger than 4 for the \"save_currents\" function: \"n\"");
-    }
 
-    std::vector<double> y = {ymin + 2 * dy, ymin + double(n - 2) * dy};
+    std::vector<double> y{ymin + 2 * dy, ymin + double(n - 2) * dy};
+    std::vector<double> area_at_interface{(_area[1]+_area[2])/2, (_area[n-3]+_area[n-2])/2};
 
     std::vector<int> curr(2, 0);
-    int              i = 0;
 
-    for (i = 0; i < 2; ++i) {
+    for (int i = 0; i < 2; ++i) {
       for (auto p : _particle_list) {
         if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
           curr[i]++;
@@ -780,18 +784,59 @@ public:
           curr[i]--;
         }
       }
-    }
+    }    
 
-    if (!_curr_file.is_open()) {
-      throw std::logic_error("Current file is not open: _curr_file !!!");
-    }
+
 
     _curr_file << std::showpos << std::scientific << _time << " ";
-    for (auto& c : curr) {
-      _curr_file << std::showpos << std::scientific << c << " ";
+    for (unsigned i = 0; i<curr.size(); ++i) {
+      _curr_file << std::showpos << std::scientific << double(curr[i])/(area_at_interface[i]*dt) << " ";
     }
 
     _curr_file << std::endl;
+  }
+
+  // get the max area of the structure for n_seg segments along y-axis
+  std::vector<double> get_area(unsigned n_seg){
+    assert(n_seg > 0);
+
+    double ymax = (_domain.second)(1);
+    double ymin = (_domain.first)(1);
+    double dy = (ymax - ymin) / double(n_seg);
+
+    std::vector<double> y(n_seg+1,0);
+    for (unsigned i=0; i<n_seg+1; ++i){
+      y[i] = ymin + i * dy;
+    }
+
+    std::vector<double> xmax(n_seg,_domain.first(0));
+    std::vector<double> xmin(n_seg,_domain.second(0));
+    std::vector<double> zmax(n_seg,_domain.first(2));
+    std::vector<double> zmin(n_seg,_domain.second(2));
+
+    for (auto& s: _all_scat_list){
+      int i = (s.pos(1)-ymin)/dy;
+      i = i<0 ? 0 : (i<int(n_seg) ? i : n_seg-1);
+
+      if (xmin[i] > s.pos(0)) {
+        xmin[i] = s.pos(0);
+      } else if (xmax[i] < s.pos(0)) {
+        xmax[i] = s.pos(0);
+      }
+
+      if (zmin[i] > s.pos(2)) {
+        zmin[i] = s.pos(2);
+      } else if (zmax[i] < s.pos(2)) {
+        zmax[i] = s.pos(2);
+      }
+    }
+
+    std::vector<double> area (n_seg, 0);
+    for (unsigned i=0; i<n_seg; ++i){
+      area[i] = (zmax[i] - zmin[i]) * (xmax[i] - xmin[i]);
+    }
+
+    return area;
   }
 
   // calculate and save distribution function of all scatterer objects
