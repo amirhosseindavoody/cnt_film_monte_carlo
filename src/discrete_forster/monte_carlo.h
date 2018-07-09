@@ -804,15 +804,15 @@ public:
     double ymin = (_domain.first)(1);
     double dy = (ymax - ymin) / double(n_seg);
 
-    std::vector<double> y(n_seg+1,0);
-    for (unsigned i=0; i<n_seg+1; ++i){
-      y[i] = ymin + i * dy;
-    }
-
     std::vector<double> xmax(n_seg,_domain.first(0));
     std::vector<double> xmin(n_seg,_domain.second(0));
     std::vector<double> zmax(n_seg,_domain.first(2));
     std::vector<double> zmin(n_seg,_domain.second(2));
+
+    // std::vector<double> xmax(n_seg, INT_MIN);
+    // std::vector<double> xmin(n_seg, INT_MAX);
+    // std::vector<double> zmax(n_seg, INT_MIN);
+    // std::vector<double> zmin(n_seg, INT_MAX);
 
     for (auto& s: _all_scat_list){
       int i = (s.pos(1)-ymin)/dy;
@@ -835,6 +835,13 @@ public:
     for (unsigned i=0; i<n_seg; ++i){
       area[i] = (zmax[i] - zmin[i]) * (xmax[i] - xmin[i]);
     }
+
+    // std::cout << "\nareas:";
+    // for (unsigned i=0; i<n_seg; ++i){
+    //   std::cout << i << " , " << area[i] << std::endl;
+    // }
+
+    // std::cin.ignore();
 
     return area;
   }
