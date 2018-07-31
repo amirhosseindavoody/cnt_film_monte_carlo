@@ -412,7 +412,7 @@ public:
   // particle hopping between the sites
   std::vector<scatterer> create_scatterer_from_fiber(const path_t& input_path) {
     std::cout << std::endl
-              << "create scatterers in fiber sctructure ... " << std::flush;
+              << "create scatterers in fiber structure ... " << std::flush;
 
     std::ifstream pos_file;
     std::ifstream orient_file;
