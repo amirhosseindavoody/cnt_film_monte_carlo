@@ -307,47 +307,44 @@ std::complex<double> exciton_transfer::calculate_Q(const matching_states& pair) 
 std::complex<double> exciton_transfer::calculate_J(const matching_states& pair, const std::array<double,2>& shifts_along_axis, const double& z_shift, const double& angle) const
 {
   // make position of all atoms in the entire cnt length in 3d space
-  auto make_Ru_3d = [](const cnt& m_cnt, const double shift_along_axis, const double z_shift, const double angle) {
+  auto make_Ru_3d = [](const cnt &m_cnt, const double shift_along_axis, const double z_shift, const double angle) {
     int n_atoms_in_cnt_unit_cell = m_cnt.pos_u_3d().n_rows;
     int total_number_of_atoms = m_cnt.pos_u_3d().n_rows * m_cnt.length_in_cnt_unit_cell();
-    arma::mat all_atoms(total_number_of_atoms,3);
+    arma::mat all_atoms(total_number_of_atoms, 3);
 
-    for (int i=0; i<m_cnt.length_in_cnt_unit_cell(); i++)
-    {
-      all_atoms.rows(i*n_atoms_in_cnt_unit_cell,(i+1)*n_atoms_in_cnt_unit_cell-1) = i*m_cnt.pos_u_3d();
+    for (int i = 0; i < m_cnt.length_in_cnt_unit_cell(); i++) {
+      all_atoms.rows(i * n_atoms_in_cnt_unit_cell, (i + 1) * n_atoms_in_cnt_unit_cell - 1) = m_cnt.pos_u_3d().each_row() + i * m_cnt.t_vec_3d().t();
     }
 
     // make the cnt center at the middle
     double y_max = all_atoms.col(1).max();
     double y_min = all_atoms.col(1).min();
-    all_atoms.col(1) -= ((y_max+y_min)/2.);
+    all_atoms.col(1) -= ((y_max + y_min) / 2.);
 
     // shift the center of the cnt axis along it's axis
     all_atoms.col(1) += shift_along_axis;
 
     // shift the atoms along the z axis
-    all_atoms.col(2) +=  z_shift;
+    all_atoms.col(2) += z_shift;
 
     // rotate by angle around the z axis
-    for (unsigned int i=0; i<all_atoms.n_rows; i++)
-    {
-      double x = all_atoms(i,0)*std::cos(angle) - all_atoms(i,1)*std::sin(angle);
-      double y = all_atoms(i,0)*std::sin(angle) + all_atoms(i,1)*std::cos(angle);
-      all_atoms(i,0) = x;
-      all_atoms(i,1) = y;
+    for (unsigned int i = 0; i < all_atoms.n_rows; i++) {
+      double x = all_atoms(i, 0) * std::cos(angle) - all_atoms(i, 1) * std::sin(angle);
+      double y = all_atoms(i, 0) * std::sin(angle) + all_atoms(i, 1) * std::cos(angle);
+      all_atoms(i, 0) = x;
+      all_atoms(i, 1) = y;
     }
     return all_atoms;
   };
 
-    // make position of all atoms in the entire cnt length in 2d space of unrolled cnt
+  // make position of all atoms in the entire cnt length in 2d space of unrolled cnt
   auto make_Ru_2d = [](const cnt& m_cnt) {
     int n_atoms_in_cnt_unit_cell = m_cnt.pos_u_2d().n_rows;
     int total_number_of_atoms = m_cnt.pos_u_2d().n_rows * m_cnt.length_in_cnt_unit_cell();
     arma::mat all_atoms(total_number_of_atoms,2);
 
-    for (int i=0; i<m_cnt.length_in_cnt_unit_cell(); i++)
-    {
-      all_atoms.rows(i*n_atoms_in_cnt_unit_cell,(i+1)*n_atoms_in_cnt_unit_cell-1) = i*m_cnt.pos_u_2d();
+    for (int i=0; i<m_cnt.length_in_cnt_unit_cell(); i++) {
+      all_atoms.rows(i*n_atoms_in_cnt_unit_cell,(i+1)*n_atoms_in_cnt_unit_cell-1) = m_cnt.pos_u_2d().each_row() + i * m_cnt.t_vec().t();
     }
 
     return all_atoms;
@@ -364,8 +361,7 @@ std::complex<double> exciton_transfer::calculate_J(const matching_states& pair, 
 
   // prebuild exponential factor for the inner loop
   arma::cx_vec f_exp(f_Ru_2d.n_rows);
-  for (unsigned int j=0; j<f_Ru_2d.n_rows; j++)
-  {
+  for (unsigned int j=0; j<f_Ru_2d.n_rows; j++) {
     f_exp(j) = std::exp(+i1*arma::dot(pair.f.ik_cm*pair.f.dk_l(),f_Ru_2d.row(j)));
   }
 
@@ -396,8 +392,7 @@ double exciton_transfer::first_order(const double& z_shift, const std::array<dou
   std::vector<ex_state> a_relevant_states = get_relevant_states(a_exciton,min_energy);
 
   double Z = 0;
-  for (const auto& state:d_relevant_states)
-  {
+  for (const auto& state:d_relevant_states) {
     Z += std::exp(-state.energy/(constants::kb*_temperature));
   }
 
@@ -405,20 +400,33 @@ double exciton_transfer::first_order(const double& z_shift, const std::array<dou
   std::vector<matching_states> state_pairs = match_states(d_relevant_states, a_relevant_states);
 
 
+  // std::cout << "number of matching states: " << state_pairs.size() << std::endl;
+
+  // int i=0;
+
+
   double transfer_rate = 0;
 
-  progress_bar prog(state_pairs.size(),"calculate first-order exciton transfer rate", not show_results);
-  for (const auto& pair:state_pairs)
-  { 
+  progress_bar prog(state_pairs.size(),"calculate first-order exciton transfer rate", !show_results);
+  for (const auto& pair:state_pairs) { 
     prog.step();
     std::complex<double> Q = calculate_Q(pair);
     std::complex<double> J = calculate_J(pair, axis_shifts, z_shift, theta);
-    double M = std::abs(Q*J)/std::sqrt(pair.i.cnt_obj->length_in_meter()*pair.f.cnt_obj->length_in_meter());
+    double M = std::abs(Q * J) / std::sqrt(pair.i.cnt_obj->length_in_meter() * pair.f.cnt_obj->length_in_meter());
+    // double M = std::abs(Q * J);
+
+    // std::cout << std::showpos;
+    // std::cout << i   << "---------> ";
+    // std::cout << "(" << pair.i.ik_cm << "," << pair.f.ik_cm << ")" << " E(i)=" << pair.i.energy << " , E(f)=" << pair.f.energy;
+    // std::cout << " , Q = " << std::abs(Q);
+    // std::cout << " , J = " << std::abs(J);
+    // std::cout << " , M = " << std::abs(M) << std::endl;
+    // i++;
+
     transfer_rate += (2*constants::pi/constants::hb)*(std::exp(-pair.i.energy/(constants::kb*_temperature))/Z)*std::pow(M,2)*lorentzian(pair.i.energy-pair.f.energy);
   }
 
-  if (show_results)
-  {
+  if (show_results) {
     std::cout << "\n\n";
     std::cout << "cnt lengths: " << _cnts[0]->length_in_meter()*1.e9 << " [nm], " << _cnts[1]->length_in_meter()*1.e9 << " [nm]\n";
     std::cout << "center to center distance: " << z_shift*1.e9 << " [nm]\n";
@@ -433,8 +441,7 @@ double exciton_transfer::first_order(const double& z_shift, const std::array<dou
 }
 
 // calculate first order transfer rate for varying angle
-void exciton_transfer::calculate_first_order_vs_angle(const arma::vec& angle_vec ,const double& z_shift, const std::array<double,2> axis_shifts)
-{
+void exciton_transfer::calculate_first_order_vs_angle(const arma::vec& angle_vec ,const double& z_shift, const std::array<double,2> axis_shifts) {
   int n_theta = angle_vec.n_elem;
   arma::vec transfer_rate(arma::size(angle_vec), arma::fill::zeros);
 
@@ -464,8 +471,7 @@ void exciton_transfer::calculate_first_order_vs_angle(const arma::vec& angle_vec
 }
 
 // calculate first order transfer rate for center to center distance
-void exciton_transfer::calculate_first_order_vs_zshift(const arma::vec& z_shift_vec, const std::array<double,2> axis_shifts, const double& theta)
-{
+void exciton_transfer::calculate_first_order_vs_zshift(const arma::vec& z_shift_vec, const std::array<double,2> axis_shifts, const double& theta) {
   int n = z_shift_vec.n_elem;
   arma::vec transfer_rate(arma::size(z_shift_vec), arma::fill::zeros);
 
@@ -494,8 +500,7 @@ void exciton_transfer::calculate_first_order_vs_zshift(const arma::vec& z_shift_
 }
 
 // calculate first order transfer rate for varying axis shift for initial cnt
-void exciton_transfer::calculate_first_order_vs_axis_shift_1(const arma::vec& axis_shift_vec_1, const double axis_shift_2, const double z_shift, const double& theta)
-{
+void exciton_transfer::calculate_first_order_vs_axis_shift_1(const arma::vec& axis_shift_vec_1, const double axis_shift_2, const double z_shift, const double& theta) {
   int n = axis_shift_vec_1.n_elem;
   arma::vec transfer_rate(arma::size(axis_shift_vec_1), arma::fill::zeros);
 
@@ -525,8 +530,7 @@ void exciton_transfer::calculate_first_order_vs_axis_shift_1(const arma::vec& ax
 }
 
 // calculate first order transfer rate for varying axis shift for final cnt
-void exciton_transfer::calculate_first_order_vs_axis_shift_2(const arma::vec& axis_shift_vec_2, const double axis_shift_1, const double z_shift, const double& theta)
-{
+void exciton_transfer::calculate_first_order_vs_axis_shift_2(const arma::vec& axis_shift_vec_2, const double axis_shift_1, const double z_shift, const double& theta) {
   int n = axis_shift_vec_2.n_elem;
   arma::vec transfer_rate(arma::size(axis_shift_vec_2), arma::fill::zeros);
 
@@ -553,4 +557,62 @@ void exciton_transfer::calculate_first_order_vs_axis_shift_2(const arma::vec& ax
   std::cout << "center to center distance: " << z_shift*1.e9 << " [nm]\n";
   std::cout << "max transfer rate: " << transfer_rate.max() << " [1/s] at " << axis_shift_vec_2(transfer_rate.index_max())*1e9 << " [nm]\n";
   std::cout << "min transfer rate: " << transfer_rate.min() << " [1/s] at " << axis_shift_vec_2(transfer_rate.index_min())*1e9 << " [nm]\n";
+}
+
+typedef std::experimental::filesystem::path path_t;
+void exciton_transfer::save_atom_locations(path_t path, const std::array<double, 2> &shifts_along_axis, const double &z_shift, const double &angle, std::string prefix) {
+  
+  std::cout << "saving 3d atom locations for donor and acceptor cnts...";
+
+  // make position of all atoms in the entire cnt length in 3d space
+  auto make_Ru_3d = [](const cnt &m_cnt, const double shift_along_axis, const double z_shift, const double angle) {
+    int n_atoms_in_cnt_unit_cell = m_cnt.pos_u_3d().n_rows;
+    int total_number_of_atoms = m_cnt.pos_u_3d().n_rows * m_cnt.length_in_cnt_unit_cell();
+    arma::mat all_atoms(total_number_of_atoms, 3);
+
+    for (int i = 0; i < m_cnt.length_in_cnt_unit_cell(); i++) {
+      all_atoms.rows(i * n_atoms_in_cnt_unit_cell, (i + 1) * n_atoms_in_cnt_unit_cell - 1) = m_cnt.pos_u_3d().each_row() + i*m_cnt.t_vec_3d().t();
+    }
+
+    // make the cnt center at the middle
+    double y_max = all_atoms.col(1).max();
+    double y_min = all_atoms.col(1).min();
+    all_atoms.col(1) -= ((y_max + y_min) / 2.);
+
+    // shift the center of the cnt axis along it's axis
+    all_atoms.col(1) += shift_along_axis;
+
+    // shift the atoms along the z axis
+    all_atoms.col(2) += z_shift;
+
+    // rotate by angle around the z axis
+    for (unsigned int i = 0; i < all_atoms.n_rows; i++)
+    {
+      double x = all_atoms(i, 0) * std::cos(angle) - all_atoms(i, 1) * std::sin(angle);
+      double y = all_atoms(i, 0) * std::sin(angle) + all_atoms(i, 1) * std::cos(angle);
+      all_atoms(i, 0) = x;
+      all_atoms(i, 1) = y;
+    }
+    return all_atoms;
+  };
+
+  const cnt* donor = _cnts[0];
+  const cnt* acceptor = _cnts[1];
+
+  arma::mat i_Ru_3d = make_Ru_3d(*donor, shifts_along_axis[0], 0, 0);
+  arma::mat f_Ru_3d = make_Ru_3d(*acceptor, shifts_along_axis[1], z_shift, angle);
+
+  path /= "3d_coord"+prefix;
+
+  std::ofstream file;
+
+  file.open(std::string(path) + ".cnt1.dat");
+  file << i_Ru_3d;
+  file.close();
+
+  file.open(std::string(path) + ".cnt2.dat");
+  file << f_Ru_3d;
+  file.close();
+
+  std::cout << "done!!!" << std::endl;
 }

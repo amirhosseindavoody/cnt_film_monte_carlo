@@ -332,10 +332,16 @@ public:
     return _pos_u_2d;
   };
 
-  // getter function to return translation vector
+  // getter function to return 2d translation vector
   const arma::vec& t_vec() const
   {
     return _t_vec;
+  };
+
+  // getter function to return 3d translation vector
+  const arma::vec &t_vec_3d() const
+  {
+    return _t_vec_3d;
   };
 
   // return area of graphene unit cell

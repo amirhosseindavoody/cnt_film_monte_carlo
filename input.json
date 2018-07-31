@@ -1,5 +1,6 @@
 {
     "cnts":{
+        "comment": "the cnts listed in this section ARE used in the monte carlo simulation",
         "directory": "~/research/exciton_energy/",
         "1": {
             "keep old results": false,
@@ -39,13 +40,13 @@
     "exciton monte carlo":{
         "mesh type": "fiber",
         "mesh input directory": "~/research/cnt_mesh_fiber",
-        "output directory": "~/research/monte_carlo_fiber",
+        "output directory": "~/research/monte_carlo_fiber_test",
         "keep old results":true,
         "rate type":"davoody",
-        "zshift [m]": [1.5e-9, 10e-9, 21],
-        "axis shift 1 [m]": [-10e-9, 10e-9, 21],
-        "axis shift 2 [m]": [-10e-9, 10e-9, 21],
-        "theta [degrees]": [0, 180, 9],
+        "zshift [m]": [1.5e-9, 10e-9, 11],
+        "axis shift 1 [m]": [-10e-9, 10e-9, 11],
+        "axis shift 2 [m]": [-10e-9, 10e-9, 11],
+        "theta [degrees]": [0, 180, 21],
         "max hopping radius [m]": 20e-9,
         "max neighbor search radius [m]": 10000e-9,
         "temperature [kelvin]": 300, 

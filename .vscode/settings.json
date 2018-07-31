@@ -1,3 +1,4 @@
 {
-  "C_Cpp.dimInactiveRegions": false
+  "C_Cpp.dimInactiveRegions": false,
+  "python.pythonPath": "/Users/amirhossein/anaconda/envs/py36/bin/python"
 }

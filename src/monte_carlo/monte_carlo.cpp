@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <armadillo>
 #include <omp.h>
+#include <cassert>
 
 #include "../../lib/json.hpp"
 #include "../exciton_transfer/cnt.h"
@@ -21,19 +22,19 @@ namespace mc
 
   // high level method to calculate proper scattering table
   scattering_struct monte_carlo::create_scattering_table(nlohmann::json j) {
-    if (j.count("rate type")==0)
-      throw std::invalid_argument(
-          "\"rate type\" must be specifieced!!");
+    assert(j.count("rate type")>0);
 
-    std::cout << "\ninitializing scattering table...\n";
+    std::string rate_type = j["rate type"].get<std::string>();
 
-    scattering_struct scat_tab;
+    std::cout << "\ninitializing scattering table with " << rate_type << "..." << std::endl;
 
-    if (j["rate type"].get<std::string>() == "davoody") {
+
+    if (rate_type == "davoody") {
 
       // get the parent directory for cnts
       std::string parent_directory = j["cnts"]["directory"];
       j["cnts"].erase("directory");
+      j["cnts"].erase("comment");
 
       // create excitons and calculate exciton dispersions
       std::vector<cnt> cnts;
@@ -44,19 +45,19 @@ namespace mc
         cnts.emplace_back(cnt(j_cnt, parent_directory));
         cnts.back().calculate_exciton_dispersion();
       };
-      scat_tab = create_davoody_scatt_table(cnts[0], cnts[0]);
-
-
-    } else if (j["rate type"].get<std::string>() == "forster") {
-      scat_tab = create_forster_scatt_table(1.e15, 1.4e9);
-    } else if (j["rate type"].get<std::string>() == "wong") {
-      scat_tab = create_forster_scatt_table(1.e13, 1.4e9);
-    } else {
-      throw std::invalid_argument(
-          "rate type must be one of the following: \"davoody\", \"forster\", \"wong\"");
+      return create_davoody_scatt_table(cnts[0], cnts[0]);
     }
 
-    return scat_tab;
+    if (rate_type == "forster") {
+      return create_forster_scatt_table(1.e15, 1.4e9);
+    }
+
+    if (rate_type == "wong") {
+      return create_forster_scatt_table(1.e13, 1.4e9);
+    }
+    
+    throw std::invalid_argument("rate type must be one of the following: \"davoody\", \"forster\", \"wong\"");
+
   };
 
   // method to calculate scattering rate via davoody et al. method
@@ -77,6 +78,29 @@ namespace mc
     rate.for_each([&](arma::cube& c){c.zeros(z_shift.n_elem, axis_shift_1.n_elem, axis_shift_2.n_elem);});
 
     exciton_transfer ex_transfer(d_cnt, a_cnt);
+
+    ex_transfer.save_atom_locations(_output_directory.path(), {0, 0}, 1.5e-9, 0, ".0_angle");
+    ex_transfer.save_atom_locations(_output_directory.path(), {0, 0}, 1.5e-9, constants::pi / 2, ".90_angle");
+    ex_transfer.save_atom_locations(_output_directory.path(), {0, 0}, 1.5e-9, constants::pi, ".180_angle");
+
+
+    #ifdef DEBUG_CHECK_RATES_SYMMETRY
+    {
+      double zsh = 1.5e-9;
+      double ash1 = 0;
+      double ash2 = 0;
+      
+      double th = 0;
+      double r = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+      std::cout << "rate(" << th << ") = " << r << std::endl;
+
+      th = constants::pi;
+      r = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+      std::cout << "rate(" << th << ") = " << r << std::endl;
+
+      std::exit(0);
+    }
+    #endif
 
     // progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create davoody scattering table");
     progress_bar prog(theta.n_elem, "create davoody scattering table");
@@ -119,6 +143,9 @@ namespace mc
               << std::endl
               << std::endl;
 
+    // std::string filename(_output_directory.path() / "davoody_scat_rates.dat");
+    scat_table.save(_output_directory.path());
+
     return scat_table;
   };
 
@@ -142,20 +169,16 @@ namespace mc
     progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create forster scattering table");
 
     unsigned i_th=0;
-    for (const auto& th: theta)
-    {
+    for (const auto& th: theta) {
       unsigned i_zsh=0;
-      for (const auto& zsh: z_shift)
-      {
+      for (const auto& zsh: z_shift) {
         unsigned i_ash1=0;
-        for (const auto& ash1: axis_shift_1)
-        {
+        for (const auto& ash1: axis_shift_1) {
           unsigned i_ash2=0;
-          for (const auto& ash2: axis_shift_2)
-          {
+          for (const auto& ash2: axis_shift_2) {
             prog.step();
             arma::vec r1 = {ash1, 0, 0};
-            arma::vec r2 = {ash2*std::cos(th), ash2*std::cos(th), zsh};
+            arma::vec r2 = {ash2*std::cos(th), ash2*std::sin(th), zsh};
             arma::vec dR = r1-r2;
             double angle_factor = std::cos(th)-3*arma::dot(arma::normalise(r1),arma::normalise(dR))*arma::dot(arma::normalise(r2),arma::normalise(dR));
             rate(i_th)(i_zsh,i_ash1,i_ash2) = gamma_0*std::pow(angle_factor,2)*std::pow(1.e-9/arma::norm(dR),6);

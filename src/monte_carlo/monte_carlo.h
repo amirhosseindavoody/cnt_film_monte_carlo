@@ -32,8 +32,7 @@
 namespace mc
 {
 
-class monte_carlo
-{
+class monte_carlo {
 
 private:
   typedef std::experimental::filesystem::path path_t;
@@ -160,11 +159,13 @@ public:
 
     _domain = find_simulation_domain();
 
+    _area = get_area(_n_seg);
+    get_scatterer_statistics(_n_seg, _area);
+
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
     set_max_rate(_max_hopping_radius, _all_scat_list);
 
-    _area = get_area(_n_seg);
-    get_scatterer_distribution(_n_seg, _area);
+    
 
 
     _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
@@ -174,9 +175,6 @@ public:
     _c2_pop = 0;
 
     _particle_list = create_particles(_domain, _n_seg, _all_scat_list, _c1_pop, _c2_pop);
-
-    _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
-    _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
 	};
 
   // high level function to create scatterers vector based on the json inpu
@@ -283,46 +281,6 @@ public:
 
   // step the simulation in time
 	void step(double dt) {
-
-    // #ifdef myparallel
-      
-    //   typedef unsigned size_t;
-
-    //   size_t n = std::thread::hardware_concurrency();
-
-    //   // std::cout << "number of threads: " << n << std::endl;
-
-    //   std::vector<std::thread> t;
-    //   t.reserve(n);
-
-    //   size_t d = (_particle_list.size()+n-1)/n;
-
-    //   auto step_particles = [this, &dt](size_t begin, size_t end) {
-    //     for (size_t i=begin; i<end; ++i){
-    //       _particle_list[i].step(dt, _all_scat_list, _max_hopping_radius);
-    //     }
-    //   };
-
-    //   for (size_t i=0; i<n; ++i){
-    //     size_t begin = i * d;
-    //     size_t end = (i+1) * d;
-    //     end = end < _particle_list.size() ? end : _particle_list.size();
-    //     t.emplace_back(std::thread(step_particles, begin, end));
-    //   }
-
-    //   for (auto& tt:t){
-    //     if (tt.joinable()){
-    //       tt.join();
-    //     }
-    //   }
-
-    // #else
-
-    //   for (auto& p: _particle_list){
-    //     p.step(dt, _all_scat_list, _max_hopping_radius);
-    //   }
-
-    // #endif
 
     # pragma omp parallel
     {
@@ -585,53 +543,6 @@ public:
   // set the max scattering rate for all the scatterers
   void set_max_rate(const double max_hopping_radius, std::vector<scatterer>& scat_list){
     
-    // #ifdef myparallel
-
-    //   std::cout << "\nsetting max rate in scatterers ..." << std::flush;
-    //   std::time_t start_time = std::time(nullptr);
-
-    //   typedef unsigned size_t;
-
-    //   auto calc_max_rate = [&scat_list, &max_hopping_radius](size_t begin, size_t end) {
-    //     for (size_t i = begin; i < end; ++i) {
-    //       scat_list[i].set_max_rate(max_hopping_radius);
-    //     }
-    //   };
-
-    //   size_t n_core = std::thread::hardware_concurrency();
-    //   n_core--;
-    //   size_t dn = (scat_list.size() + n_core - 1) / n_core;
-
-    //   std::vector<std::thread> t;
-    //   t.reserve(n_core);
-
-    //   for (size_t i=0; i<n_core; ++i){
-    //     size_t begin = i*dn;
-    //     size_t end = (i+1)*dn;
-    //     end = scat_list.size()>end ? end : scat_list.size();
-    //     t.emplace_back(calc_max_rate, begin, end);
-    //   }
-
-    //   for (auto& tt:t){
-    //     if (tt.joinable()){
-    //       tt.join();
-    //     }
-    //   }
-
-    //   std::time_t end_time = std::time(nullptr);
-    //   std::cout << "finished in " << std::difftime(end_time, start_time) << " [sec]" << std::endl;
-
-    // #else
-
-    //   progress_bar prog(scat_list.size(),"setting max rate in scatterers");
-
-    //   for (auto& s: scat_list){
-    //     s.set_max_rate(max_hopping_radius);
-    //     prog.step();
-    //   }
-
-    // #endif
-
     progress_bar prog(scat_list.size(), "setting max rate in scatterers");
 
     # pragma omp parallel
@@ -732,9 +643,17 @@ public:
   void save_population_profile(unsigned n, double dt) {
     assert(n>0);
     assert(_area.size()==n);
-    assert(_pop_file.is_open());
 
     std::vector<int> pop(n, 0);
+
+    if (!_pop_file.is_open()){
+      _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
+      _pop_file << "time,";
+      for (unsigned i=0; i<_area.size()-1; ++i){
+        _pop_file << std::scientific << std::showpos << _area[i] << ",";
+      }
+      _pop_file << std::scientific << std::showpos << _area.back() << std::endl;
+    }
 
     double ymax = (_domain.second)(1);
     double ymin = (_domain.first)(1);
@@ -751,20 +670,18 @@ public:
     }
 
 
-    _pop_file << std::showpos << std::scientific << _time << " ";
-    for (unsigned j=0; j<pop.size(); ++j) {
-      _pop_file << double(pop[j])/(_area[j]*dy) << " ";
+    _pop_file << std::showpos << std::scientific << _time << ",";
+    for (unsigned j=0; j<pop.size()-1; ++j) {
+      _pop_file << double(pop[j])/(_area[j]*dy) << ",";
     }
-
-    _pop_file << "... total particle no: "  << _particle_list.size()
-              << std::endl;
+    _pop_file << double(pop.back()) / (_area.back() * dy) << std::endl;
   }
 
   // calculate and save population profile
   void save_currents(unsigned n, double dt) {
     assert(n>5);
     assert(_area.size()==n);
-    assert(_curr_file.is_open());
+
 
     double ymax = _domain.second(1);
     double ymin = _domain.first(1);
@@ -773,6 +690,13 @@ public:
 
     std::vector<double> y{ymin + 2 * dy, ymin + double(n - 2) * dy};
     std::vector<double> area_at_interface{(_area[1]+_area[2])/2, (_area[n-3]+_area[n-2])/2};
+
+    if (!_curr_file.is_open()){
+      _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
+      _curr_file << "time,contact1,contact2" << std::endl;
+      _curr_file << "position," << y[0] << "," << y[1] << std::endl;
+    }
+
 
     std::vector<int> curr(2, 0);
 
@@ -788,12 +712,11 @@ public:
 
 
 
-    _curr_file << std::showpos << std::scientific << _time << " ";
-    for (unsigned i = 0; i<curr.size(); ++i) {
-      _curr_file << std::showpos << std::scientific << double(curr[i])/(area_at_interface[i]*dt) << " ";
+    _curr_file << std::showpos << std::scientific << _time << ",";
+    for (unsigned i = 0; i<curr.size()-1; ++i) {
+      _curr_file << std::showpos << std::scientific << double(curr[i])/(area_at_interface[i]*dt) << ",";
     }
-
-    _curr_file << std::endl;
+    _curr_file << std::showpos << std::scientific << double(curr.back()) / (area_at_interface.back() * dt) << std::endl;
   }
 
   // get the max area of the structure for n_seg segments along y-axis
@@ -808,11 +731,6 @@ public:
     std::vector<double> xmin(n_seg,_domain.second(0));
     std::vector<double> zmax(n_seg,_domain.first(2));
     std::vector<double> zmin(n_seg,_domain.second(2));
-
-    // std::vector<double> xmax(n_seg, INT_MIN);
-    // std::vector<double> xmin(n_seg, INT_MAX);
-    // std::vector<double> zmax(n_seg, INT_MIN);
-    // std::vector<double> zmin(n_seg, INT_MAX);
 
     for (auto& s: _all_scat_list){
       int i = (s.pos(1)-ymin)/dy;
@@ -846,8 +764,8 @@ public:
     return area;
   }
 
-  // calculate and save distribution function of all scatterer objects
-  void get_scatterer_distribution(const unsigned n_seg, const std::vector<double>& area){
+  // calculate and save statistics about all scatterer objects
+  void get_scatterer_statistics(const unsigned n_seg, const std::vector<double>& area){
     assert(n_seg > 0);
     assert(n_seg == area.size());
 
@@ -868,11 +786,11 @@ public:
     }
 
     std::fstream f;
-    f.open(_output_directory.path() / "scatterer_distribution.dat", std::ios::out);
+    f.open(_output_directory.path() / "scatterer_statistics.dat", std::ios::out);
 
-    f << "position         population          density\n";
+    f << "position,distribution,population,density\n";
     for (unsigned i=0; i<pop.size(); ++i){
-      f << std::scientific << pos[i] << " " << double(pop[i])/double(_all_scat_list.size()) << " " << double(pop[i])/(area[i]*dy) << "\n";
+      f << std::scientific << pos[i] << "," << double(pop[i])/double(_all_scat_list.size()) << "," << pop[i] << "," << double(pop[i])/(area[i]*dy) << "\n";
     }
     f.close();
   }

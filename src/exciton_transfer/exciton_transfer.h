@@ -34,8 +34,7 @@ private:
 
 public:
   // constructor
-  exciton_transfer(const cnt& cnt1, const cnt& cnt2)
-  {
+  exciton_transfer(const cnt& cnt1, const cnt& cnt2) {
     _directory = prepare_directory("~/research/exciton_transfer",true);
 
     _cnts = {&cnt1, &cnt2};
@@ -48,8 +47,7 @@ public:
   };
 
   // constructor
-  exciton_transfer(nlohmann::json j, const std::vector<cnt>& cnts, std::string parent_directory)
-  {
+  exciton_transfer(nlohmann::json j, const std::vector<cnt>& cnts, std::string parent_directory) {
     namespace fs = std::experimental::filesystem;
     
     // set the the initial and final cnt
@@ -99,10 +97,8 @@ public:
   };
 
   // struct to bundle information about the excitonic states that are relevant
-  struct ex_state
-  {
-    ex_state(const cnt::exciton_struct& m_exciton, const int& m_ik_cm_idx, const int& m_i_principal)
-    {
+  struct ex_state {
+    ex_state(const cnt::exciton_struct& m_exciton, const int& m_ik_cm_idx, const int& m_i_principal) {
       exciton = &m_exciton;
       cnt_obj = m_exciton.cnt_obj;
       elec_struct = m_exciton.elec_struct;
@@ -124,44 +120,36 @@ public:
     int mu_cm=0; // value of the mu for the state
 
     // access to the whole exciton state wavefunction
-    arma::cx_vec psi() const
-    {
+    arma::cx_vec psi() const {
       return exciton->psi.slice(ik_cm_idx).col(i_principal);
     };
 
     // access to individual elements of exciton state wavefunction
-    std::complex<double> psi(int ik_c_idx) const
-    {
+    std::complex<double> psi(int ik_c_idx) const {
       return exciton->psi(ik_c_idx,i_principal,ik_cm_idx);
     };
 
-    const arma::umat& ik_idx() const
-    {
+    const arma::umat& ik_idx() const {
       return exciton->ik_idx.slice(ik_cm_idx);
     }
 
-    unsigned int ik_idx(const int& j, const int& i_n_principal) const
-    {
+    unsigned int ik_idx(const int& j, const int& i_n_principal) const {
       return exciton->ik_idx(j,i_n_principal, ik_cm_idx);
     }
 
-    const arma::vec& dk_l() const
-    {
+    const arma::vec& dk_l() const {
       return *(exciton->dk_l);
     }
 
-    const arma::vec K_cm() const
-    {
+    const arma::vec K_cm() const {
       return ik_cm*(*(exciton->dk_l));
     } 
 
   };
 
   // struct to bundle information about initial and final states that match energetically
-  struct matching_states
-  {
-    matching_states(const ex_state& d_state, const ex_state& a_state): i(d_state), f(a_state) 
-    {};
+  struct matching_states {
+    matching_states(const ex_state& d_state, const ex_state& a_state): i(d_state), f(a_state) {};
     const ex_state i; // initial exciton state
     const ex_state f; // final exciton state
   };
@@ -176,22 +164,25 @@ public:
   std::complex<double> calculate_J(const matching_states& pair, const std::array<double,2>& shifts_along_axis, const double& z_shift, const double& angle) const;
 
   // match states based on energies
-  std::vector<matching_states> match_states(const std::vector<ex_state>& d_relevant_states, const std::vector<ex_state>& a_relevant_states)
-  {
+  std::vector<matching_states> match_states(const std::vector<ex_state>& d_relevant_states, const std::vector<ex_state>& a_relevant_states) {
+
+    // lambda function to check if a state is energetically matched using a lorentzian
+    auto is_matched = [this](const ex_state &d_state, const ex_state &a_state) {
+      double delta_e = d_state.energy - a_state.energy;
+      if (lorentzian(delta_e) > 1.e-2 * lorentzian(0))
+        return true;
+      return false;
+    };
+
     std::vector<matching_states> matched;
     
-    for (const auto& d_state: d_relevant_states)
-    {
-      for (const auto& a_state: a_relevant_states)
-      {
-        if (is_matched(d_state, a_state))
-        {
+    for (const auto& d_state: d_relevant_states) {
+      for (const auto& a_state: a_relevant_states) {
+        if (is_matched(d_state, a_state)) {
           matched.emplace_back(matching_states(d_state,a_state));
         }
       }
     }
-
-
 
     // std::cout << "\n...calculated pairs of donor and acceptor states\n";
     // std::cout << "number of pairs: " << matched.size() << " out of " << a_relevant_states.size()*d_relevant_states.size() << "\n\n";
@@ -204,31 +195,15 @@ public:
     return matched;
   };
 
-  // function to check if a state is energetically matched using a lorentzian
-  bool is_matched(const ex_state& d_state, const ex_state& a_state)
-  {
-    double delta_e = d_state.energy - a_state.energy;
-    if (lorentzian(delta_e) > 1.e-2*lorentzian(0))
-    {
-      return true;
-    }
-    return false;
-  };
-
   // match states based on energies
-  std::vector<matching_states> match_all_states(const std::vector<ex_state>& d_relevant_states, const std::vector<ex_state>& a_relevant_states)
-  {
+  std::vector<matching_states> match_all_states(const std::vector<ex_state>& d_relevant_states, const std::vector<ex_state>& a_relevant_states) {
     std::vector<matching_states> matched;
     
-    for (const auto& d_state: d_relevant_states)
-    {
-      for (const auto& a_state: a_relevant_states)
-      {
+    for (const auto& d_state: d_relevant_states) {
+      for (const auto& a_state: a_relevant_states) {
         matched.emplace_back(matching_states(d_state,a_state));
       }
     }
-
-
 
     std::cout << "\n...matched all possible pairs of donor and acceptor states\n";
     std::cout << "number of pairs: " << matched.size() << "\n\n";
@@ -257,8 +232,7 @@ public:
   // calculate first order transfer rate for varying axis shift for final cnt
   void calculate_first_order_vs_axis_shift_2(const arma::vec& axis_shift_vec_2, const double axis_shift_1, const double z_shift, const double& theta);
 
-  void run()
-  {
+  void run() {
     // if flag skip is set do not run this simulation
     if (_j_prop.count("skip")==1){
       if (_j_prop["skip"]) return;
@@ -345,6 +319,10 @@ public:
       throw std::logic_error("Invalid format for specifications of the exciton transfer simulation.");
     }
   };
+
+  // save the coordinates of cnt atoms after rotation in 3d space
+  typedef std::experimental::filesystem::path path_t;
+  void save_atom_locations(path_t path, const std::array<double, 2> &shifts_along_axis, const double &z_shift, const double &angle, std::string prefix="");
 };
 
 #endif //_exciton_transfer_h_

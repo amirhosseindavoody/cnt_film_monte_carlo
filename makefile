@@ -18,7 +18,7 @@ CFLAGS += -D myparallel
 CC+= -O3 -Wall
 # CC+= -O0 -g -Wall # for debuging using gdb
 
-SRCDIR = ./src/*.cpp ./src/exciton_transfer/*.cpp ./src/discrete_forster/*.cpp ./src/helper/*.cpp
+SRCDIR = ./src/*.cpp ./src/exciton_transfer/*.cpp ./src/monte_carlo/*.cpp ./src/helper/*.cpp
 OBJDIR = ./obj
 
 BUILD_DIR ?= ./build
