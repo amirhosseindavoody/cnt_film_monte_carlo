@@ -780,8 +780,7 @@ cnt::epsilon_struct cnt::calculate_dielectric(const std::array<int,2> iq_range, 
 }
 
 // calculate exciton dispersion
-std::vector<cnt::exciton_struct> cnt::calculate_A_excitons(const std::array<int,2> ik_cm_range, const cnt::el_energy_struct& elec_struct)
-{
+std::vector<cnt::exciton_struct> cnt::calculate_A_excitons(const std::array<int,2> ik_cm_range, const cnt::el_energy_struct& elec_struct) {
   // some utility variables that are going to be used over and over again
   int ik_c, mu_c;
   int ik_v, mu_v;

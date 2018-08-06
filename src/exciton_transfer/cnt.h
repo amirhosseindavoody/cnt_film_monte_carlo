@@ -315,14 +315,12 @@ public:
   }
 
   // getter function to return length of cnt in units meters
-  double length_in_meter() const
-  {
+  double length_in_meter() const {
     return double(_number_of_cnt_unit_cells)*arma::norm(_t_vec);
   }
 
   // getter function to return position of all graphene unit cells in cnt unit cell in 3d
-  const arma::mat& pos_u_3d() const
-  {
+  const arma::mat& pos_u_3d() const {
     return _pos_u_3d;
   };
 

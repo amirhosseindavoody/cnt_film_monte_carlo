@@ -611,9 +611,9 @@ public:
   // create a list of scatterer pointers in the contact number i
   std::vector<const scatterer*> contact_scats(const std::vector<scatterer>& s_list, const unsigned n_seg, const unsigned i,
                                               const domain_t& domain) {
-    
-    if (i==0 || i>n_seg)
-      throw std::logic_error("input \"i\" must be between 1 and number of segments \"n_seg\"");
+        
+    assert(i>0);
+    assert(i<=n_seg);
     
     double ymin = domain.first(1);
     double ymax = domain.second(1);
@@ -641,24 +641,45 @@ public:
 
   // calculate and save population profile
   void save_population_profile(unsigned n, double dt) {
-    assert(n>0);
     assert(_area.size()==n);
 
     std::vector<int> pop(n, 0);
 
-    if (!_pop_file.is_open()){
-      _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
-      _pop_file << "time,";
-      for (unsigned i=0; i<_area.size()-1; ++i){
-        _pop_file << std::scientific << std::showpos << _area[i] << ",";
-      }
-      _pop_file << std::scientific << std::showpos << _area.back() << std::endl;
-    }
-
     double ymax = (_domain.second)(1);
     double ymin = (_domain.first)(1);
-
     double dy = (ymax - ymin) / double(n);
+
+    if (!_pop_file.is_open()){
+      _pop_file.open(_output_directory.path() / "population_profile.dat", std::ios::out);
+      
+      _pop_file << "area";
+      for (unsigned i=0; i<_area.size(); ++i) {
+        _pop_file << "," << std::scientific << std::showpos << _area[i];
+      }
+      _pop_file << std::endl
+                << std::endl;
+
+      _pop_file << "dy";
+      for (unsigned i=0; i<_area.size(); ++i) {
+        _pop_file << "," << std::scientific << std::showpos << dy;
+      }
+      _pop_file << std::endl
+                << std::endl;
+
+      _pop_file << "section pos";
+      for (unsigned i=0; i<_area.size(); ++i) {
+        _pop_file << "," << std::scientific << std::showpos << ymin+(double(i)+0.5)*dy;
+      }
+      _pop_file << std::endl
+                << std::endl;
+
+      _pop_file << "time";
+      for (unsigned i = 0; i < _area.size(); ++i) {
+        _pop_file << ",section" << i;
+      }
+      _pop_file << std::endl;
+    }
+
 
     int i = 0;
 
@@ -670,17 +691,16 @@ public:
     }
 
 
-    _pop_file << std::showpos << std::scientific << _time << ",";
-    for (unsigned j=0; j<pop.size()-1; ++j) {
-      _pop_file << double(pop[j])/(_area[j]*dy) << ",";
+    _pop_file << std::showpos << std::scientific << _time;
+    for (unsigned j=0; j<pop.size(); ++j) {
+      _pop_file << "," << double(pop[j])/(_area[j]*dy);
     }
-    _pop_file << double(pop.back()) / (_area.back() * dy) << std::endl;
+    _pop_file << std::endl;
   }
 
   // calculate and save population profile
-  void save_currents(unsigned n, double dt) {
-    assert(n>5);
-    assert(_area.size()==n);
+  void save_currents(int n, double dt) {
+    assert(int(_area.size())==n);
 
 
     double ymax = _domain.second(1);
@@ -688,19 +708,42 @@ public:
     double dy = (ymax - ymin) / double(n);
 
 
-    std::vector<double> y{ymin + 2 * dy, ymin + double(n - 2) * dy};
-    std::vector<double> area_at_interface{(_area[1]+_area[2])/2, (_area[n-3]+_area[n-2])/2};
+    std::vector<double> y(n-1,0);
+    std::vector<double> area_at_interface(n-1,0);
+    for (int i=1; i<n; ++i){
+      y[i-1] = ymin+dy*double(i);
+      area_at_interface[i-1] = (_area[i-1]+_area[i])/2;
+    }
 
     if (!_curr_file.is_open()){
       _curr_file.open(_output_directory.path() / "region_current.dat", std::ios::out);
-      _curr_file << "time,contact1,contact2" << std::endl;
-      _curr_file << "position," << y[0] << "," << y[1] << std::endl;
+      
+      _curr_file << "interface area";
+      for (const auto& a: area_at_interface){
+        _curr_file << std::showpos << std::scientific << "," << a;
+      }
+      _curr_file << std::endl
+                 << std::endl;
+
+      _curr_file << "interface pos";
+      for (const auto &yy : y)
+      {
+        _curr_file << std::showpos << std::scientific << "," << yy;
+      }
+      _curr_file << std::endl
+                 << std::endl;
+
+      _curr_file << "time";
+      for (int i=1; i<n; ++i){
+        _curr_file << ",interface" << (i-1);
+      }
+      _curr_file << std::endl;
     }
 
 
-    std::vector<int> curr(2, 0);
+    std::vector<int> curr(n-1, 0);
 
-    for (int i = 0; i < 2; ++i) {
+    for (unsigned i = 0; i < y.size(); ++i) {
       for (auto p : _particle_list) {
         if (p.old_pos(1) < y[i] && p.pos(1) >= y[i]) {
           curr[i]++;
@@ -710,13 +753,11 @@ public:
       }
     }    
 
-
-
-    _curr_file << std::showpos << std::scientific << _time << ",";
-    for (unsigned i = 0; i<curr.size()-1; ++i) {
-      _curr_file << std::showpos << std::scientific << double(curr[i])/(area_at_interface[i]*dt) << ",";
+    _curr_file << std::showpos << std::scientific << _time;
+    for (unsigned i = 0; i<curr.size(); ++i) {
+      _curr_file << std::showpos << std::scientific << "," <<  double(curr[i])/(area_at_interface[i]*dt);
     }
-    _curr_file << std::showpos << std::scientific << double(curr.back()) / (area_at_interface.back() * dt) << std::endl;
+    _curr_file << std::endl;
   }
 
   // get the max area of the structure for n_seg segments along y-axis
