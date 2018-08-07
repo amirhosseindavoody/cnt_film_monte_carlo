@@ -4,7 +4,7 @@ import os.path
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
-from scipy.signal import filtfilt
+from scipy.signal import filtfilt, butter
 import argparse
 import warnings
 
@@ -28,63 +28,83 @@ mpl.rc('axes', titlesize=13) # default title size
 q0 = 1.6e-19  # electron charge in Coulomb
 eV = 1.6e-19  # electron volt in Jouls
 
-def get_current(directory, box_size=200):
+def get_current(directory, box_size=200, freq=1.e-2, filt=True):
   '''
   Load the current data
   '''
   
   filename = os.path.join(directory, "region_current.dat")
-  df = pd.read_csv(filename, header=None, sep=',', skiprows=2)
+  df = pd.read_csv(filename, sep=',', skiprows=4)
   time = df.iloc[:,0].values
   current = df.iloc[:,1:].values
   
-  df = pd.read_csv(filename, header=None, skiprows=1, nrows=1)
-  contact_pos = df.iloc[0,1:].values
+  df = pd.read_csv(filename, header=None, skiprows=2, nrows=1)
+  interface_pos = df.iloc[0,1:].values
 
-  steady_current = np.average(current)
+  df = pd.read_csv(filename, header=None, skiprows=0, nrows=1)
+  interface_area = df.iloc[0, 1:].values
+
+  steady_current = np.average(current, axis=0)
 
   assert (current.shape[0] > box_size), f"box_size must be smaller than the number of time steps: {current.shape[0]}"
 
-  if box_size>1:
-    current = filtfilt(np.ones(box_size),box_size,current, axis=0)
+  # if box_size>1:
+    # current = np.convolve(current, np.ones((box_size,)), mode='valid')
+    # current = filtfilt(np.ones(box_size),box_size,current, axis=0)
+    # time = time[:current.shape[0]]
+
+  if filt:
+    b, a = butter(4, freq, 'low', analog=False)
+    current = filtfilt(b, a, current, axis=0, padlen=50)
     time = time[:current.shape[0]]
 
   output = {'current': current,
             'time': time,
-            'pos': contact_pos,
-            'steady': steady_current}
+            'pos': interface_pos,
+            'steady': steady_current,
+            'area': interface_area
+            }
 
   return output
 
-def get_population(directory, box_size=10):
+def get_population(directory, box_size=10, freq=1.e-2, filt=True):
   '''
   Read the population information
   '''
   filename = os.path.join(directory, "population_profile.dat")
-  df = pd.read_csv(filename, sep=',', header=None, skiprows=1)
+  df = pd.read_csv(filename, sep=',', skiprows=6)
   time = df.iloc[:,0].values
   population = df.iloc[:,1:].values
 
-  avg_population = np.average(population,axis=0)
+  avg_population = np.average(population, axis=0)
 
   df = pd.read_csv(filename, sep=',', header=None, nrows=1)
   area = df.iloc[0,1:].values
 
-  filename = os.path.join(directory, "scatterer_statistics.dat")
-  df = pd.read_csv(filename, sep=',')
-  pos = df['position'].values
+  df = pd.read_csv(filename, sep=',', header=None, nrows=1, skiprows=2)
+  dy = df.iloc[0, 1:].values
+
+  df = pd.read_csv(filename, sep=',', header=None, nrows=1, skiprows=4)
+  section_pos = df.iloc[0, 1:].values
   
   assert (population.shape[0] > box_size), f"box_size must be smaller than the number of time steps: {population.shape[0]}"
 
-  if box_size>1:
-    population = filtfilt(np.ones(box_size), box_size, population, axis=0)
+  # if box_size>1:
+  #   population = filtfilt(np.ones(box_size), box_size, population, axis=0)
+  #   time = time[:population.shape[0]]
+
+  if filt:
+    b, a = butter(4, freq, 'low', analog=False)
+    population = filtfilt(b, a, population, axis=0, padlen=50)
     time = time[:population.shape[0]]
+
 
   output = {'time': time,
             'pop': population,
             'area': area,
-            'pos': pos,
-            'avg_pop': avg_population
+            'pos': section_pos,
+            'avg_pop': avg_population,
+            'dy': dy
             }
   return output
 
@@ -223,6 +243,7 @@ def main():
   parser.add_argument('--current', help='plot current', action='store_true')
   parser.add_argument('--population', help='plot population', action='store_true')
   parser.add_argument('--stats', help='show statistics about scatterers', action='store_true')
+  parser.add_argument('--diffusion', help='calculate diffusion coefficient', action='store_true')
 
   args = parser.parse_args()
 
@@ -369,13 +390,12 @@ def main():
     plt.show()
 
   if args.current:
+    c = get_current(directory=directory, filt= True, freq=2.e-2)
+    print(f"steady state drain current:\n{c['steady']}")
+
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    c = get_current(directory=directory, box_size=5000)
-    print(f"steady state drain current: {c['steady']:.6e}")
-
     ax.plot(c['time'], c['current'])
-    
     plt.show()
 
   if args.stats:
@@ -389,32 +409,32 @@ def main():
 
   if args.population:
 
-    p = get_population(directory, box_size=1000)
+    p = get_population(directory, filt=True, freq=1.e-2)
     s = get_scatterer_stats(directory)
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(1, 1, 1)
-    # for i in range(p['pop'].shape[1]):
-    #   ax.plot(p['time'],p['pop'][:,i],label=f'{p["pos"][i]:.2e}')
-    # ax.legend()
-    # ax.set_xlabel('time [seconds]')
-    # ax.set_ylabel('population [m$^{-3}$]')
-    # plt.show()
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    for i in range(p['pop'].shape[1]):
+      ax.plot(p['time'],p['pop'][:,i],label=f'{p["pos"][i]:.2e}')
+    ax.legend()
+    ax.set_xlabel('time [seconds]')
+    ax.set_ylabel('population [m$^{-3}$]')
+    plt.show()
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     
-    x = p['avg_pop']*p['area']/s['distribution']
-    x = x/x.max()
-    ax.plot(p['pos'], x, label='line 1')
+    # x = p['avg_pop']*p['area']/s['distribution']
+    # x = x/x.max()
+    # ax.plot(p['pos'], x, label='line 1')
 
-    x = p['avg_pop']/s['distribution']
-    x = x/x.max()
-    ax.plot(p['pos'], x, label='line 2')
+    # x = p['avg_pop']/s['distribution']
+    # x = x/x.max()
+    # ax.plot(p['pos'], x, label='line 2')
 
-    x = p['avg_pop']*p['area']
-    x = x/x.max()
-    ax.plot(p['pos'], x, label='line 3')
+    # x = p['avg_pop']*p['area']
+    # x = x/x.max()
+    # ax.plot(p['pos'], x, label='line 3')
 
     x = p['avg_pop']
     x = x/x.max()
@@ -425,8 +445,21 @@ def main():
     ax.set_ylabel('population [m$^{-3}$]')
     plt.show()
 
+  if args.diffusion:
+    c = get_current(directory, freq=1.e-2, filt=True)
+    p = get_population(directory, freq=1.e-2, filt=True)
+    s = get_scatterer_stats(directory)
 
+    dp = np.diff(p['avg_pop'])
+    dp_dt = dp / p['dy'][:-1]
+    
+    diff_coeff = c['steady']/dp_dt
+    # print(diff_coeff)
 
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.plot(c['pos'], diff_coeff)
+    plt.show()
 
 
   if args.bokeh:
