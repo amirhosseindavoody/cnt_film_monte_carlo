@@ -39,7 +39,7 @@
 
     "exciton monte carlo":{
         "mesh type": "fiber",
-        "mesh input directory": "~/research/research/mesh/cnt_mesh_fiber.1",
+        "mesh input directory": "~/research/mesh/cnt_mesh_fiber.1",
         "output directory": "~/research/monte_carlo_fiber",
         "keep old results":true,
         "rate type":"davoody",
