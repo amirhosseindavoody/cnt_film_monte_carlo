@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
   std::time_t start_time = std::time(nullptr);
   std::cout << "\n***\nstart time:\n" << std::asctime(std::localtime(&start_time)) << "***\n\n";
 
+  // std::srand(std::time(0));
   std::srand(100);
 
 	// get the input JSON filename
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   while (sim.time() < sim.kubo_max_time()) {
     sim.kubo_step(time_step);
-    sim.kubo_save_dispalcements();
+    sim.kubo_save_avg_dispalcement_squared();
 
     std::cout << "kubo simulation: current time [seconds]: " << std::scientific << sim.time() << " .... "
               << "max time [seconds]: " << sim.kubo_max_time() << "\r" << std::flush;

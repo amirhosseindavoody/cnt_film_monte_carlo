@@ -248,8 +248,8 @@ def main():
 
   args = parser.parse_args()
 
-  # directory = os.path.expanduser("~/research/monte_carlo_fiber")
-  directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
+  directory = os.path.expanduser("~/research/monte_carlo_fiber")
+  # directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
 
   if args.histogram:
     r = read_cnt_coordinates(directory)

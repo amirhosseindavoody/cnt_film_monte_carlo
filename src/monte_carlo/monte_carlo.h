@@ -102,6 +102,9 @@ private:
   // file to record particle dispalcements
   std::fstream _displacement_file_x, _displacement_file_y, _displacement_file_z;
 
+  // file to record average of square of displacements in each direction
+  std::fstream _displacement_squard_file;
+
   //**************************************************************
   //**************************************************************
 
@@ -970,8 +973,11 @@ private:
   // step the kubo simulation in time
   void kubo_step(double dt);
 
-  // save the displacement of particles in kubo simulation
-  void kubo_save_dispalcements();
+  // save the displacement of individual particles in kubo simulation
+  void kubo_save_individual_particle_dispalcements();
+
+  // save the average displacement of particles in kubo simulation
+  void kubo_save_avg_dispalcement_squared();
 
 }; // end class monte_carlo
 

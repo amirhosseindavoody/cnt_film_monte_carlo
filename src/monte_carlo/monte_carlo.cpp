@@ -385,8 +385,8 @@ namespace mc
     _time += dt;
   };
 
-  // save the displacement of particles in kubo simulation
-  void monte_carlo::kubo_save_dispalcements() {
+  // save the displacement of individual particles in kubo simulation
+  void monte_carlo::kubo_save_individual_particle_dispalcements() {
     if (! _displacement_file_x.is_open()) {
       _displacement_file_x.open(_output_directory.path() / "particle_dispalcement.x.dat", std::ios::out);
       _displacement_file_y.open(_output_directory.path() / "particle_dispalcement.y.dat", std::ios::out);
@@ -422,5 +422,34 @@ namespace mc
     _displacement_file_y << std::endl;
     _displacement_file_z << std::endl;
   };
+
+  void monte_carlo::kubo_save_avg_dispalcement_squared() {
+    if (!_displacement_squard_file.is_open()) {
+      _displacement_squard_file.open(_output_directory.path() / "particle_dispalcement.avg.squared.dat", std::ios::out);
+
+      _displacement_squard_file << std::showpos << std::scientific;
+      
+      _displacement_squard_file << "# this file contains the average of dx^2, dy^2, and dz^2 of the particle ensemble over time" << std::endl
+                                << "# number of particles: " << _particle_list.size() << std::endl
+                                << std::endl;
+
+      _displacement_squard_file << "time,x,y,z" << std::endl;
+    }
+
+    
+    double avg_x2=0, avg_y2=0, avg_z2=0;
+
+    for (const auto& p : _particle_list) {
+      avg_x2 += std::pow(p.delta_pos(0), 2);
+      avg_y2 += std::pow(p.delta_pos(1), 2);
+      avg_z2 += std::pow(p.delta_pos(2), 2);
+    }
+
+    avg_x2 /= double(_particle_list.size());
+    avg_y2 /= double(_particle_list.size());
+    avg_z2 /= double(_particle_list.size());
+
+    _displacement_squard_file << time() << "," << avg_x2 << "," << avg_y2 << "," << avg_z2 << std::endl;
+  }
 
 } // end of namespace mc

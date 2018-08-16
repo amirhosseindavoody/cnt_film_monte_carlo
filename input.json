@@ -68,7 +68,7 @@
         "monte carlo time step":1e-15,
 
         "number of sections for injection region": 5,
-        "maximum time for kubo simulation [seconds]": 1e-9,
+        "maximum time for kubo simulation [seconds]": 1e-8,
         "number of particles for kubo simulation": 100
     }
 }
