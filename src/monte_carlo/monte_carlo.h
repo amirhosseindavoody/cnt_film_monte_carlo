@@ -85,7 +85,27 @@ private:
 
   double _particle_velocity=0;
 
-public:
+  //**************************************************************
+  // this section holds variables specific to the green-kubo method
+  // of calculating diffusion coefficient
+  //**************************************************************
+
+  // list of scatterers in the injection region
+  std::vector<const scatterer *> _inject_scats;
+
+  // domain limits to remove the particles and inject them in the injection region
+  domain_t _removal_domain;
+
+  // maximum time for the kubo simulation
+  double _max_time;
+
+  // file to record particle dispalcements
+  std::fstream _displacement_file_x, _displacement_file_y, _displacement_file_z;
+
+  //**************************************************************
+  //**************************************************************
+
+ public:
   // default constructor
   monte_carlo() = delete;
 
@@ -110,17 +130,6 @@ public:
     // set the input directory for mesh information
     directory_path = j["mesh input directory"];
     _input_directory = check_directory(directory_path, false);
-
-    // set maximum hopping radius
-    _max_hopping_radius = double(j["max hopping radius [m]"]);
-		std::cout << "maximum hopping radius: " << _max_hopping_radius*1.e9 << " [nm]\n";
-
-    // set the number of segments along y axis
-    _n_seg = j["number of segments"];
-    std::cout << "number of segments: " << _n_seg << std::endl;
-
-    _particle_velocity = j["exciton velocity [m/s]"];
-    std::cout << "exciton velocity [m/s]: " << _particle_velocity << std::endl;
   };
 
 	// get the mc simulation time
@@ -143,6 +152,14 @@ public:
 
   // initialize the simulation condition
   void init() {
+    _max_hopping_radius = double(_json_prop["max hopping radius [m]"]);
+    std::cout << "maximum hopping radius: " << _max_hopping_radius * 1.e9 << " [nm]\n";
+
+    _particle_velocity = _json_prop["exciton velocity [m/s]"];
+    std::cout << "exciton velocity [m/s]: " << _particle_velocity << std::endl;
+
+    _n_seg = _json_prop["number of segments"];
+    std::cout << "number of segments: " << _n_seg << std::endl;
 
     _scat_table = create_scattering_table(_json_prop);
     _all_scat_list = create_scatterers(_json_prop);
@@ -165,9 +182,6 @@ public:
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
     set_max_rate(_max_hopping_radius, _all_scat_list);
 
-    
-
-
     _c1_scat = contact_scats(_all_scat_list, _n_seg, 1, _domain);
     _c2_scat = contact_scats(_all_scat_list, _n_seg, _n_seg, _domain);
 
@@ -179,7 +193,7 @@ public:
 
   // high level function to create scatterers vector based on the json inpu
   std::vector<scatterer> create_scatterers(nlohmann::json j){
-    if (j.count("mesh type") == 0) throw std::invalid_argument("specify mesh type in input json");
+    assert(j.count("mesh type")==1);
 
     std::vector<scatterer> scat_list;
 
@@ -194,8 +208,11 @@ public:
       throw std::invalid_argument("invalid mesh type in input json");
     }
 
-    std::cout << "\n\n"
-              << "total number of scatterers: " << scat_list.size() << std::endl;
+    std::cout << std::endl
+              << std::endl
+              << "total number of scatterers: " << scat_list.size()
+              << std::endl;
+
     return scat_list;
   }
 
@@ -934,6 +951,27 @@ public:
 
     file.close();
   }
+
+  // initialize the simulation condition to calculate diffusion coefficient using green-kubo approach
+  void kubo_init();
+
+  // slice the domain into n sections in each direction, and return a list of scatterers in the center region as the injection region
+  std::vector<const scatterer *> injection_region(const std::vector<scatterer>& all_scat, const domain_t domain, const int n);
+
+  // slice the domain into n sections in each direction, and return the domain that leaves only 1 section from each side
+  domain_t get_removal_domain(const domain_t domain, const int n);
+
+  // create particles for kubo simulation
+  void kubo_create_particles();
+
+  // get maximum time for kubo simulation
+  const double& kubo_max_time() const {return _max_time;};
+
+  // step the kubo simulation in time
+  void kubo_step(double dt);
+
+  // save the displacement of particles in kubo simulation
+  void kubo_save_dispalcements();
 
 }; // end class monte_carlo
 

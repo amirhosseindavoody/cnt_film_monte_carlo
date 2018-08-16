@@ -55,17 +55,33 @@ int main(int argc, char *argv[]) {
 	// create monte carlo object and run the MC simulation
 	//***********************************************************************************************
 
-	if (j.count("exciton monte carlo")==0){
-		throw std::invalid_argument("input.json should contain \"exciton monte carlo\" property.");
-	}
-	
-	mc::monte_carlo sim(json_mc);
+  assert(j.count("exciton monte carlo")>0);
+
+  double time_step = json_mc["monte carlo time step"];
+
+  mc::monte_carlo sim(json_mc);
+
+  sim.kubo_init();
+  sim.kubo_create_particles();
+
+  while (sim.time() < sim.kubo_max_time()) {
+    sim.kubo_step(time_step);
+    sim.kubo_save_dispalcements();
+
+    std::cout << "kubo simulation: current time [seconds]: " << std::scientific << sim.time() << " .... "
+              << "max time [seconds]: " << sim.kubo_max_time() << "\r" << std::flush;
+  }
+
+  std::cout << std::endl;
+  std::cout << "Green-Kubo simulation finished!" << std::endl;
+  std::exit(0);
+
+
 
 	// initialize and run simulation for the exciton hopping
 	sim.init();
 	sim.save_json_properties();
 
-  double time_step = json_mc["monte carlo time step"];
 
   std::cout << "saving particle trajectories ...";
   for (int n_particles = 0; n_particles < 100; ++n_particles) {
@@ -85,12 +101,6 @@ int main(int argc, char *argv[]) {
     std::cout << "simulation time [seconds]: " << std::scientific << sim.time() << " .... "
               << "number of particles: " << sim.number_of_particles() << "\r" << std::flush;
   }
-
-
-  
-  
-
-
 
   // print the end time and the runtime
   std::time_t end_time = std::time(nullptr);

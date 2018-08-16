@@ -1,12 +1,11 @@
 #include <iostream>
 #include <limits>
 
-#include "./particle.h"
 #include "./scatterer.h"
 
 namespace mc
 {
-  // update the final state of the particle
+  // update the final state of the particle sitting in this scatterer position
   const scatterer* scatterer::update_state(const double& max_hopping_radius) const {
 
     using namespace std;

@@ -36,14 +36,17 @@ private:
   
   scatterer* _next_scat=nullptr;
 
-  // 
-  double _velocity;
+  // velocity of the particle along the axis of the CNT
+  double _velocity=0;
+
+  // incremental displacement of the particle that is used for calculating diffusion coefficient through green-kubo method
+  arma::vec _delta_pos{0,0,0};
 
 public:
-  particle() : _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0), _heading_right(true), _velocity(0){};
+  particle() : _scat_ptr(nullptr), _pos({0, 0, 0}), _old_pos({0, 0, 0}), _ff_time(0), _heading_right(true), _velocity(0), _delta_pos({0,0,0}) {};
 
   particle(const arma::vec& pos, const scatterer* s, const double& velocity)
-      : _scat_ptr(s), _pos(pos), _old_pos(pos), _velocity(velocity) {
+      : _scat_ptr(s), _pos(pos), _old_pos(pos), _velocity(velocity), _delta_pos({0,0,0}) {
     _ff_time = scat_ptr()->ff_time();
     _heading_right = std::rand()%2;
   };
@@ -85,10 +88,19 @@ public:
   void set_ff_time(const double& value) { _ff_time = value; };
 
   // update the _ff_time by calling the underlying scatterer
-  void get_ff_time() { _ff_time = _scat_ptr->ff_time(); };
+  void update_ff_time() { _ff_time = _scat_ptr->ff_time(); };
 
   // step particle state for dt in time
   void step(double dt, const std::vector<scatterer>& s_list, const double& max_hop_radius);
+
+  // update incremental displacement of the particle.
+  void update_delta_pos() { _delta_pos += pos() - old_pos(); };
+
+  // get the incremental dispalcement of the particle
+  const arma::vec& delta_pos() const { return _delta_pos; };
+
+  // get the i'th element of the incremental dispalcement of the particle
+  const double& delta_pos(const int& i) const { return _delta_pos(i); };
 
 }; //particle class
 

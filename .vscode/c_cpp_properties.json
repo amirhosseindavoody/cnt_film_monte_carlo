@@ -11,7 +11,8 @@
                 "${workspaceRoot}",
                 "${workspaceRoot}/src",
                 "/usr/local/Cellar/gcc/8.1.0/include/c++/8.1.0",
-                "/usr/local/Cellar/gcc/8.1.0/include/c++/8.1.0/x86_64-apple-darwin17.5.0"
+                "/usr/local/Cellar/gcc/8.1.0/include/c++/8.1.0/x86_64-apple-darwin17.5.0",
+                "/usr/local/Cellar/gcc/8.2.0/include/c++/8.2.0"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

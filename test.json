@@ -65,6 +65,10 @@
         },
 
         "exciton velocity [m/s]":2e5, 
-        "monte carlo time step":1e-15
+        "monte carlo time step":1e-15,
+
+        "number of sections for injection region": 5,
+        "maximum time for kubo simulation [seconds]": 1e-9,
+        "number of particles for kubo simulation": 100
     }
 }

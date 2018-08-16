@@ -263,4 +263,164 @@ namespace mc
     return scatterer_list;
   };
 
+  // slice the domain into n sections in each direction, and return a list of scatterers in the center region as the injection region
+  std::vector<const scatterer *> monte_carlo::injection_region(const std::vector<scatterer> &all_scat, const domain_t domain, const int n) {
+    assert((n > 0) && (n % 2 == 1));
+
+    double xmin = domain.first(0), ymin = domain.first(1), zmin = domain.first(2);
+    double xmax = domain.second(0), ymax = domain.second(1), zmax = domain.second(2);
+    double dx = (xmax - xmin) / double(n), dy = (ymax - ymin) / double(n), dz = (zmax - zmin) / double(n);
+
+    std::vector<double> x, y, z;
+
+    for (int i = 0; i <= n; ++i) {
+      x.push_back(double(i) * dx + xmin);
+      y.push_back(double(i) * dy + ymin);
+      z.push_back(double(i) * dz + zmin);
+    }
+
+    std::vector<const scatterer *> inject_list;
+
+    for (const auto& s : all_scat) {
+      if (x[n / 2] <= s.pos(0) && s.pos(0) <= x[n / 2 + 1] &&
+          y[n / 2] <= s.pos(1) && s.pos(1) <= y[n / 2 + 1] &&
+          z[n / 2] <= s.pos(2) && s.pos(2) <= z[n / 2 + 1])
+        inject_list.push_back(&s);
+    }
+
+    return inject_list;
+  }
+
+  // slice the domain into n sections in each direction, and return the domain that leaves only 1 section from each side
+  monte_carlo::domain_t monte_carlo::get_removal_domain(const monte_carlo::domain_t domain, const int n) {
+    assert((n > 1));
+
+    double xmin = domain.first(0), ymin = domain.first(1), zmin = domain.first(2);
+    double xmax = domain.second(0), ymax = domain.second(1), zmax = domain.second(2);
+    double dx = (xmax - xmin) / double(n), dy = (ymax - ymin) / double(n), dz = (zmax - zmin) / double(n);
+
+    std::vector<double> x, y, z;
+
+    for (int i = 0; i <= n; ++i) {
+      x.push_back(double(i) * dx + xmin);
+      y.push_back(double(i) * dy + ymin);
+      z.push_back(double(i) * dz + zmin);
+    }
+
+    domain_t removal_domain;
+    removal_domain.first = {x[1], y[1], z[1]};
+    removal_domain.second = {x[n-1], y[n-1], z[n-1]};
+
+    return removal_domain;
+  }
+
+  // initialize the simulation condition to calculate diffusion coefficient using green-kubo approach
+  void monte_carlo::kubo_init() {
+    // set maximum hopping radius
+    _max_hopping_radius = double(_json_prop["max hopping radius [m]"]);
+    std::cout << "maximum hopping radius: " << _max_hopping_radius * 1.e9 << " [nm]\n";
+
+    _particle_velocity = _json_prop["exciton velocity [m/s]"];
+    std::cout << "exciton velocity [m/s]: " << _particle_velocity << std::endl;
+
+    _scat_table = create_scattering_table(_json_prop);
+    _all_scat_list = create_scatterers(_json_prop);
+
+    limit_t xlim = _json_prop["trim limits"]["xlim"];
+    limit_t ylim = _json_prop["trim limits"]["ylim"];
+    limit_t zlim = _json_prop["trim limits"]["zlim"];
+
+    trim_scats(xlim, ylim, zlim, _all_scat_list);
+
+    std::cout << "total number of scatterers: " << _all_scat_list.size() << std::endl;
+
+    set_scat_table(_scat_table, _all_scat_list);
+
+    _domain = find_simulation_domain();
+
+    create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
+    set_max_rate(_max_hopping_radius, _all_scat_list);
+
+    int n = _json_prop["number of sections for injection region"];
+    _inject_scats = injection_region(_all_scat_list, _domain, n);
+    _removal_domain = get_removal_domain(_domain, n);
+
+    _max_time = _json_prop["maximum time for kubo simulation [seconds]"];
+  };
+
+  // create particles for kubo simulation
+  void monte_carlo::kubo_create_particles() {
+    int n_particle = _json_prop["number of particles for kubo simulation"];
+    for (int i=0; i<n_particle; ++i) {
+      int dice = std::rand() % _inject_scats.size();
+      const scatterer *s = _inject_scats[dice];
+      arma::vec pos = s->pos();
+      _particle_list.push_back(particle(pos, s, _particle_velocity));
+    }
+  }
+
+  // step the simulation in time
+  void monte_carlo::kubo_step(double dt) {
+    #pragma omp parallel
+    {
+      #pragma omp for
+      for (unsigned i = 0; i < _particle_list.size(); ++i) {
+        particle& p = _particle_list[i];
+        
+        p.step(dt, _all_scat_list, _max_hopping_radius);
+        
+        p.update_delta_pos();
+
+        if (arma::any(p.pos()<_removal_domain.first) || arma::any(_removal_domain.second < p.pos())){
+          int dice = std::rand() % _inject_scats.size();
+          const scatterer* s = _inject_scats[dice];
+          arma::vec pos = s->pos();
+          p.set_pos(pos);
+          p.set_scatterer(s);
+        }
+      }
+    }
+
+    // increase simulation time
+    _time += dt;
+  };
+
+  // save the displacement of particles in kubo simulation
+  void monte_carlo::kubo_save_dispalcements() {
+    if (! _displacement_file_x.is_open()) {
+      _displacement_file_x.open(_output_directory.path() / "particle_dispalcement.x.dat", std::ios::out);
+      _displacement_file_y.open(_output_directory.path() / "particle_dispalcement.y.dat", std::ios::out);
+      _displacement_file_z.open(_output_directory.path() / "particle_dispalcement.z.dat", std::ios::out);
+
+      _displacement_file_x << std::showpos << std::scientific;
+      _displacement_file_y << std::showpos << std::scientific;
+      _displacement_file_z << std::showpos << std::scientific;
+
+      _displacement_file_x << "time";
+      _displacement_file_y << "time";
+      _displacement_file_z << "time";
+      for (int i=0; i<int(_particle_list.size()); ++i){
+        _displacement_file_x << "," << i;
+        _displacement_file_y << "," << i;
+        _displacement_file_z << "," << i;
+      }
+      _displacement_file_x << std::endl;
+      _displacement_file_y << std::endl;
+      _displacement_file_z << std::endl;
+    }
+
+    _displacement_file_x << time();
+    _displacement_file_y << time();
+    _displacement_file_z << time();
+
+    for (const auto& p: _particle_list) {
+      _displacement_file_x << "," << p.delta_pos(0);
+      _displacement_file_y << "," << p.delta_pos(1);
+      _displacement_file_z << "," << p.delta_pos(2);
+    }
+    _displacement_file_x << std::endl;
+    _displacement_file_y << std::endl;
+    _displacement_file_z << std::endl;
+  };
+
 } // end of namespace mc

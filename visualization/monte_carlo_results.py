@@ -244,10 +244,12 @@ def main():
   parser.add_argument('--population', help='plot population', action='store_true')
   parser.add_argument('--stats', help='show statistics about scatterers', action='store_true')
   parser.add_argument('--diffusion', help='calculate diffusion coefficient', action='store_true')
+  parser.add_argument('--kubo', help='plot particle trajectories in kubo simulation', action='store_true')
 
   args = parser.parse_args()
 
-  directory = directory = os.path.expanduser("~/research/monte_carlo_fiber")
+  # directory = os.path.expanduser("~/research/monte_carlo_fiber")
+  directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
 
   if args.histogram:
     r = read_cnt_coordinates(directory)
@@ -366,29 +368,6 @@ def main():
 
     plt.show()
 
-  if args.all:
-    directories = []
-    plot_scatterer_stats(directories[0])
-
-    
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    _ = plot_population_vs_time(directories[0], ax=ax, box_size=1000)
-    plt.show()
-
-    density_gradient = []
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    for d in directories:
-      grad = plot_population_vs_position(d, start=1, end=-1, ax=ax)
-      density_gradient.append(grad)
-    _ = ax.set_title("Particle profile vs position at various time intervals")
-
-    density_gradient = np.array(density_gradient)
-    plt.show()
-
   if args.current:
     c = get_current(directory=directory, filt= True, freq=2.e-2)
     print(f"steady state drain current:\n{c['steady']}")
@@ -424,17 +403,17 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     
-    # x = p['avg_pop']*p['area']/s['distribution']
-    # x = x/x.max()
-    # ax.plot(p['pos'], x, label='line 1')
+    x = p['avg_pop']*p['area']/s['distribution']
+    x = x/x.max()
+    ax.plot(p['pos'], x, label='line 1')
 
-    # x = p['avg_pop']/s['distribution']
-    # x = x/x.max()
-    # ax.plot(p['pos'], x, label='line 2')
+    x = p['avg_pop']/s['distribution']
+    x = x/x.max()
+    ax.plot(p['pos'], x, label='line 2')
 
-    # x = p['avg_pop']*p['area']
-    # x = x/x.max()
-    # ax.plot(p['pos'], x, label='line 3')
+    x = p['avg_pop']*p['area']
+    x = x/x.max()
+    ax.plot(p['pos'], x, label='line 3')
 
     x = p['avg_pop']
     x = x/x.max()
@@ -461,6 +440,39 @@ def main():
     ax.plot(c['pos'], diff_coeff)
     plt.show()
 
+  if args.kubo:
+    df = {}
+    filename = os.path.join(directory, "particle_dispalcement.x.dat")
+    df['x'] = pd.read_csv(filename, sep=',')
+
+    filename = os.path.join(directory, "particle_dispalcement.y.dat")
+    df['y'] = pd.read_csv(filename, sep=',')
+
+    filename = os.path.join(directory, "particle_dispalcement.z.dat")
+    df['z'] = pd.read_csv(filename, sep=',')
+
+    time = df['x']['time'].values
+    df['x'].drop(columns=['time'])
+    df['y'].drop(columns=['time'])
+    df['z'].drop(columns=['time'])
+    r = np.stack((df['x'].values, df['y'].values, df['z'].values), axis=-1)
+    del df
+    
+    # d = np.linalg.norm(r,axis=-1)
+    d = r
+    print(d.shape)
+    d = np.power(d,2)
+    d = np.average(d,axis=1)
+    print(d.shape)
+
+    # d = np.divide(d,[time,time,time])
+    
+    fig = plt.figure()
+    ax = fig.add_subplot('111')
+    for i in range(3):
+      ax.plot(time, d[:,i]/time, label=f'{i}')
+    ax.legend()
+    plt.show()
 
   if args.bokeh:
     # prepare some data

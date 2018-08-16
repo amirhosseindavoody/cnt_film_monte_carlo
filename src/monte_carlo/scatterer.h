@@ -14,13 +14,9 @@
 
 #include "../helper/utility.h"
 
-#include "./particle.h"
 #include "./scattering_struct.h"
 
-namespace mc
-{
-
-class particle;
+namespace mc {
 
 class scatterer {
 
