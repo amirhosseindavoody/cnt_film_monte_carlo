@@ -117,11 +117,5 @@ $$
 -\tilde{\phi}(s) = s^2 \tilde{C}(s) - s C(0).
 $$
 <!--stackedit_data:
-eyJkaXNjdXNzaW9ucyI6eyJVMHA2TEozTXAxeGF3QVRrIjp7In
-N0YXJ0IjoxMCwiZW5kIjoyOSwidGV4dCI6IiMgTGFuZ2V2aW4g
-ZXF1YXRpb24ifX0sImNvbW1lbnRzIjp7IjBabmZNNk85MlpwWn
-RjMWgiOnsiZGlzY3Vzc2lvbklkIjoiVTBwNkxKM01wMXhhd0FU
-ayIsInN1YiI6ImdoOjgzNTU5NjUiLCJ0ZXh0IjoidGVzdCBjb2
-1tZW50ISIsImNyZWF0ZWQiOjE1MzUwNDkwMzQ2NDV9fSwiaGlz
-dG9yeSI6Wy0xMTY0NTk2MjM2XX0=
+eyJoaXN0b3J5IjpbMTgxNjYzOTQzNywtMTE2NDU5NjIzNl19
 -->
