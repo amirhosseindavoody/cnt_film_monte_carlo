@@ -1,3 +1,7 @@
+---
+
+---
+
 # Langevin equation
 
 The Langevin equation describes the irregular Brownian motion of particles in _an equilibrium system_. In such a system, the particles are under the influence of a slowly varying _drag_ force ($-\zeta \bm{v}$) and a rapidly varying _random_ force ($\bm{F}_\text{R}$) due to the thermal fluctuations
@@ -42,6 +46,21 @@ $$
 \langle A(t_0) F(t) \rangle = \langle F(t) A^*(t_0) \rangle = 0 \quad , \quad \forall t~\text{and}~t_0
 $$
 
+We define the _equilibrium autocorrelation function_
+
+$$
+C(t) = \langle A(t) A^*(0)\rangle,
+$$
+
+and  can show that 
+
+$$
+\frac{d C(t)}{dt} = - \int_0^t dt ~ K(t-t')~ C(t).
+$$
+
+<details>
+<summary>Show details</summary>
+
 We multiply the complex conjugate of the phase variable from the right to the generalized Langevin equation and take the ensemble average
 
 $$
@@ -54,17 +73,7 @@ $$
 \frac{d\langle A(t) A^*(0)\rangle}{dt} = - \int_0^t dt ~ K(t-t')~ \langle A(t') A^*(0) \rangle.
 $$
 
-We define the _equilibrium autocorrelation function_
-
-$$
-C(t) = \langle A(t) A^*(0)\rangle,
-$$
-
-and get
-
-$$
-\frac{d C(t)}{dt} = - \int_0^t dt ~ K(t-t')~ C(t).
-$$
+</details>
 
 Taking the Laplace transform of this equation we get
 
@@ -72,8 +81,38 @@ $$
 s \tilde{C}(s) - C(0) = - \tilde{K}(s) \tilde{C}(s).
 $$
 
+<details>
+<summary>Show details</summary>
+
+> Details is missing!
+
+</details>
+
 We can also define _flux autocorrelation function_
 
 $$
 \phi(t) = \langle \dot{A}(t) \dot{A}^*(0) \rangle.
+$$
+
+We can show the following relation between equilibrium autocorrelation function and flux autocorrelation function
+
+$$
+\frac{d^2 C(t)}{dt^2} = - \phi(t).
+$$
+
+<details>
+  <summary>Show details</summary>
+
+> The details of the appearance of the minus sign in the end result is still unclear.
+
+$$
+\frac{d^2 C(t)}{dt^2} = \frac{d}{dt} \langle \frac{dA(t)}{dt} A^*(0) \rangle = \frac{d}{dt} \langle [i\mathcal{L}A(t)] A^*(0) \rangle = \frac{d}{dt} \langle A(t) [-i\mathcal{L}A^*(0)]\rangle = \langle [i\mathcal{L}A(t)] [-i\mathcal{L}A^*(0)] \rangle = - \langle \dot{A}(t) \dot{A}^*(0) \rangle = -\phi(t).
+$$
+
+</details>
+
+Therefore, taking the Laplace transform on both sides and assuming $\frac{dC}{dt}\big|_{t=0} = 0 $, we get
+
+$$
+-\tilde{\phi}(s) = s^2 \tilde{C}(s) - s C(0).
 $$

@@ -441,37 +441,62 @@ def main():
     plt.show()
 
   if args.kubo:
-    df = {}
-    filename = os.path.join(directory, "particle_dispalcement.x.dat")
-    df['x'] = pd.read_csv(filename, sep=',')
+    # df = {}
+    # filename = os.path.join(directory, "particle_dispalcement.x.dat")
+    # df['x'] = pd.read_csv(filename, sep=',')
 
-    filename = os.path.join(directory, "particle_dispalcement.y.dat")
-    df['y'] = pd.read_csv(filename, sep=',')
+    # filename = os.path.join(directory, "particle_dispalcement.y.dat")
+    # df['y'] = pd.read_csv(filename, sep=',')
 
-    filename = os.path.join(directory, "particle_dispalcement.z.dat")
-    df['z'] = pd.read_csv(filename, sep=',')
+    # filename = os.path.join(directory, "particle_dispalcement.z.dat")
+    # df['z'] = pd.read_csv(filename, sep=',')
 
-    time = df['x']['time'].values
-    df['x'].drop(columns=['time'])
-    df['y'].drop(columns=['time'])
-    df['z'].drop(columns=['time'])
-    r = np.stack((df['x'].values, df['y'].values, df['z'].values), axis=-1)
-    del df
+    # time = df['x']['time'].values
+    # df['x'].drop(columns=['time'])
+    # df['y'].drop(columns=['time'])
+    # df['z'].drop(columns=['time'])
+    # r = np.stack((df['x'].values, df['y'].values, df['z'].values), axis=-1)
+    # del df
     
-    # d = np.linalg.norm(r,axis=-1)
-    d = r
-    print(d.shape)
-    d = np.power(d,2)
-    d = np.average(d,axis=1)
-    print(d.shape)
+    # # d = np.linalg.norm(r,axis=-1)
+    # d = r
+    # print(d.shape)
+    # d = np.power(d,2)
+    # d = np.average(d,axis=1)
+    # print(d.shape)
 
-    # d = np.divide(d,[time,time,time])
+    # # d = np.divide(d,[time,time,time])
+    
+    # fig = plt.figure()
+    # ax = fig.add_subplot('111')
+    # for i in range(3):
+    #   ax.plot(time, d[:,i]/time, label=f'{i}')
+    # ax.legend()
+    # plt.show()
+
+    filename = os.path.join(directory, "particle_dispalcement.avg.squared.dat")
+    df = pd.read_csv(filename, sep=',', skiprows=3)
+    time = df['time'].values
+    xdis = df['x'].values
+    ydis = df['y'].values
+    zdis = df['z'].values
+
+    # xdis = np.sqrt(xdis)
+    # ydis = np.sqrt(ydis)
+    # zdis = np.sqrt(zdis)
+
+    dis = xdis + ydis + zdis
     
     fig = plt.figure()
     ax = fig.add_subplot('111')
-    for i in range(3):
-      ax.plot(time, d[:,i]/time, label=f'{i}')
+    ax.plot(time, xdis/time, label='x')
+    ax.plot(time, ydis/time, label='y')
+    ax.plot(time, zdis/time, label='z')
+    ax.plot(time, dis/time, label='total')
     ax.legend()
+
+    filename = os.path.join(directory, 'kubo_diffusion_coefficient.png')
+    plt.savefig(filename, dpi=400)
     plt.show()
 
   if args.bokeh:
