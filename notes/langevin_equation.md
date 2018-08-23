@@ -116,11 +116,7 @@ Therefore, taking the Laplace transform on both sides and assuming $\frac{dC}{dt
 $$
 -\tilde{\phi}(s) = s^2 \tilde{C}(s) - s C(0).
 $$
-
-Markdown converts text to HTML.
-
-*[HTML]: HyperText Markup Language
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTYzNDAxNTkwMSwxODE2NjM5NDM3LC0xMT
+eyJoaXN0b3J5IjpbMTgxNjYzOTQzNywxODE2NjM5NDM3LC0xMT
 Y0NTk2MjM2XX0=
 -->
