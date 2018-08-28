@@ -4,7 +4,7 @@
 
 # Langevin equation
 
-The Langevin equation describes the irregular Brownian motion of particles in _an equilibrium system_. In such a system, the particles are under the influence of a slowly varying _drag_ force ($-\zeta \bm{v}$) and a rapidly varying _random_ force ($\bm{F}_\text{R}$) due to the thermal fluctuations
+The *Langevin equation* describes the irregular Brownian motion of particles in _an equilibrium system_. In such a system, the particles are under the influence of a slowly varying _drag_ force ($-\zeta \bm{v}$) and a rapidly varying _random_ force ($\bm{F}_\text{R}$) due to the thermal fluctuations
 
 $$
 \frac{d \bm{v}(t)}{dt} = - \zeta \bm{v}(t) + \bm{F}_\text{R}(t).
@@ -116,3 +116,7 @@ Therefore, taking the Laplace transform on both sides and assuming $\frac{dC}{dt
 $$
 -\tilde{\phi}(s) = s^2 \tilde{C}(s) - s C(0).
 $$
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbMTgxNjYzOTQzNywxODE2NjM5NDM3LC0xMT
+Y0NTk2MjM2XX0=
+-->
