@@ -19,11 +19,11 @@ int main(int argc, char** argv) {
   double res = 0;
   double dx = 1 / double(N);
 
-#pragma omp parallel
+  #pragma omp parallel
   {
-#pragma omp for
+    #pragma omp for
     for (int i = 0; i < N; ++i) {
-#pragma omp atomic
+      #pragma omp atomic
       res += 1 / (1. + std::pow(double(i) * dx, 2));
     }
   }
