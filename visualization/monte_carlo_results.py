@@ -239,7 +239,6 @@ def main():
   parser.add_argument('--histogram', help='plot histogram of populations', action='store_true')
   parser.add_argument('--all', help='plot all the results together', action='store_true')
   parser.add_argument('--coordinates', help='plot atom coordinates for donor and acceptor CNTs', action='store_true')
-  parser.add_argument('--bokeh', help='test plotting with bokeh', action='store_true')
   parser.add_argument('--current', help='plot current', action='store_true')
   parser.add_argument('--population', help='plot population', action='store_true')
   parser.add_argument('--stats', help='show statistics about scatterers', action='store_true')
@@ -248,8 +247,10 @@ def main():
 
   args = parser.parse_args()
 
-  directory = os.path.expanduser("~/research/monte_carlo_fiber")
-  # directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
+  # directory = os.path.expanduser("~/research/monte_carlo_fiber")
+  directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
+
+  print(f'input directory is: "{directory}"')
 
   if args.histogram:
     r = read_cnt_coordinates(directory)
@@ -485,7 +486,7 @@ def main():
     # ydis = np.sqrt(ydis)
     # zdis = np.sqrt(zdis)
 
-    dis = xdis + ydis + zdis
+    dis = (xdis + ydis + zdis)/3
     
     fig = plt.figure()
     ax = fig.add_subplot('111')
@@ -498,27 +499,6 @@ def main():
     filename = os.path.join(directory, 'kubo_diffusion_coefficient.png')
     plt.savefig(filename, dpi=400)
     plt.show()
-
-  if args.bokeh:
-    # prepare some data
-    x = [1, 2, 3, 4, 5]
-    y = [6, 7, 2, 4, 5]
-
-    filename = os.path.expanduser('~/Desktop/lines.html')
-
-    # output to static HTML file
-
-    bp.output_file(filename)
-
-    # create a new plot with a title and axis labels
-    p = bp.figure(title="simple line example", x_axis_label='x', y_axis_label='y')
-
-    # add a line renderer with legend and line thickness
-    # p.line(x, y, legend="Temp.", line_width=2)
-    p.circle(x, y)
-
-    # show the results
-    bp.show(p)
 
   
 

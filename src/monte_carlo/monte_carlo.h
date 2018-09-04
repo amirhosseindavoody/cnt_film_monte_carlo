@@ -165,7 +165,7 @@ private:
     std::cout << "number of segments: " << _n_seg << std::endl;
 
     _scat_table = create_scattering_table(_json_prop);
-    _all_scat_list = create_scatterers(_json_prop);
+    _all_scat_list = create_scatterers(_input_directory.path());
 
     limit_t xlim = _json_prop["trim limits"]["xlim"];
     limit_t ylim = _json_prop["trim limits"]["ylim"];
@@ -194,24 +194,75 @@ private:
     _particle_list = create_particles(_domain, _n_seg, _all_scat_list, _c1_pop, _c2_pop);
 	};
 
-  // high level function to create scatterers vector based on the json inpu
-  std::vector<scatterer> create_scatterers(nlohmann::json j){
-    assert(j.count("mesh type")==1);
+  // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
+  // particle hopping between the sites
+  std::vector<scatterer> create_scatterers(const path_t& input_path){
+    std::cout << std::endl << "create scatterers in fiber structure ... " << std::flush;
 
-    std::vector<scatterer> scat_list;
+    std::ifstream pos_file;
+    std::ifstream orient_file;
 
-    std::string mesh_type = _json_prop["mesh type"];
-    if (_json_prop["mesh type"] == "crystalline") {
-      scat_list = create_crystalline_structure();
-    } else if (_json_prop["mesh type"] == "realistic") {
-      create_scatterers_with_orientation(input_directory().path(), output_directory().path());
-    } else if (_json_prop["mesh type"] == "fiber") {
-      scat_list = create_scatterer_from_fiber(input_directory().path());
-    } else {
-      throw std::invalid_argument("invalid mesh type in input json");
+    // x axis
+    pos_file.open(input_path / "single_cnt.pos.x.dat");
+    orient_file.open(input_path / "single_cnt.orient.x.dat");
+
+    arma::mat xcoor;
+    xcoor.load(pos_file);
+    xcoor *= 1.e-9;
+
+    arma::mat xorient;
+    xorient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    // y axis
+    pos_file.open(input_path / "single_cnt.pos.y.dat");
+    orient_file.open(input_path / "single_cnt.orient.y.dat");
+
+    arma::mat ycoor;
+    ycoor.load(pos_file);
+    ycoor *= 1.e-9;
+
+    arma::mat yorient;
+    yorient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    // z axis
+    pos_file.open(input_path / "single_cnt.pos.z.dat");
+    orient_file.open(input_path / "single_cnt.orient.z.dat");
+
+    arma::mat zcoor;
+    zcoor.load(pos_file);
+    zcoor *= 1.e-9;
+
+    arma::mat zorient;
+    zorient.load(orient_file);
+
+    pos_file.close();
+    orient_file.close();
+
+    std::vector<scatterer> scat_list(xcoor.n_elem);
+
+    for (unsigned i = 0; i < xcoor.n_rows; ++i) {
+      for (unsigned j = 0; j < xcoor.n_cols; ++j) {
+        unsigned n = i * xcoor.n_cols + j;
+
+        scat_list[n].set_pos({xcoor(i, j), ycoor(i, j), zcoor(i, j)});
+        scat_list[n].set_orientation({xorient(i, j), yorient(i, j), zorient(i, j)});
+        if (j > 0) {
+          scat_list[n].left = n - 1;
+        }
+        if (j + 1 < xcoor.n_cols) {
+          scat_list[n].right = n + 1;
+        }
+      }
     }
 
-    std::cout << std::endl
+    std::cout << "done!!!"
+              << std::endl
               << std::endl
               << "total number of scatterers: " << scat_list.size()
               << std::endl;
@@ -314,111 +365,6 @@ private:
     _time += dt;
 	};
 
-  // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
-  // particle hopping between the sites
-  void create_scatterers_with_orientation(const path_t& input_path, const path_t& output_path) {
-    std::cout << "this is the input path: " << input_path << std::endl;
-    std::ifstream file;
-    std::string   line;
-
-    int         num = 1;
-    int         max_num = 5;  // maximum number of files to read
-    std::string base = "tube";
-    std::string extension = ".dat";
-    std::string filename = input_path / (base + std::to_string(num) + extension);
-
-    file.open(filename);
-    std::regex tube_rgx("tube");
-
-    // convert a long string in the form of " text ; num0 , num1 , num2 ;
-    // num0 , num1 , num2 ;text" into a list of strings with form "num0 ,
-    // num1 , num2"
-    auto get_nodes = [](std::string str) -> std::list<std::string> {
-      std::list<std::string> output;
-      std::istringstream     iss(str);
-      std::string            token;
-      while (std::getline(iss, token, ';')) {
-        int count = 0;
-        for (auto t : token) {
-          if (t == ',') count++;
-        }
-        if (count == 2) {
-          output.emplace_back(token);
-        }
-      }
-      return output;
-    };
-
-    // convert a string in the form of "num0 , num1 , num2" into an array
-    // of numbers
-    auto get_position = [](std::string str) {
-      int count = 0;
-      for (auto s : str) {
-        if (s == ',') count++;
-      }
-      arma::rowvec pos(3);
-      if (count == 2) {
-        std::istringstream iss(str);
-        std::string        token;
-        std::getline(iss, token, ',');
-        pos(0) = std::stod(token);
-        std::getline(iss, token, ',');
-        pos(1) = std::stod(token);
-        std::getline(iss, token);
-        pos(2) = std::stod(token);
-      }
-      pos = pos * 1.e-9;
-      return pos;
-    };
-
-    // loop over files
-    while ((file.is_open()) and (num <= max_num)) {
-      std::cout << "reading data from file: \"" << filename << "\"\r" << std::flush;
-
-      while (std::getline(file, line, '\n')) {
-        // find the new tube coordinates by finding the keywork "tube"
-        if (std::regex_search(line, tube_rgx)) {
-          auto nodes = get_nodes(line);
-
-          arma::mat tube_coordinates(nodes.size(), 3);
-          unsigned  i = 0;
-          for (const auto& node : nodes) {
-            tube_coordinates.row(i) = get_position(node);
-            i++;
-          }
-
-          for (unsigned i = 0; i < tube_coordinates.n_rows; i++) {
-            arma::rowvec pos1;
-            arma::rowvec pos2;
-            if (i == 0) {
-              pos1 = tube_coordinates.row(i);
-              pos2 = tube_coordinates.row(i + 1);
-            } else if (i == (tube_coordinates.n_rows - 1)) {
-              pos1 = tube_coordinates.row(i - 1);
-              pos2 = tube_coordinates.row(i);
-            } else {
-              pos1 = tube_coordinates.row(i - 1);
-              pos2 = tube_coordinates.row(i + 1);
-            }
-            arma::rowvec orientation = arma::normalise(pos2 - pos1);
-
-            _all_scat_list.push_back(scatterer());
-            _all_scat_list.back().set_pos(tube_coordinates.row(i).t());
-            _all_scat_list.back().set_orientation(orientation.t());
-          }
-        }
-      }
-
-      file.close();
-      num++;
-      filename = input_path / (base + std::to_string(num) + extension);
-      file.open(filename);
-    }
-  };
-
-  // create a crystalline mesh structure
-  std::vector<scatterer> create_crystalline_structure();
-
   // high level method to calculate proper scattering table
 	scattering_struct create_scattering_table(nlohmann::json j);
 
@@ -427,79 +373,6 @@ private:
 
 	// method to calculate scattering rate via davoody et al. method
 	scattering_struct create_davoody_scatt_table(const cnt& d_cnt, const cnt& a_cnt);
-
-  // read in the coordinate of all the cnt segments or molecules and create the scatterer objects that manage
-  // particle hopping between the sites
-  std::vector<scatterer> create_scatterer_from_fiber(const path_t& input_path) {
-    std::cout << std::endl
-              << "create scatterers in fiber structure ... " << std::flush;
-
-    std::ifstream pos_file;
-    std::ifstream orient_file;
-
-    // x axis
-    pos_file.open(input_path / "single_cnt.pos.x.dat");
-    orient_file.open(input_path / "single_cnt.orient.x.dat");
-
-    arma::mat xcoor;
-    xcoor.load(pos_file);
-    xcoor *= 1.e-9;
-
-    arma::mat xorient;
-    xorient.load(orient_file);
-
-    pos_file.close();
-    orient_file.close();
-
-    // y axis
-    pos_file.open(input_path / "single_cnt.pos.y.dat");
-    orient_file.open(input_path / "single_cnt.orient.y.dat");
-
-    arma::mat ycoor;
-    ycoor.load(pos_file);
-    ycoor *= 1.e-9;
-
-    arma::mat yorient;
-    yorient.load(orient_file);
-
-    pos_file.close();
-    orient_file.close();
-
-    // z axis
-    pos_file.open(input_path / "single_cnt.pos.z.dat");
-    orient_file.open(input_path / "single_cnt.orient.z.dat");
-
-    arma::mat zcoor;
-    zcoor.load(pos_file);
-    zcoor *= 1.e-9;
-
-    arma::mat zorient;
-    zorient.load(orient_file);
-
-    pos_file.close();
-    orient_file.close();
-
-    std::vector<scatterer> scat_list(xcoor.n_elem);
-
-    for (unsigned i=0; i<xcoor.n_rows; ++i){
-      for (unsigned j=0; j<xcoor.n_cols; ++j){
-        unsigned n = i*xcoor.n_cols + j;
-
-        scat_list[n].set_pos({xcoor(i,j), ycoor(i,j), zcoor(i,j)});
-        scat_list[n].set_orientation({xorient(i,j), yorient(i,j), zorient(i,j)});
-        if (j>0){
-          scat_list[n].left = n-1;
-        }
-        if (j+1<xcoor.n_cols){
-          scat_list[n].right = n+1;
-        }
-      }
-    }
-
-    std::cout << "done!!!" << std::endl;
-
-    return scat_list;
-  };
 
   // divide scatterers into buckets based on their location, and set the pointers to enclosing and neighboring buckets
   // for each scatterer object

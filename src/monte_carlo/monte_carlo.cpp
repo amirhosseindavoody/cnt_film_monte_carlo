@@ -103,7 +103,7 @@ namespace mc
     #endif
 
     // progress_bar prog(theta.n_elem*z_shift.n_elem*axis_shift_1.n_elem*axis_shift_2.n_elem,"create davoody scattering table");
-    progress_bar prog(theta.n_elem, "create davoody scattering table");
+    progress_bar prog(theta.n_elem * z_shift.n_elem * axis_shift_1.n_elem * axis_shift_2.n_elem, "create davoody scattering table");
 
     #pragma omp parallel
     {
@@ -121,12 +121,13 @@ namespace mc
               ash2 = axis_shift_2(i_ash2);
               // prog.step();
               rate(i_th)(i_zsh, i_ash1, i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
+              
+              #pragma omp atomic
+              prog.step();
             }
           }
         }
 
-        #pragma omp critical
-        prog.step();
       }
     }
 
@@ -196,73 +197,6 @@ namespace mc
     return scat_table;
   };
 
-  // create a crystalline mesh structure
-	std::vector<scatterer> monte_carlo::create_crystalline_structure() {
-    std::cout << "\n\nmaking crystalline mesh of scatterer objects...\n";
-
-    std::vector<scatterer> scatterer_list;
-
-
-    arma::vec domain_length;
-    arma::vec orientation;
-    double cnt_length;
-    double cnt_spacing;
-
-    if (_json_prop.count("crystall mesh properties")){
-      cnt_length = _json_prop["crystall mesh properties"]["cnt length [m]"];
-      cnt_spacing = _json_prop["crystall mesh properties"]["cnt spacing [m]"];
-
-      std::vector<double> tmp1 = _json_prop["crystall mesh properties"]["cnt orientation"];
-      orientation = tmp1;
-
-      std::vector<double> tmp2 = _json_prop["crystall mesh properties"]["simulation domain dimensions [m]"];
-      domain_length = tmp2;
-    } else {
-      throw std::invalid_argument("must specify \"crystall mesh properties\" in input.json");
-    }
-
-    orientation = arma::normalise(orientation);
-
-    int dim = 0;
-    for (;dim<3;dim++){
-      if (orientation(dim)!=0){
-        break;
-      }
-    }
-    std::cout << "orientation of the tubes are along " << dim << "'th axis\n";
-
-    arma::uvec n_tubes = {0,0,0};
-    arma::vec dr = {0,0,0};
-    for (int i=0; i<3; i++){
-      if (i==dim){
-        n_tubes(i) = unsigned(domain_length(i)/cnt_length)+1;
-        dr(i) = cnt_length;
-      } else {
-        n_tubes(i) = unsigned(domain_length(i)/cnt_spacing)+1;
-        dr(i) = cnt_spacing;
-      }
-    }
-    n_tubes.print("number of tubes along each dimension:");
-
-    scatterer_list.resize(n_tubes(0)*n_tubes(1)*n_tubes(2));
-
-    for (unsigned ix=0; ix<n_tubes(0); ix++){
-      double x = ix*dr(0);
-      for (unsigned iy=0; iy<n_tubes(1); iy++){
-        double y = iy*dr(1);
-        for (unsigned iz=0; iz<n_tubes(2); iz++){
-          double z = iz*dr(2);
-
-          unsigned idx = ix + iy*n_tubes(0) + iz * n_tubes(0) * n_tubes(1);
-          scatterer_list[idx].set_pos({x,y,z});
-          scatterer_list[idx].set_orientation(orientation);
-        }
-      }
-    }
-
-    return scatterer_list;
-  };
-
   // slice the domain into n sections in each direction, and return a list of scatterers in the center region as the injection region
   std::vector<const scatterer *> monte_carlo::injection_region(const std::vector<scatterer> &all_scat, const domain_t domain, const int n) {
     assert((n > 0) && (n % 2 == 1));
@@ -324,7 +258,7 @@ namespace mc
     std::cout << "exciton velocity [m/s]: " << _particle_velocity << std::endl;
 
     _scat_table = create_scattering_table(_json_prop);
-    _all_scat_list = create_scatterers(_json_prop);
+    _all_scat_list = create_scatterers(_input_directory.path());
 
     limit_t xlim = _json_prop["trim limits"]["xlim"];
     limit_t ylim = _json_prop["trim limits"]["ylim"];

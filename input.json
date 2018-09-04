@@ -38,24 +38,19 @@
     },
 
     "exciton monte carlo":{
-        "mesh type": "fiber",
         "mesh input directory": "~/research/mesh/cnt_mesh_fiber.1",
+        
         "output directory": "~/research/monte_carlo_fiber",
         "keep old results":true,
+        
         "rate type":"davoody",
         "zshift [m]": [1.5e-9, 10e-9, 11],
         "axis shift 1 [m]": [-10e-9, 10e-9, 11],
         "axis shift 2 [m]": [-10e-9, 10e-9, 11],
         "theta [degrees]": [0, 180, 21],
+        "temperature [kelvin]": 300,
+
         "max hopping radius [m]": 20e-9,
-        "max neighbor search radius [m]": 10000e-9,
-        "temperature [kelvin]": 300, 
-        "crystall mesh properties":{
-            "cnt length [m]":2e-9,
-            "cnt spacing [m]":2e-9,
-            "cnt orientation":[0,1,0],
-            "simulation domain dimensions [m]": [20e-9,1000e-9,20e-9]
-        },
 
         "number of segments":10,
         "trim limits":{
