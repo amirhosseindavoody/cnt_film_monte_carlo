@@ -22,6 +22,9 @@ class progress_bar {
   std::time_t _start_time;
   std::time_t _current_time;
 
+  const char full = '=';
+  const char empty = '.';
+
  public:
   // constructor to initialize internal state of the progress bar
   progress_bar(const int& i_max, const std::string& title = "", const bool& is_silent = false) {
@@ -74,11 +77,9 @@ class progress_bar {
     std::cout << "[";
     for (int j = 0; j < _barWidth; ++j) {
       if (j < _pos)
-        std::cout << "=";
-      else if (j == _pos)
-        std::cout << ">";
+        std::cout << full;
       else
-        std::cout << " ";
+        std::cout << empty;
     }
     std::cout << "] " << int((_progress)*100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (_i >= _i_max) {
@@ -94,12 +95,10 @@ class progress_bar {
     _pos = _progress * _barWidth;
     std::cout << "[";
     for (int j = 0; j < _barWidth; ++j) {
-      if (j < _pos)
-        std::cout << "=";
-      else if (j == _pos)
-        std::cout << ">";
+      if (j <= _pos)
+        std::cout << full;
       else
-        std::cout << " ";
+        std::cout << empty;
     }
     std::cout << "] " << int((_progress)*100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (i == _i_max) {
@@ -118,12 +117,10 @@ class progress_bar {
     _pos = _progress * _barWidth;
     std::cout << title << ": [";
     for (int j = 0; j < _barWidth; ++j) {
-      if (j < _pos)
-        std::cout << "=";
-      else if (j == _pos)
-        std::cout << ">";
+      if (j <= _pos)
+        std::cout << full;
       else
-        std::cout << " ";
+        std::cout << empty;
     }
     std::cout << "] " << int((_progress)*100.0) << "% " << estimate_remaining_time() << "\r" << std::flush;
     if (i == i_max - 1) {

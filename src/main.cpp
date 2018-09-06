@@ -17,8 +17,8 @@
 
 int main(int argc, char *argv[]) {
   // set the number of threads for the parallel regions
-  // int n_threads = omp_get_max_threads();
-  int n_threads = std::min(omp_get_max_threads(), 15);
+  int n_threads = omp_get_max_threads();
+  // int n_threads = std::min(omp_get_max_threads(), 15);
   omp_set_num_threads(n_threads);
 
 
@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
   mc::monte_carlo sim(json_mc);
 
   sim.kubo_init();
+  sim.save_json_properties();
   sim.kubo_create_particles();
 
   while (sim.time() < sim.kubo_max_time()) {

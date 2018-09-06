@@ -38,7 +38,7 @@
     },
 
     "exciton monte carlo":{
-        "mesh input directory": "~/research/mesh/cnt_mesh_fiber.1",
+        "mesh input directory": "~/research/mesh/cnt_mesh_fiber",
         
         "output directory": "~/research/monte_carlo_fiber",
         "keep old results":true,
@@ -64,6 +64,6 @@
 
         "number of sections for injection region": 5,
         "maximum time for kubo simulation [seconds]": 1e-8,
-        "number of particles for kubo simulation": 100
+        "number of particles for kubo simulation": 2000
     }
 }

@@ -325,7 +325,7 @@ private:
 
   // find minimum of the minimum coordinates of the scattering objects, this function will effectively give us the
   // simulation domain
-  domain_t find_simulation_domain() {
+  domain_t find_simulation_domain() const {
     arma::vec min_coor = _all_scat_list.front().pos();
     arma::vec max_coor = _all_scat_list.front().pos();
 
@@ -335,17 +335,6 @@ private:
         max_coor(i) = max_coor(i) < s.pos(i) ? s.pos(i) : max_coor(i);
       }
     }
-
-    std::ios::fmtflags f(std::cout.flags());  // save cout flags to be reset after printing
-
-    std::cout << std::fixed << std::showpos;
-
-    std::cout << "\n simulation domain:\n";
-    std::cout << "    x (" << min_coor(0) * 1e9 << " , " << max_coor(0) * 1e9 << ") [nm]\n";
-    std::cout << "    y (" << min_coor(1) * 1e9 << " , " << max_coor(1) * 1e9 << ") [nm]\n";
-    std::cout << "    z (" << min_coor(2) * 1e9 << " , " << max_coor(2) * 1e9 << ") [nm]\n";
-
-    std::cout.flags(f);  // reset the cout flags
 
     return {min_coor, max_coor};
   };

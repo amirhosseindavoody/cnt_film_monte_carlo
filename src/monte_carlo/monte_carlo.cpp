@@ -122,8 +122,10 @@ namespace mc
               // prog.step();
               rate(i_th)(i_zsh, i_ash1, i_ash2) = ex_transfer.first_order(zsh, {ash1, ash2}, th, false);
               
-              #pragma omp atomic
-              prog.step();
+              #pragma omp critical
+              {
+                prog.step();
+              }
             }
           }
         }
@@ -260,17 +262,37 @@ namespace mc
     _scat_table = create_scattering_table(_json_prop);
     _all_scat_list = create_scatterers(_input_directory.path());
 
+    domain_t d = find_simulation_domain();
+    std::ios::fmtflags f(std::cout.flags()); // save cout flags to be reset after printing
+    std::cout << std::fixed << std::showpos;
+    std::cout << "\n"
+              << "simulation domain BEFORE trimming:\n"
+              << "    x (" << d.first(0) * 1e9 << " , " << d.second(0) * 1e9 << ") [nm]\n"
+              << "    y (" << d.first(1) * 1e9 << " , " << d.second(1) * 1e9 << ") [nm]\n"
+              << "    z (" << d.first(2) * 1e9 << " , " << d.second(2) * 1e9 << ") [nm]\n"
+              << std::endl;
+    std::cout.flags(f); // reset the cout flags
+
     limit_t xlim = _json_prop["trim limits"]["xlim"];
     limit_t ylim = _json_prop["trim limits"]["ylim"];
     limit_t zlim = _json_prop["trim limits"]["zlim"];
 
     trim_scats(xlim, ylim, zlim, _all_scat_list);
 
+    _domain = find_simulation_domain();
+    f = std::cout.flags(); // save cout flags to be reset after printing
+    std::cout << std::fixed << std::showpos;
+    std::cout << "\n"
+              << "simulation domain AFTER trimming:\n"
+              << "    x (" << _domain.first(0) * 1e9 << " , " << _domain.second(0) * 1e9 << ") [nm]\n"
+              << "    y (" << _domain.first(1) * 1e9 << " , " << _domain.second(1) * 1e9 << ") [nm]\n"
+              << "    z (" << _domain.first(2) * 1e9 << " , " << _domain.second(2) * 1e9 << ") [nm]\n"
+              << std::endl;
+    std::cout.flags(f); // reset the cout flags
+
     std::cout << "total number of scatterers: " << _all_scat_list.size() << std::endl;
 
     set_scat_table(_scat_table, _all_scat_list);
-
-    _domain = find_simulation_domain();
 
     create_scatterer_buckets(_domain, _max_hopping_radius, _all_scat_list, _scat_buckets);
     set_max_rate(_max_hopping_radius, _all_scat_list);

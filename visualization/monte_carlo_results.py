@@ -247,8 +247,8 @@ def main():
 
   args = parser.parse_args()
 
-  # directory = os.path.expanduser("~/research/monte_carlo_fiber")
-  directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
+  directory = os.path.expanduser("~/research/monte_carlo_fiber")
+  # directory = os.path.expanduser("~/research/monte_carlo_fiber_test")
 
   print(f'input directory is: "{directory}"')
 
@@ -499,139 +499,6 @@ def main():
     filename = os.path.join(directory, 'kubo_diffusion_coefficient.png')
     plt.savefig(filename, dpi=400)
     plt.show()
-
-  
-
-# # # Calculate diffusion coefficient
-# # $$ D = J/\big(\frac{dn}{dx}\big) $$
-# # has units of [$\text{m}^2/\text{s}$]
-
-# # In[49]:
-
-
-# diff_coef = np.divide(current,density_gradient)
-# x_axis = np.array(range(len(diff_coef)))
-# # x_axis = np.array([5,10,15,20])
-
-# fig = plt.figure(figsize=(10,9))
-# ax = fig.add_subplot(1,1,1)
-# ax.plot(x_axis, diff_coef[:len(x_axis)]*1.e4, linewidth=4, marker='o', markersize='14')
-
-# ax.axhline(y=diff_coef[-1]*1.e4, linewidth=4, color='red', linestyle='dashed')
-
-# ax.set_title("Diffusion coefficient", fontsize=30)
-# ax.set_ylabel("Diffusion coeffitient [cm$^2$/s]",fontsize=24)
-# ax.set_xlabel("Length of CNT section [nm]",fontsize=24)
-# ax.tick_params(labelsize=20)
-# ax.set_xlim([4.8,20.2])
-# ax.legend(['fixed section length', 'random section length\nbetween 5 nm and 20 nm'], fontsize=24)
-
-
-# # # Plot particle path
-
-# # In[51]:
-
-
-# # directories = [os.path.expanduser("~/research/monte_carlo_fiber")]
-
-# fig = plt.figure(figsize=(20,10))
-# ax = fig.add_subplot(111,projection='3d')
-# data = []
-# for directory in directories:
-#     for i in range(11,20):
-#         filename = os.path.join(directory,"particle_path."+str(i)+".dat")
-#         if not os.path.exists(filename):
-#             continue
-#         x,y,z = np.loadtxt(filename, unpack=True)
-#         ax.plot(z, x, y)
-#         ax.set_aspect('equal')
-
-#         trace = go.Scatter3d(
-#             x=z, y=x, z=y,
-#             marker=dict(
-#                 size=0,
-#                 colorscale='Viridis',
-#             ),
-#             line=dict(
-#                 width=1
-#             )
-#         )
-
-#         data.append(trace)
-
-
-# layout = dict(
-#     autosize=True,
-#     title='Iris dataset',
-#     scene=dict(
-#         xaxis=dict(
-#             gridcolor='rgb(255, 255, 255)',
-#             zerolinecolor='rgb(255, 255, 255)',
-#             showbackground=True,
-#             backgroundcolor='rgb(230, 230,230)'
-#         ),
-#         yaxis=dict(
-#             gridcolor='rgb(255, 255, 255)',
-#             zerolinecolor='rgb(255, 255, 255)',
-#             showbackground=True,
-#             backgroundcolor='rgb(230, 230,230)'
-#         ),
-#         zaxis=dict(
-#             gridcolor='rgb(255, 255, 255)',
-#             zerolinecolor='rgb(255, 255, 255)',
-#             showbackground=True,
-#             backgroundcolor='rgb(230, 230,230)'
-#         ),
-#         camera=dict(
-#             up=dict(
-#                 x=0,
-#                 y=0,
-#                 z=1
-#             ),
-#             eye=dict(
-#                 x=-1.7428,
-#                 y=1.0707,
-#                 z=0.7100,
-#             )
-#         ),
-#         aspectratio = dict( x=1, y=1, z=0.03 ),
-#         aspectmode = 'manual'
-#     ),
-# )
-
-# fig = go.Figure(data=data, layout=layout)
-# plo.plot(fig,filename=os.path.join(directory,"temp-pyplot.html"))
-
-
-# # # Perform statistical analysis of particle path
-
-# # In[22]:
-
-
-# directories = [os.path.expanduser("~/research/monte_carlo_fiber_track_particle.1")]
-# directories += [os.path.expanduser("~/research/monte_carlo_fiber_track_particle.2")]
-# directories += [os.path.expanduser("~/research/monte_carlo_fiber_track_particle.3")]
-
-# for directory in directories:
-#     print(directory)
-#     xmean, ymean, zmean = [], [], []
-#     std = {'x':[],'y':[],'z':[]}
-#     for file in os.listdir(directory):
-#         if file.startswith("particle_path"):
-#             fullpath = os.path.join(directory,file)
-#             x,y,z = np.loadtxt(fullpath, unpack=True)
-#             xmean += np.mean(x)
-#             ymean += np.mean(y)
-#             zmean += np.mean(z)
-#             std['x'].append(np.std(x))
-#             std['y'].append(np.std(y))
-#             std['z'].append(np.std(z))
-            
-#     std['x'] = np.array(std['x'])
-#     std['y'] = np.array(std['y'])
-#     std['z'] = np.array(std['z'])
-    
-#     print("standard deviation is [{:1.2e},{:1.2e},{:1.2e}]".format(np.mean(std['x']), np.mean(std['y']), np.mean(std['z'])))
 
 
 if __name__ == '__main__':
